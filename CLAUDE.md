@@ -191,6 +191,41 @@ deferred until licensee demand surfaces it — do not expand speculatively.
 
 ---
 
+## Database, migrations & CI — read before touching schema or `main`
+
+**Repo:** `Affectiv-Inc-Team/budget-sandbox` (formerly `AffectivBilling`). Lovable deploys to
+the production Supabase backend **from the `main` branch**.
+
+### Migration ownership: Lovable
+Lovable owns the database migrations. It introspects the cloud DB and emits a single
+**full-schema squash** as the canonical migration:
+
+- `supabase/migrations/20260615201552_fcac4baf-…​.sql` — the entire schema (profiles,
+  licensees, companies, licensee_companies, referral tracker + RLS, triggers, grants, SSN
+  RPCs). This is the source of truth that `supabase db reset` builds from.
+
+Do **not** re-add the old per-feature hand-authored migrations (`initial_schema`, `grant_*`,
+`referral_tracker`, …). They define the same objects as the squash and cause
+`relation "profiles" already exists (42P07)` when both are present. Keep exactly **one**
+canonical schema migration in the folder. New schema changes should come through Lovable; if
+hand-written, they must not duplicate objects the squash already creates. Never commit one-off
+data ops (e.g. `postgres_fdw` copies) as migration files — they run during `db reset`, reach
+external DBs, and have leaked credentials before.
+
+### CI gating on `main`
+A repository ruleset protects `main`: changes must land via PR and pass the **`unit`** and
+**`integration`** checks before merge, so tests run before Lovable deploys. The Lovable app
+(`lovable-dev[bot]`) is a bypass actor, so its direct-to-main deploy pushes still work.
+
+### Tests are the regression gate
+A Vitest + Playwright suite exists: `npm test` (unit/component), `npm run test:integration`,
+`npm run test:e2e`. The **integration suite runs against a local, ephemeral Supabase (Docker),
+reset from the migration each run — never Lovable/production**; a localhost guardrail in
+`tests/integration/setup.js` enforces this. That local instance *is* the isolated test DB —
+do not point it at a hosted backend.
+
+---
+
 ## Track B — what's coming next
 
 ### Supabase schema additions needed
@@ -237,9 +272,13 @@ server alone to catch parse errors.
 - **`FinancialTool.jsx` is a single 3,197-line file by design** — components are co-located,
   not split into separate files. Navigate by search: `calcHome`, `CompanyPL`, `SUB_TABS`,
   `export default function App`.
-- **No automated tests exist.** Verification is esbuild + manual browser testing.
-- **Track B RLS is not yet enforced.** The multi-licensee access model exists in the UI
-  (empty-state fallback) but has no schema backing until Track B lands.
+- **A Vitest + Playwright test suite now exists** (unit/component, integration, e2e) and gates
+  `main` via CI — see "Database, migrations & CI" above. esbuild + manual testing are still
+  useful for fast local checks, but tests are the regression gate.
+- **The schema and RLS now exist** in the canonical Lovable migration (profiles, companies,
+  licensees, licensee_companies, referral tracker, with RLS policies). The Track B *app code*
+  (SuperAdmin provisioning UI, `loadAssignedCompanies`, etc.) is still pending, and there is a
+  known RLS over-restriction finding open for normal (non-super-admin) users.
 
 ---
 
