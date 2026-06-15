@@ -14,13 +14,484 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      companies: {
+        Row: {
+          archived: boolean
+          config: Json
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          config?: Json
+          created_at?: string
+          id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          config?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      licensee_companies: {
+        Row: {
+          assigned_at: string
+          company_id: string
+          licensee_id: string
+          role: string
+        }
+        Insert: {
+          assigned_at?: string
+          company_id: string
+          licensee_id: string
+          role?: string
+        }
+        Update: {
+          assigned_at?: string
+          company_id?: string
+          licensee_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensee_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensee_companies_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensees: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_super_admin: boolean
+          role: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          is_super_admin?: boolean
+          role?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_super_admin?: boolean
+          role?: string | null
+        }
+        Relationships: []
+      }
+      referral_activity: {
+        Row: {
+          author_id: string | null
+          body: string | null
+          company_id: string
+          created_at: string
+          id: string
+          kind: string
+          referral_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          kind?: string
+          referral_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          referral_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_activity_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_activity_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_activity_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          company_id: string | null
+          created_at: string
+          detail: Json | null
+          field: string | null
+          id: string
+          referral_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          field?: string | null
+          id?: string
+          referral_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          field?: string | null
+          id?: string
+          referral_id?: string | null
+        }
+        Relationships: []
+      }
+      referral_contacts: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          kind: string
+          name: string | null
+          ok_to_share: boolean
+          phone: string | null
+          referral_id: string
+          relationship: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          kind?: string
+          name?: string | null
+          ok_to_share?: boolean
+          phone?: string | null
+          referral_id: string
+          relationship?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          kind?: string
+          name?: string | null
+          ok_to_share?: boolean
+          phone?: string | null
+          referral_id?: string
+          relationship?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_contacts_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_ssn: {
+        Row: {
+          referral_id: string
+          ssn_encrypted: string
+          updated_at: string
+        }
+        Insert: {
+          referral_id: string
+          ssn_encrypted: string
+          updated_at?: string
+        }
+        Update: {
+          referral_id?: string
+          ssn_encrypted?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_ssn_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: true
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          company_id: string
+          from_stage: string | null
+          id: string
+          referral_id: string
+          to_stage: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          company_id: string
+          from_stage?: string | null
+          id?: string
+          referral_id: string
+          to_stage?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          company_id?: string
+          from_stage?: string | null
+          id?: string
+          referral_id?: string
+          to_stage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_status_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_status_history_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          assigned_to: string | null
+          city: string | null
+          client_record_link: string | null
+          company_id: string
+          county: string | null
+          created_at: string
+          created_by: string | null
+          date_received: string | null
+          decision_date: string | null
+          details: Json
+          display_label: string | null
+          dob: string | null
+          first_name: string | null
+          id: string
+          intake_method: string | null
+          is_minor: boolean | null
+          last_activity_at: string
+          last_name: string | null
+          next_followup_date: string | null
+          next_followup_owner: string | null
+          outcome: string | null
+          outcome_reason: string | null
+          pay_source: string | null
+          preferred_name: string | null
+          priority: string
+          referring_party: Json | null
+          region: string | null
+          service_level: string | null
+          source_type: string | null
+          ssn_last4: string | null
+          stage: string
+          stage_entered_at: string
+          state: string | null
+          tsc: Json | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          city?: string | null
+          client_record_link?: string | null
+          company_id: string
+          county?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_received?: string | null
+          decision_date?: string | null
+          details?: Json
+          display_label?: string | null
+          dob?: string | null
+          first_name?: string | null
+          id?: string
+          intake_method?: string | null
+          is_minor?: boolean | null
+          last_activity_at?: string
+          last_name?: string | null
+          next_followup_date?: string | null
+          next_followup_owner?: string | null
+          outcome?: string | null
+          outcome_reason?: string | null
+          pay_source?: string | null
+          preferred_name?: string | null
+          priority?: string
+          referring_party?: Json | null
+          region?: string | null
+          service_level?: string | null
+          source_type?: string | null
+          ssn_last4?: string | null
+          stage?: string
+          stage_entered_at?: string
+          state?: string | null
+          tsc?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          city?: string | null
+          client_record_link?: string | null
+          company_id?: string
+          county?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_received?: string | null
+          decision_date?: string | null
+          details?: Json
+          display_label?: string | null
+          dob?: string | null
+          first_name?: string | null
+          id?: string
+          intake_method?: string | null
+          is_minor?: boolean | null
+          last_activity_at?: string
+          last_name?: string | null
+          next_followup_date?: string | null
+          next_followup_owner?: string | null
+          outcome?: string | null
+          outcome_reason?: string | null
+          pay_source?: string | null
+          preferred_name?: string | null
+          priority?: string
+          referring_party?: Json | null
+          region?: string | null
+          service_level?: string | null
+          source_type?: string | null
+          ssn_last4?: string | null
+          stage?: string
+          stage_entered_at?: string
+          state?: string | null
+          tsc?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_next_followup_owner_fkey"
+            columns: ["next_followup_owner"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_edit_company: { Args: { p_company_id: string }; Returns: boolean }
+      has_company_access: { Args: { p_company_id: string }; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
+      profile_role_tier: { Args: never; Returns: number }
+      referral_reveal_ssn: { Args: { p_referral_id: string }; Returns: string }
+      referral_set_ssn: {
+        Args: { p_referral_id: string; p_ssn: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
