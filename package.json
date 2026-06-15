@@ -16,7 +16,7 @@
     "test:e2e:ui": "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep '^SECRET_KEY=' | cut -d'\"' -f2) playwright test --config tests/e2e/playwright.config.js --ui"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.105.4",
+    "@supabase/supabase-js": "^2.108.2",
     "posthog-js": "^1.386.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
