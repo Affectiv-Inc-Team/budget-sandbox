@@ -14,21 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _migration_src_tables: {
-        Row: {
-          col_count: number | null
-          table_name: unknown
-        }
-        Insert: {
-          col_count?: number | null
-          table_name?: unknown
-        }
-        Update: {
-          col_count?: number | null
-          table_name?: unknown
-        }
-        Relationships: []
-      }
       companies: {
         Row: {
           archived: boolean
