@@ -2711,7 +2711,22 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
     return sl.id;
   };
 
-  const setIndHomes  = (updater) => ensureSLAndUpdate(SERVICE_LINE_TYPES.RES_HAB_DAILY, "indHomes", updater);
+  const setIndHomes = (updater) => {
+    const sl = company?.serviceLines.find(s => s.type === SERVICE_LINE_TYPES.RES_HAB_DAILY && !s.archived);
+    if (!sl) {
+      // SL doesn't exist yet — create it with the initial value
+      const initial = typeof updater === 'function' ? updater([]) : updater;
+      ensureSLAndUpdate(SERVICE_LINE_TYPES.RES_HAB_DAILY, "indHomes", () => initial);
+      return;
+    }
+    // Apply updater to the full render-time list (includes legacy config.homes expansion)
+    const updated = typeof updater === 'function' ? updater(indHomes) : updater;
+    updateServiceLineConfig(sl.id, cfg => ({
+      ...cfg,
+      indHomes: updated,
+      ...(cfg.homes?.length ? { homes: [] } : {}),
+    }));
+  };
   const setHourlyPx  = (updater) => ensureSLAndUpdate(SERVICE_LINE_TYPES.RES_HAB_HOURLY, "participants", updater);
 
   // ── Computations ──
