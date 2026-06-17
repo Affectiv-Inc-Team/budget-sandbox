@@ -227,7 +227,7 @@ function calcHourlyParticipant(p, rates, wage) {
 
 const M = { fontFamily:"'DM Mono',monospace" };
 
-function Slider({ label, value, min, max, step=1, onChange, color="#D4A520", format }) {
+function Slider({ label, value, min, max, step=1, onChange, color="#0E6B78", format }) {
   const p = ((value-min)/(max-min))*100;
   return (
     <div>
@@ -250,7 +250,7 @@ function Slider({ label, value, min, max, step=1, onChange, color="#D4A520", for
   );
 }
 
-function Stepper({ label, value, min=0, max=3, onChange, color="#5a3800", disabled }) {
+function Stepper({ label, value, min=0, max=3, onChange, color="#0A3D47", disabled }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5 }}>
       <div style={{ fontSize:9, color:disabled?"#9a8050":"#5a4020", textTransform:"uppercase", letterSpacing:0.8, ...M, textAlign:"center" }}>{label}</div>
@@ -283,7 +283,7 @@ function MarginRing({ p, size=52 }) {
   const r=(size/2)-5, circ=2*Math.PI*r, col=mc(Math.max(0,p));
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#f8f6f0" strokeWidth={4.5}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#FAF4E8" strokeWidth={4.5}/>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={col} strokeWidth={4.5}
         strokeDasharray={circ} strokeDashoffset={circ*(1-Math.max(0,Math.min(1,p)))}
         strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}/>
@@ -320,7 +320,7 @@ function MixBadges({ nHigh, nIntense, size=22 }) {
       {Array(nHigh).fill("H").concat(Array(nIntense).fill("I")).concat(Array(Math.max(0,3-nHigh-nIntense)).fill(null)).map((s,i)=>(
         <div key={i} style={{ width:size, height:size, borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center",
           fontSize:9, fontWeight:800, ...M,
-          background:s==="H"?"#C9921A20":s==="I"?"#D4A52020":"#f8f6f0",
+          background:s==="H"?"#C9921A20":s==="I"?"#D4A52020":"#FAF4E8",
           border:s==="H"?"1px solid #C9921A60":s==="I"?"1px solid #D4A52060":"1px dashed #d0dae8",
           color:s==="H"?"#C9921A":s==="I"?"#D4A520":"#d5c898",
         }}>{s||"·"}</div>
@@ -403,12 +403,12 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, 
   const fw = t => t==="ebitda"||t==="net" ? 800 : bd(t) ? 700 : t==="hdr" ? 600 : 400;
 
   return (
-    <div style={{ background:"#f8f6f0", borderRadius:13, border:"1px solid #d0dae8", overflow:"hidden" }}>
+    <div style={{ background:"#FAF4E8", borderRadius:13, border:"1px solid #d0dae8", overflow:"hidden" }}>
       <div style={{ padding:"16px 20px", borderBottom:"1px solid #d0dae8" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <SL>{title ?? `Annual P&L — ${co.totalHomes} homes / ${co.totalClients} clients`}</SL>
           {showDollars && (
-            <button onClick={()=>setShowEdit(!showEdit)} style={{ fontSize:10, color:"#D4A520", background:"none", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 10px", cursor:"pointer", ...M }}>
+            <button onClick={()=>setShowEdit(!showEdit)} style={{ fontSize:10, color:"#0E6B78", background:"none", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 10px", cursor:"pointer", ...M }}>
               {showEdit?"▲ Done":"▼ Edit Overhead"}
             </button>
           )}
@@ -442,7 +442,7 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, 
                     <span style={{ fontSize:9, color:"#9a8050" }}>$</span>
                     <input type="number" value={r[sec.valKey]} min={0} step={sec.step}
                       onChange={e=>sec.onEdit(r.id, Number(e.target.value))}
-                      style={{ width:68, background:"none", border:"none", color:"#5a3800", ...M, fontSize:11, fontWeight:700, outline:"none", textAlign:"right" }}/>
+                      style={{ width:68, background:"none", border:"none", color:"#0A3D47", ...M, fontSize:11, fontWeight:700, outline:"none", textAlign:"right" }}/>
                   </div>
                 </div>
               ))}
@@ -494,12 +494,12 @@ function getLaborApprovalStatus(laborRatio, total) {
 function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
   const showDollars = canSeeCompanyDollars(userRole);
   const topChips = [
-    { l:"24hr Clients",  v:co.totalClients, c:"#D4A520", f:n=>n },
-    ...(hourlyCount > 0  ? [{ l:"Hourly Clients", v:hourlyCount,  c:"#C9921A", f:n=>n }] : []),
-    ...(tscCaseload > 0  ? [{ l:"TSC Caseload",   v:tscCaseload,  c:"#C9921A", f:n=>n }] : []),
-    { l:"Homes",         v:co.totalHomes,   c:"#C9921A", f:n=>n },
+    { l:"24hr Clients",  v:co.totalClients, c:"#0E6B78", f:n=>n },
+    ...(hourlyCount > 0  ? [{ l:"Hourly Clients", v:hourlyCount,  c:"#0A5260", f:n=>n }] : []),
+    ...(tscCaseload > 0  ? [{ l:"TSC Caseload",   v:tscCaseload,  c:"#0A5260", f:n=>n }] : []),
+    { l:"Homes",         v:co.totalHomes,   c:"#0A5260", f:n=>n },
     ...(showDollars ? [
-      { l:"Net Revenue", v:co.annualRevNet, c:"#5a3800", f:$k },
+      { l:"Net Revenue", v:co.annualRevNet, c:"#0A3D47", f:$k },
       { l:"EBITDA",      v:co.ebitda,       c:mc(Math.max(0,co.ebitdaMargin)), f:$k },
     ] : []),
     { l:"EBITDA Mgn",    v:co.ebitdaMargin, c:mc(Math.max(0,co.ebitdaMargin)), f:pct },
@@ -588,7 +588,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
       {/* Header + approval badge row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 14, color: "#D4A520", letterSpacing: 2, marginBottom: 3 }}>Home Labor Efficiency</div>
+          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 14, color: "#0E6B78", letterSpacing: 2, marginBottom: 3 }}>Home Labor Efficiency</div>
           <div style={{ fontSize: 10, color: "#64748b", ...M }}>Model a home's staffing ratios — all figures expressed as percentages of revenue</div>
         </div>
         {total > 0 && (
@@ -614,7 +614,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
                 <div style={{ fontSize: 9, color: "#475569", textTransform: "uppercase", ...M }}>Total</div>
                 <div style={{ width: 50, height: 26, display: "flex", alignItems: "center", justifyContent: "center", background: "#e6ebf3", borderRadius: 7, border: "1px solid #d0dae8" }}>
-                  <span style={{ fontWeight: 800, color: total === 3 ? "#00e5aa" : total === 0 ? "#f87171" : "#5a3800", ...M, fontSize: 15 }}>{total}/3</span>
+                  <span style={{ fontWeight: 800, color: total === 3 ? "#00e5aa" : total === 0 ? "#f87171" : "#0A3D47", ...M, fontSize: 15 }}>{total}/3</span>
                 </div>
               </div>
             </div>
@@ -632,7 +632,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
             <div>
               <SL>Intense Billing Method</SL>
               <Toggle value={billing} onChange={setBilling} options={[
-                { value: "normal",  label: "Normal (Daily Rate)", color: "#D4A520" },
+                { value: "normal",  label: "Normal (Daily Rate)", color: "#0E6B78" },
                 { value: "blended", label: "Blended (Unit Rates)", color: "#E8C44A" },
               ]} small/>
             </div>
@@ -642,7 +642,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
             <div style={{ background: "#f0f6ff", borderRadius: 9, border: "1px solid #c8d4e4", padding: "10px 12px" }}>
               <SL>High Support — 1:1 Hrs/Week</SL>
               <Slider label="1:1 hrs/week per client" value={hhrsPerWeek} min={0} max={40} step={1}
-                onChange={setHhrsPerWeek} color="#C9921A" format={v => `${v} hrs/wk`}/>
+                onChange={setHhrsPerWeek} color="#0A5260" format={v => `${v} hrs/wk`}/>
               {hhrsPerWeek > 0 && (
                 <div style={{ fontSize: 9, color: "#475569", marginTop: 4, ...M }}>
                   {(hhrsPerWeek/7*nHigh).toFixed(1)} staff hrs/day · billed U2 rate
@@ -668,7 +668,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
             <SL>Staff Wage</SL>
             <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
               {["Use Global", "Custom"].map((l, i) => (
-                <button key={l} onClick={() => setUseGlobal(i === 0)} style={{ flex: 1, padding: "5px", border: "none", borderRadius: 5, cursor: "pointer", background: (i === 0) === useGlobal ? "#dce8f4" : "#e6ebf3", color: (i === 0) === useGlobal ? "#D4A520" : "#64748b", ...M, fontSize: 10, fontWeight: 700 }}>{l}</button>
+                <button key={l} onClick={() => setUseGlobal(i === 0)} style={{ flex: 1, padding: "5px", border: "none", borderRadius: 5, cursor: "pointer", background: (i === 0) === useGlobal ? "#dce8f4" : "#e6ebf3", color: (i === 0) === useGlobal ? "#0E6B78" : "#64748b", ...M, fontSize: 10, fontWeight: 700 }}>{l}</button>
               ))}
             </div>
             {useGlobal
@@ -685,7 +685,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
           {total > 0 && canSeeCompanyDollars(userRole) && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
-                { l: "Daily Revenue",  v: $d(m.rev),              c: "#5a3800", sz: 20 },
+                { l: "Daily Revenue",  v: $d(m.rev),              c: "#0A3D47", sz: 20 },
                 { l: "Daily Gross",    v: $d(m.gross),            c: mc(m.margin), sz: 20 },
                 { l: "Gross Margin",   v: pct(m.margin),          c: mc(m.margin), sz: 28 },
                 wageDisplayMode(userRole) !== 'hidden' && { l: "$/Labor Hr", v: `$${m.plHr.toFixed(2)}`, c: "#f59e0b", sz: 20 },
@@ -694,7 +694,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
                 { l: "Annual Labor",   v: $k(m.annualLabor),      c: "#f87171", sz: 16 },
                 { l: "Labor Hrs/Day",  v: m.laborHrs + "hrs",     c: "#5a4020", sz: 16 },
               ].filter(Boolean).map((s, i) => (
-                <div key={i} style={{ background: "#f8f6f0", borderRadius: 10, padding: "13px 15px", border: "1px solid #d0dae8" }}>
+                <div key={i} style={{ background: "#FAF4E8", borderRadius: 10, padding: "13px 15px", border: "1px solid #d0dae8" }}>
                   <div style={{ fontSize: 9, color: "#5a4020", textTransform: "uppercase", letterSpacing: 1.5, ...M, marginBottom: 5 }}>{s.l}</div>
                   <div style={{ fontSize: s.sz, fontWeight: 800, color: s.c, ...M }}>{s.v}</div>
                 </div>
@@ -776,7 +776,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
                         <span style={{ fontSize: 11, color: r.bold ? "#6a4c10" : "#5a7498" }}>{r.l}</span>
                         {r.sub && <div style={{ fontSize: 9, color: "#64748b", ...M, marginTop: 1 }}>{r.sub}</div>}
                       </div>
-                      <span style={{ fontSize: r.bold ? 15 : 12, fontWeight: r.bold ? 800 : 600, color: r.bold ? "#5a3800" : "#6a4818", ...M }}>
+                      <span style={{ fontSize: r.bold ? 15 : 12, fontWeight: r.bold ? 800 : 600, color: r.bold ? "#0A3D47" : "#6a4818", ...M }}>
                         {r.hrs}hrs{canSeeCompanyDollars(userRole) ? ` · ${$d(r.cost)}` : ""}
                       </span>
                     </div>
@@ -802,7 +802,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
                   <div style={{ fontSize: 8, color: lrc(s.laborRatio), ...M, fontWeight: 700 }}>{(s.laborRatio * 100).toFixed(0)}%</div>
                   <div style={{ width: "100%", borderRadius: "3px 3px 0 0", height: `${barH}px`, transition: "height 0.3s", background: sel ? lrc(s.laborRatio) : lrc(s.laborRatio) + "55", border: sel ? `1px solid ${lrc(s.laborRatio)}` : "none" }}/>
                   <div style={{ fontSize: 8.5, color: ap.color }}>{ap.icon}</div>
-                  <div style={{ fontSize: 8, color: sel ? "#5a3800" : "#64748b", ...M }}>{s.gh}hr</div>
+                  <div style={{ fontSize: 8, color: sel ? "#0A3D47" : "#64748b", ...M }}>{s.gh}hr</div>
                 </div>
               );
             })}
@@ -818,7 +818,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
 
       {/* 5-year projection — tier 1–3 only */}
       {canSeeCompanyDollars(userRole) && (
-        <div style={{ background: "#f8f6f0", borderRadius: 12, border: "1px solid #d0dae8", overflow: "hidden" }}>
+        <div style={{ background: "#FAF4E8", borderRadius: 12, border: "1px solid #d0dae8", overflow: "hidden" }}>
           <div style={{ padding: "14px 20px", borderBottom: "1px solid #e0e8f0" }}>
             <SL>5-Year Projection — 5% Annual Growth</SL>
           </div>
@@ -837,7 +837,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
                 return (
                   <tr key={i} style={{ borderBottom: "1px solid #e8edf3", background: i === 0 ? "#ebebeb" : "transparent" }}>
                     <td style={{ padding: "9px 14px", fontWeight: 700, color: "#6a4c10", ...M }}>{yr + i}{i === 0 ? " (Yr 1)" : ""}</td>
-                    <td style={{ padding: "9px 14px", color: "#5a3800", ...M }}>{$k(r.rev)}</td>
+                    <td style={{ padding: "9px 14px", color: "#0A3D47", ...M }}>{$k(r.rev)}</td>
                     <td style={{ padding: "9px 14px", color: "#f87171", ...M }}>{$k(r.labor)}</td>
                     <td style={{ padding: "9px 14px", fontWeight: 700, color: mc(mp), ...M }}>{$k(r.gross)}</td>
                     <td style={{ padding: "9px 14px", fontWeight: 700, color: mc(mp), ...M }}>{pct(mp)}</td>
@@ -867,7 +867,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
               const ap = getLaborApprovalStatus(row.laborRatio, total);
               return (
                 <tr key={i} style={{ borderBottom: "1px solid #e8edf3", background: row.isCurrent ? "#edf2f8" : "transparent" }}>
-                  <td style={{ padding: "9px 14px", ...M, fontSize: 12, fontWeight: row.isCurrent ? 800 : 400, color: row.isCurrent ? "#D4A520" : "#5a7498" }}>
+                  <td style={{ padding: "9px 14px", ...M, fontSize: 12, fontWeight: row.isCurrent ? 800 : 400, color: row.isCurrent ? "#0E6B78" : "#5a7498" }}>
                     ${row.wage.toFixed(2)}/hr{row.isCurrent ? " ← current" : ""}
                   </td>
                   <td style={{ padding: "9px 14px", fontSize: 14, fontWeight: 800, color: lrc(row.laborRatio), ...M }}>
@@ -948,7 +948,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
       <div>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <SL>Homes ({homes.length})</SL>
-          {canEdit && <button onClick={onAdd} style={{ fontSize:10, color:"#D4A520", background:"#3a280022", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 8px", cursor:"pointer", ...M }}>+ Add</button>}
+          {canEdit && <button onClick={onAdd} style={{ fontSize:10, color:"#0E6B78", background:"#3a280022", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 8px", cursor:"pointer", ...M }}>+ Add</button>}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
           {homes.map(h=>{
@@ -964,7 +964,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                 transition:"all 0.15s",
               }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:11, fontWeight:700, color:s?"#5a3800":"#7a6040" }}>{h.label}</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:s?"#0A3D47":"#7a6040" }}>{h.label}</span>
                   <span style={{ fontSize:11, fontWeight:700, color:mc(hm.margin), ...M }}>{pct(hm.margin)}</span>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:4 }}>
@@ -976,7 +976,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
           })}
         </div>
         {/* Reimbursement Rates */}
-        {canSeeControl(userRole, 'resHabRates') && <div style={{ marginTop:10, padding:"10px 12px", background:"#f8f6f0", borderRadius:9, border:"1px solid #e0e8f0", pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
+        {canSeeControl(userRole, 'resHabRates') && <div style={{ marginTop:10, padding:"10px 12px", background:"#FAF4E8", borderRadius:9, border:"1px solid #e0e8f0", pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
           <button onClick={() => setRatesOpen(o => !o)} style={{
             background:"none", border:"none", cursor:"pointer", padding:0,
             display:"flex", alignItems:"center", gap:6, width:"100%",
@@ -1023,7 +1023,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
         </div>}
 
         {/* Portfolio stats */}
-        <div style={{ marginTop:10, padding:"12px 14px", background:"#f8f6f0", borderRadius:9, border:"1px solid #e0dbd4" }}>
+        <div style={{ marginTop:10, padding:"12px 14px", background:"#FAF4E8", borderRadius:9, border:"1px solid #e0dbd4" }}>
           <SL>Portfolio</SL>
           {[
             ["Homes",       homes.length],
@@ -1034,7 +1034,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
           ].filter(Boolean).map(([l,v])=>(
             <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0" }}>
               <span style={{ fontSize:10, color:"#5a4020", ...M }}>{l}</span>
-              <span style={{ fontSize:10, fontWeight:700, color:"#5a3800", ...M }}>{v}</span>
+              <span style={{ fontSize:10, fontWeight:700, color:"#0A3D47", ...M }}>{v}</span>
             </div>
           ))}
         </div>
@@ -1042,14 +1042,14 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
 
       {/* Right: editor */}
       {sel && m && (
-        <div style={{ background:"#f8f6f0", borderRadius:13, border:`1px solid ${mc(m.margin)}22`, borderLeft:`3px solid ${mc(m.margin)}`, overflow:"hidden" }}>
+        <div style={{ background:"#FAF4E8", borderRadius:13, border:`1px solid ${mc(m.margin)}22`, borderLeft:`3px solid ${mc(m.margin)}`, overflow:"hidden" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px", borderBottom:"1px solid #e0e8f0" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
               <MarginRing p={m.margin} size={48}/>
               <div>
                 <input value={sel.label} onChange={canEdit ? e=>onUpdate(sel.id,"label",e.target.value) : undefined}
                   readOnly={!canEdit}
-                  style={{ background:"none", border:"none", color:"#5a3800", fontWeight:800, fontSize:15, fontFamily:"'Sora',sans-serif", padding:0, width:200, outline:"none", cursor: canEdit ? undefined : "default" }}/>
+                  style={{ background:"none", border:"none", color:"#0A3D47", fontWeight:800, fontSize:15, fontFamily:"'Sora',sans-serif", padding:0, width:200, outline:"none", cursor: canEdit ? undefined : "default" }}/>
                 <div style={{ fontSize:10, color:"#9a8050", ...M, marginTop:2 }}>
                   {m.laborHrs}hr labor{showDollars ? ` · ${$d(m.rev)} rev` : ""}{showDollars ? ` · ${$d(m.labor)} labor cost/day` : ""}
                 </div>
@@ -1096,7 +1096,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                     const tm=calcHome({...sel,groupHrs:gh},wage,rates,graveyardWage);
                     return (
                       <div key={gh} onClick={canEdit ? ()=>onUpdate(sel.id,"groupHrs",gh) : undefined}
-                        style={{ padding:"7px 0", background:sel.groupHrs===gh?"#e8f1fb":"#f4f1ea", borderRadius:7, border:sel.groupHrs===gh?"1px solid #D4A52040":"1px solid #e0e8f0", cursor: canEdit ? "pointer" : "default", textAlign:"center" }}>
+                        style={{ padding:"7px 0", background:sel.groupHrs===gh?"#e8f1fb":"#f4f1ea", borderRadius:7, border:sel.groupHrs===gh?"1px solid #0E6B7840":"1px solid #e0e8f0", cursor: canEdit ? "pointer" : "default", textAlign:"center" }}>
                         <div style={{ fontSize:9, color:"#5a4020", ...M }}>{gh}hr</div>
                         <div style={{ fontSize:11, fontWeight:700, color:mc(tm.margin), ...M }}>{pct(tm.margin)}</div>
                         {showDollars && <div style={{ fontSize:9, color:"#7a5020", ...M }}>{$d(tm.gross)}</div>}
@@ -1122,7 +1122,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                 )}
                 {canSeeControl(userRole, 'occupancy') && (
                   <Slider label="Occupancy Rate" value={occupancy} min={60} max={100} step={1}
-                    onChange={setOccupancy} color="#D4A520" format={v=>`${v}%`}/>
+                    onChange={setOccupancy} color="#0E6B78" format={v=>`${v}%`}/>
                 )}
               </div>
             </div>
@@ -1132,7 +1132,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
               <div style={{ pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
                 <SL>Intense Billing</SL>
                 <Toggle value={sel.billingType} onChange={v=>onUpdate(sel.id,"billingType",v)} options={[
-                  { value:"normal",  label:showDollars ? `Normal (Daily $${rates.intenseDaily.toFixed(2)})` : "Normal (Daily Rate)", color:"#D4A520" },
+                  { value:"normal",  label:showDollars ? `Normal (Daily $${rates.intenseDaily.toFixed(2)})` : "Normal (Daily Rate)", color:"#0E6B78" },
                   { value:"blended", label:"Blended (Unit Billing)",  color:"#E8C44A" },
                 ]}/>
               </div>
@@ -1142,7 +1142,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
               <div style={{ background:"#f0f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
                 <SL>High Support — 1:1 Individual Hours</SL>
                 <Slider label="1:1 hrs/week per High Support client" value={sel.hhrsPerWeek||0} min={0} max={40} step={1}
-                  onChange={v=>onUpdate(sel.id,"hhrsPerWeek",v)} color="#C9921A" format={v=>`${v} hrs/wk`}/>
+                  onChange={v=>onUpdate(sel.id,"hhrsPerWeek",v)} color="#0A5260" format={v=>`${v} hrs/wk`}/>
                 {(sel.hhrsPerWeek||0) > 0 && (
                   <div style={{ fontSize:9, color:"#475569", marginTop:5, ...M }}>
                     {((sel.hhrsPerWeek||0)/7*sel.nHigh).toFixed(1)} staff hrs/day · billed U2 individual rate
@@ -1168,7 +1168,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             <div style={{ background:"#ebebeb", borderRadius:10, overflow:"hidden", border:"1px solid #e0e8f0" }}>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)" }}>
                 {[
-                  showDollars    && { l:"Daily Revenue",  v:$d(m.rev),               c:"#5a3800" },
+                  showDollars    && { l:"Daily Revenue",  v:$d(m.rev),               c:"#0A3D47" },
                   showWageCost   && { l:"Daily Labor",    v:$d(m.labor),             c:"#f87171" },
                   showDollars    && { l:"Daily Gross",    v:$d(m.gross),             c:mc(m.margin) },
                                     { l:"Margin",         v:pct(m.margin),           c:mc(m.margin) },
@@ -1197,7 +1197,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                 ].filter(r=>r.hrs>0||r.bold).map((r,i)=>(
                   <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"5px 8px", background:r.bold?"#ebebeb":"transparent", borderRadius:r.bold?6:0, borderTop:r.bold?"1px solid #d0dae8":"none" }}>
                     <span style={{ fontSize:11, color:r.bold?"#6a4c10":"#5a4020" }}>{r.l}</span>
-                    <span style={{ fontSize:11, fontWeight:r.bold?800:600, color:r.bold?"#5a3800":"#6a4818", ...M }}>{r.hrs}hr · {$d(r.cost)}</span>
+                    <span style={{ fontSize:11, fontWeight:r.bold?800:600, color:r.bold?"#0A3D47":"#6a4818", ...M }}>{r.hrs}hr · {$d(r.cost)}</span>
                   </div>
                 ))}
               </div>
@@ -1235,7 +1235,7 @@ function Sidebar({ entityType, setEntityType, ownerRate, setOwnerRate, mgmtFeePc
         <div>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: feesOpen ? 12 : 0 }}>
             <SL>Variable Fees</SL>
-            <button onClick={()=>setFeesOpen(!feesOpen)} style={{ fontSize:9, color:"#D4A520", background:"none", border:"1px solid #d0dae8", borderRadius:4, padding:"2px 7px", cursor:"pointer", ...M }}>
+            <button onClick={()=>setFeesOpen(!feesOpen)} style={{ fontSize:9, color:"#0E6B78", background:"none", border:"1px solid #d0dae8", borderRadius:4, padding:"2px 7px", cursor:"pointer", ...M }}>
               {feesOpen?"▲":"▼"}
             </button>
           </div>
@@ -1249,7 +1249,7 @@ function Sidebar({ entityType, setEntityType, ownerRate, setOwnerRate, mgmtFeePc
                 </div>
               </div>
               <div>
-                <Slider label="Billing Fee" value={billingFeePct} min={1} max={5} step={0.25} onChange={setBillingFeePct} color="#C9921A" format={v=>`${v}%`}/>
+                <Slider label="Billing Fee" value={billingFeePct} min={1} max={5} step={0.25} onChange={setBillingFeePct} color="#0A5260" format={v=>`${v}%`}/>
                 <div style={{ display:"flex", justifyContent:"space-between", marginTop:5 }}>
                   <span style={{ fontSize:9, color:"#7a5020", ...M }}>Standard 1%</span>
                   <span style={{ fontSize:9, color: billingFeePct===1?"#7a5020":"#C9921A", fontWeight:700, ...M }}>{billingFeePct !== 1 ? `+${(billingFeePct - 1).toFixed(2)}pp vs. standard` : "at standard"}</span>
@@ -1264,14 +1264,14 @@ function Sidebar({ entityType, setEntityType, ownerRate, setOwnerRate, mgmtFeePc
         <div>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: taxOpen ? 10 : 0 }}>
             <SL>Tax Structure</SL>
-            <button onClick={()=>setTaxOpen(!taxOpen)} style={{ fontSize:9, color:"#D4A520", background:"none", border:"1px solid #d0dae8", borderRadius:4, padding:"2px 7px", cursor:"pointer", ...M }}>
+            <button onClick={()=>setTaxOpen(!taxOpen)} style={{ fontSize:9, color:"#0E6B78", background:"none", border:"1px solid #d0dae8", borderRadius:4, padding:"2px 7px", cursor:"pointer", ...M }}>
               {taxOpen?"▲":"▼"}
             </button>
           </div>
           {taxOpen && (
             <>
               <Toggle value={entityType} onChange={setEntityType} options={[
-                { value:"ccorp",       label:"C-Corp",      color:"#D4A520" },
+                { value:"ccorp",       label:"C-Corp",      color:"#0E6B78" },
                 { value:"passthrough", label:"Pass-Through", color:"#E8C44A" },
               ]} small/>
               {entityType==="ccorp" ? (
@@ -1334,8 +1334,8 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
   const showWageCost = wageDisplayMode(userRole) !== 'hidden';
 
   const kpiItems = [
-    { l:"Hourly Participants", v:participants.length,           c:"#D4A520", f:n=>n },
-    showDollars && { l:"Annual Revenue",     v:totals.annualRev,              c:"#5a3800", f:$k  },
+    { l:"Hourly Participants", v:participants.length,           c:"#0E6B78", f:n=>n },
+    showDollars && { l:"Annual Revenue",     v:totals.annualRev,              c:"#0A3D47", f:$k  },
     showDollars && { l:"Annual Gross",       v:totals.annualGross,            c:mc(Math.max(0,totals.avgMargin)), f:$k },
     { l:"Avg Gross Margin",   v:totals.avgMargin,              c:mc(Math.max(0,totals.avgMargin)), f:pct },
   ].filter(Boolean);
@@ -1345,7 +1345,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
       {/* KPI strip */}
       <div style={{ display:"grid", gridTemplateColumns:`repeat(${kpiItems.length},1fr)`, gap:10 }}>
         {kpiItems.map((s,i)=>(
-          <div key={i} style={{ background:"#141d2c", borderRadius:10, padding:"14px 16px", border:"1px solid #c8d4e4" }}>
+          <div key={i} style={{ background:"#0A2C35", borderRadius:10, padding:"14px 16px", border:"1px solid #c8d4e4" }}>
             <div style={{ fontSize:9, color:"#5a7498", textTransform:"uppercase", letterSpacing:1.5, ...M, marginBottom:6 }}>{s.l}</div>
             <div style={{ fontSize:20, fontWeight:800, color:s.c, ...M }}>{s.f(s.v)}</div>
           </div>
@@ -1357,7 +1357,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
         <div>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <SL>Participants ({participants.length})</SL>
-            <button onClick={onAdd} style={{ fontSize:10, color:"#D4A520", background:"#D4A52015", border:"1px solid #D4A52030", borderRadius:5, padding:"3px 10px", cursor:"pointer", ...M }}>+ Add</button>
+            <button onClick={onAdd} style={{ fontSize:10, color:"#0E6B78", background:"#0E6B7815", border:"1px solid #0E6B7830", borderRadius:5, padding:"3px 10px", cursor:"pointer", ...M }}>+ Add</button>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
             {metrics.map(p=>{
@@ -1365,12 +1365,12 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
               return (
                 <div key={p.id} onClick={()=>setSelId(p.id)} style={{
                   padding:"10px 12px", borderRadius:8, cursor:"pointer",
-                  background:s?"#1e2d45":"#141d2c",
+                  background:s?"#0D3D4A":"#0A2C35",
                   border:s?`1px solid ${mc(p.m.margin)}50`:"1px solid #c8d4e4",
                   borderLeft:`3px solid ${mc(p.m.margin)}`,
                 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:12, fontWeight:700, color:s?"#5a3800":"#5a7498" }}>{p.name}</span>
+                    <span style={{ fontSize:12, fontWeight:700, color:s?"#0A3D47":"#5a7498" }}>{p.name}</span>
                     <span style={{ fontSize:11, fontWeight:700, color:mc(p.m.margin), ...M }}>{pct(p.m.margin)}</span>
                   </div>
                   <div style={{ fontSize:10, color:"#64748b", marginTop:3, ...M }}>
@@ -1382,7 +1382,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
           </div>
 
           {/* Portfolio totals */}
-          <div style={{ marginTop:10, padding:"12px", background:"#0e1625", borderRadius:9, border:"1px solid #1e2d3d" }}>
+          <div style={{ marginTop:10, padding:"12px", background:"#071C24", borderRadius:9, border:"1px solid #0D3D4A" }}>
             <SL>Portfolio Totals</SL>
             {[
               showDollars && ["Annual Revenue",  $k(totals.annualRev)],
@@ -1390,9 +1390,9 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
               showDollars && ["Annual Gross",    $k(totals.annualGross)],
               ["Avg Margin",      pct(totals.avgMargin)],
             ].filter(Boolean).map(([l,v])=>(
-              <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:"1px solid #1e2d3d" }}>
+              <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:"1px solid #0D3D4A" }}>
                 <span style={{ fontSize:10, color:"#5a7498", ...M }}>{l}</span>
-                <span style={{ fontSize:10, fontWeight:700, color:"#5a3800", ...M }}>{v}</span>
+                <span style={{ fontSize:10, fontWeight:700, color:"#0A3D47", ...M }}>{v}</span>
               </div>
             ))}
           </div>
@@ -1400,12 +1400,12 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
 
         {/* Editor */}
         {sel && selM && (
-          <div style={{ background:"#141d2c", borderRadius:13, border:`1px solid ${mc(selM.margin)}30`, borderLeft:`3px solid ${mc(selM.margin)}`, overflow:"hidden" }}>
+          <div style={{ background:"#0A2C35", borderRadius:13, border:`1px solid ${mc(selM.margin)}30`, borderLeft:`3px solid ${mc(selM.margin)}`, overflow:"hidden" }}>
             {/* Header */}
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", borderBottom:"1px solid #1e2d3d" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", borderBottom:"1px solid #0D3D4A" }}>
               <div>
                 <input value={sel.name} onChange={e=>onUpdate(sel.id,"name",e.target.value)}
-                  style={{ background:"none", border:"none", color:"#5a3800", fontWeight:800, fontSize:16, fontFamily:"'Sora',sans-serif", padding:0, outline:"none", width:220 }}/>
+                  style={{ background:"none", border:"none", color:"#0A3D47", fontWeight:800, fontSize:16, fontFamily:"'Sora',sans-serif", padding:0, outline:"none", width:220 }}/>
                 <div style={{ fontSize:10, color:"#64748b", ...M, marginTop:3 }}>
                   {selM.totalWeeklyHrs}hr/wk authorized{showDollars ? ` · ${$k(selM.weeklyRev)}/wk revenue est.` : ""}
                 </div>
@@ -1430,14 +1430,14 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
                 <SL>Weekly Authorization</SL>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:14 }}>
                   <Slider label="Individual Hrs / Week" value={sel.indHrsPerWeek} min={0} max={40} step={0.5}
-                    onChange={v=>onUpdate(sel.id,"indHrsPerWeek",v)} color="#D4A520"
+                    onChange={v=>onUpdate(sel.id,"indHrsPerWeek",v)} color="#0E6B78"
                     format={v=>`${v}hr`}/>
                   <Slider label="Group Hrs / Week" value={sel.groupHrsPerWeek} min={0} max={40} step={0.5}
-                    onChange={v=>onUpdate(sel.id,"groupHrsPerWeek",v)} color="#C9921A"
+                    onChange={v=>onUpdate(sel.id,"groupHrsPerWeek",v)} color="#0A5260"
                     format={v=>`${v}hr`}/>
                 </div>
                 {/* Weekly cap display */}
-                <div style={{ padding:"10px 14px", background:"#0e1625", borderRadius:8, border:"1px solid #c8d4e4" }}>
+                <div style={{ padding:"10px 14px", background:"#071C24", borderRadius:8, border:"1px solid #c8d4e4" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <div>
                       <div style={{ fontSize:9, color:"#5a7498", textTransform:"uppercase", letterSpacing:1, ...M }}>Total Weekly Cap</div>
@@ -1465,7 +1465,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
                   onChange={v=>onUpdate(sel.id,"weeksPerYear",v)} color="#5a7498"
                   format={v=>`${v} wks`}/>
                 <Slider label="Group Size (for labor split)" value={sel.groupSize} min={1} max={4} step={1}
-                  onChange={v=>onUpdate(sel.id,"groupSize",v)} color="#C9921A"
+                  onChange={v=>onUpdate(sel.id,"groupSize",v)} color="#0A5260"
                   format={v=>v===1?"1:1 only":`${v} participants`}/>
               </div>
 
@@ -1475,7 +1475,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
                   { l:"Hourly Individual Rate", v:`$${IU_HR.toFixed(2)}/hr (U2)`, c:"#D4A520" },
                   { l:"Hourly Group Rate",       v:`$${IG_HR.toFixed(2)}/hr (U3)`, c:"#C9921A" },
                 ].map((r,i)=>(
-                  <div key={i} style={{ padding:"8px 12px", background:"#0e1625", borderRadius:7, borderLeft:`2px solid ${r.c}` }}>
+                  <div key={i} style={{ padding:"8px 12px", background:"#071C24", borderRadius:7, borderLeft:`2px solid ${r.c}` }}>
                     <div style={{ fontSize:9, color:"#5a7498", ...M, marginBottom:2 }}>{r.l}</div>
                     <div style={{ fontSize:12, fontWeight:700, color:r.c, ...M }}>{r.v}</div>
                   </div>
@@ -1483,8 +1483,8 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
               </div>}
 
               {/* Revenue/labor breakdown */}
-              {showDollars && <div style={{ background:"#0e1625", borderRadius:10, border:"1px solid #1e2d3d", overflow:"hidden" }}>
-                <div style={{ padding:"10px 14px", borderBottom:"1px solid #1e2d3d" }}>
+              {showDollars && <div style={{ background:"#071C24", borderRadius:10, border:"1px solid #0D3D4A", overflow:"hidden" }}>
+                <div style={{ padding:"10px 14px", borderBottom:"1px solid #0D3D4A" }}>
                   <SL>Annual Revenue & Labor Breakdown</SL>
                 </div>
                 <table style={{ width:"100%", borderCollapse:"collapse" }}>
@@ -1492,14 +1492,14 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
                     {[
                       { l:"Individual Hours Revenue", v:$k(selM.annualIndRev),   sub:`${selM.annualIndHrs} hrs × $${IU_HR.toFixed(2)}`, c:"#D4A520" },
                       { l:"Group Hours Revenue",      v:$k(selM.annualGroupRev), sub:`${selM.annualGroupHrs} hrs × $${IG_HR.toFixed(2)}`, c:"#C9921A" },
-                      { l:"Total Revenue",            v:$k(selM.annualRev),      sub:null, c:"#5a3800", bold:true },
+                      { l:"Total Revenue",            v:$k(selM.annualRev),      sub:null, c:"#0A3D47", bold:true },
                       { l:"Individual Labor Cost",    v:`(${$k(selM.annualIndLabor)})`,   sub:`1:1 staffing`, c:"#f87171" },
                       { l:"Group Labor Cost",         v:`(${$k(selM.annualGroupLabor)})`, sub:`÷ ${sel.groupSize} participants`, c:"#fb923c" },
                       { l:"Total Labor",              v:`(${$k(selM.annualLabor)})`,      sub:null, c:"#f87171", bold:true },
                       { l:"Gross Profit",             v:$k(selM.gross),          sub:null, c:mc(selM.margin), bold:true, bg:true },
                       { l:"Gross Margin",             v:pct(selM.margin),        sub:null, c:mc(selM.margin), bold:true, bg:true },
                     ].map((row,i)=>(
-                      <tr key={i} style={{ borderBottom:"1px solid #1e2d3d", background:row.bg?(selM.gross>=0?"#0a1f0f":"#1f0a0a"):"transparent" }}>
+                      <tr key={i} style={{ borderBottom:"1px solid #0D3D4A", background:row.bg?(selM.gross>=0?"#0a1f0f":"#1f0a0a"):"transparent" }}>
                         <td style={{ padding:"7px 14px", color:row.c, fontWeight:row.bold?700:400, ...M, fontSize:12 }}>
                           {row.l}
                           {row.sub && <div style={{ fontSize:9, color:"#64748b", marginTop:2 }}>{row.sub}</div>}
@@ -1564,8 +1564,8 @@ function BudgetBuilderTab({ co, hourlyTotals, wage, userRole }) {
       {showCompanyTotal && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
           {[
-            { l:"Total Participants",    v: totalPx,   c:"#D4A520", f:n=>n },
-            { l:"Net Revenue",           v: annualRev, c:"#5a3800", f:$k  },
+            { l:"Total Participants",    v: totalPx,   c:"#0E6B78", f:n=>n },
+            { l:"Net Revenue",           v: annualRev, c:"#0A3D47", f:$k  },
             { l:"Revenue / Participant", v: revPerPx,  c:"#C9921A", f:$k  },
           ].map((s,i)=>(
             <div key={i} style={{ background:"#f0f4fa", borderRadius:9, padding:"12px 16px", border:"1px solid #c8d4e4" }}>
@@ -1599,14 +1599,14 @@ function BudgetBuilderTab({ co, hourlyTotals, wage, userRole }) {
               const isDollars = cat.vis === 'dollars';
               return (
                 <tr key={cat.id} style={{ borderBottom:"1px solid #e2e8f0", background:i%2===0?"#e8eef6":"transparent" }}>
-                  <td style={{ padding:"10px 14px", color:"#5a3800", fontWeight:600, fontSize:12 }}>{cat.label}</td>
+                  <td style={{ padding:"10px 14px", color:"#0A3D47", fontWeight:600, fontSize:12 }}>{cat.label}</td>
                   <td style={{ padding:"10px 14px" }}>
                     {isDollars ? (
                       <div style={{ display:"flex", alignItems:"center", gap:4, background:"#ebebeb", borderRadius:6, padding:"4px 8px", border:`1px solid ${custom[cat.id]!=null?"#D4A52040":"#b5c8de"}`, width:"fit-content" }}>
                         <span style={{ fontSize:10, color:"#64748b" }}>$</span>
                         <input type="number" value={Math.round(amt)} min={0} step={1000}
                           onChange={e=>setCustom(c=>({...c,[cat.id]:Number(e.target.value)}))}
-                          style={{ width:90, background:"none", border:"none", color:custom[cat.id]!=null?"#E8C44A":"#5a3800", ...M, fontSize:13, fontWeight:700, outline:"none", textAlign:"right" }}/>
+                          style={{ width:90, background:"none", border:"none", color:custom[cat.id]!=null?"#E8C44A":"#0A3D47", ...M, fontSize:13, fontWeight:700, outline:"none", textAlign:"right" }}/>
                       </div>
                     ) : (
                       <span style={{ fontSize:13, fontWeight:700, color:"#5a7498", ...M }}>
@@ -1624,11 +1624,11 @@ function BudgetBuilderTab({ co, hourlyTotals, wage, userRole }) {
           </tbody>
           <tfoot>
             <tr style={{ background:"#e8eef6", borderTop:"2px solid #c8d4e4" }}>
-              <td style={{ padding:"12px 14px", fontWeight:700, color:"#5a3800", fontSize:13 }}>Visible Budget Total</td>
+              <td style={{ padding:"12px 14px", fontWeight:700, color:"#0A3D47", fontSize:13 }}>Visible Budget Total</td>
               <td style={{ padding:"12px 14px", fontWeight:800, color:"#D4A520", ...M, fontSize:15 }}>
                 {showCompanyTotal ? $k(visibleBudget) : (annualRev > 0 ? pct(visibleBudget/annualRev) : "—")}
               </td>
-              <td style={{ padding:"12px 14px", color:"#C9921A", ...M, fontSize:12 }}>
+              <td style={{ padding:"12px 14px", color:"#0A5260", ...M, fontSize:12 }}>
                 {showCompanyTotal ? `${$k(totalPx>0?visibleBudget/totalPx:0)}/participant` : ""}
               </td>
               <td/>
@@ -1845,10 +1845,10 @@ function FAQTab({ userRole }) {
     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
       {/* FAQ accordion */}
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-        <div style={{ fontSize:16, fontWeight:800, color:"#5a3800", marginBottom:4 }}>Frequently Asked Questions</div>
+        <div style={{ fontSize:16, fontWeight:800, color:"#0A3D47", marginBottom:4 }}>Frequently Asked Questions</div>
         {visibleData.map((section,si)=>(
           <div key={si} style={{ background:"#f0f4fa", borderRadius:10, border:"1px solid #c8d4e4", overflow:"hidden" }}>
-            <div style={{ padding:"10px 16px", background:"#e4eaf4", fontSize:11, fontWeight:700, color:"#5a3800", textTransform:"uppercase", letterSpacing:1.5, ...M }}>
+            <div style={{ padding:"10px 16px", background:"#e4eaf4", fontSize:11, fontWeight:700, color:"#0A3D47", textTransform:"uppercase", letterSpacing:1.5, ...M }}>
               {section.cat}
             </div>
             {section.items.map((item,ii)=>{
@@ -1859,8 +1859,8 @@ function FAQTab({ userRole }) {
                     width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer",
                     display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, textAlign:"left",
                   }}>
-                    <span style={{ fontSize:12, color:"#5a3800", fontFamily:"'Sora',sans-serif", fontWeight:600, lineHeight:1.5 }}>{item.q}</span>
-                    <span style={{ color:"#D4A520", fontSize:14, flexShrink:0 }}>{open[key]?"▲":"▼"}</span>
+                    <span style={{ fontSize:12, color:"#0A3D47", fontFamily:"'Sora',sans-serif", fontWeight:600, lineHeight:1.5 }}>{item.q}</span>
+                    <span style={{ color:"#0E6B78", fontSize:14, flexShrink:0 }}>{open[key]?"▲":"▼"}</span>
                   </button>
                   {open[key] && (
                     <div style={{ padding:"0 16px 14px", fontSize:12, color:"#5a7498", lineHeight:1.8, borderTop:"1px solid #c8d4e4" }}>
@@ -1877,7 +1877,7 @@ function FAQTab({ userRole }) {
       {/* AI Chat */}
       <div style={{ background:"#f0f4fa", borderRadius:12, border:"1px solid #c8d4e4", display:"flex", flexDirection:"column", height:620 }}>
         <div style={{ padding:"14px 18px", borderBottom:"1px solid #c8d4e4" }}>
-          <div style={{ fontWeight:800, fontSize:14, color:"#5a3800" }}>AI Financial Assistant</div>
+          <div style={{ fontWeight:800, fontSize:14, color:"#0A3D47" }}>AI Financial Assistant</div>
           <div style={{ fontSize:10, color:"#64748b", marginTop:3 }}>Powered by Claude · Idaho HCBS expertise</div>
         </div>
         <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", display:"flex", flexDirection:"column", gap:12 }}>
@@ -1885,9 +1885,9 @@ function FAQTab({ userRole }) {
             <div key={i} style={{ display:"flex", justifyContent:msg.role==="user"?"flex-end":"flex-start" }}>
               <div style={{
                 maxWidth:"85%", padding:"10px 14px", borderRadius:10, fontSize:12, lineHeight:1.7,
-                background: msg.role==="user" ? "#D4A52018" : "#ffffff",
-                border: msg.role==="user" ? "1px solid #D4A52060" : "1px solid #c8d4e4",
-                color: "#5a3800",
+                background: msg.role==="user" ? "#0E6B7818" : "#ffffff",
+                border: msg.role==="user" ? "1px solid #0E6B7860" : "1px solid #c8d4e4",
+                color: "#0A3D47",
               }}>
                 {msg.content}
               </div>
@@ -1896,7 +1896,7 @@ function FAQTab({ userRole }) {
           {loading && (
             <div style={{ display:"flex", gap:4, padding:"10px 14px" }}>
               {[0,1,2].map(i=>(
-                <div key={i} style={{ width:6, height:6, borderRadius:"50%", background:"#D4A520",
+                <div key={i} style={{ width:6, height:6, borderRadius:"50%", background:"#0E6B78",
                   animation:`pulse 1.2s ${i*0.2}s infinite`,
                   opacity:0.6 }}/>
               ))}
@@ -1912,12 +1912,12 @@ function FAQTab({ userRole }) {
             placeholder="Ask about billing, staffing, margins, rates…"
             style={{
               flex:1, background:"#ffffff", border:"1px solid #c8d4e4", borderRadius:8,
-              padding:"9px 14px", color:"#5a3800", fontSize:12, outline:"none",
+              padding:"9px 14px", color:"#0A3D47", fontSize:12, outline:"none",
               fontFamily:"'Sora',sans-serif",
             }}/>
           <button onClick={sendMessage} disabled={loading || !input.trim()} style={{
             padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer",
-            background: input.trim() && !loading ? "#D4A520" : "#b5c8de",
+            background: input.trim() && !loading ? "#0E6B78" : "#b5c8de",
             color: input.trim() && !loading ? "#ebebeb" : "#64748b",
             fontWeight:700, fontSize:12, fontFamily:"'Sora',sans-serif", transition:"all 0.15s",
           }}>Send</button>
@@ -1989,11 +1989,11 @@ function PortfolioComparison({ userRole }) {
   const SH = ({ col, label, right }) => (
     <th onClick={() => handleSort(col)} style={{
       padding:"9px 12px", textAlign:right?"right":"left", cursor:"pointer", userSelect:"none",
-      fontSize:9, color:sortCol===col?"#D4A520":"#475569", textTransform:"uppercase",
+      fontSize:9, color:sortCol===col?"#0E6B78":"#475569", textTransform:"uppercase",
       letterSpacing:1.5, ...M, borderBottom:"1px solid #d0dae8", background:"#eef1f6", whiteSpace:"nowrap",
     }}>
       {label}
-      <span style={{ color:sortCol===col?"#D4A520":"#64748b", marginLeft:4 }}>
+      <span style={{ color:sortCol===col?"#0E6B78":"#64748b", marginLeft:4 }}>
         {sortCol===col ? (sortDir==="asc"?"↑":"↓") : "↕"}
       </span>
     </th>
@@ -2009,10 +2009,10 @@ function PortfolioComparison({ userRole }) {
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
         <div>
-          <div style={{ fontFamily:"'Cinzel',serif", fontSize:14, color:"#D4A520", letterSpacing:2, marginBottom:4 }}>Portfolio Comparison</div>
+          <div style={{ fontFamily:"'Cinzel',serif", fontSize:14, color:"#0E6B78", letterSpacing:2, marginBottom:4 }}>Portfolio Comparison</div>
           <div style={{ fontSize:9, color:"#64748b", textTransform:"uppercase", letterSpacing:1.5, ...M }}>
             {active.length} active · {DEMO_COMPANIES.length} total companies
-            <span style={{ color:"#D4A52060", marginLeft:8 }}>· demo data — live version syncs from Supabase</span>
+            <span style={{ color:"#0E6B7860", marginLeft:8 }}>· demo data — live version syncs from Supabase</span>
           </div>
         </div>
         <div style={{ display:"flex", gap:7 }}>
@@ -2020,7 +2020,7 @@ function PortfolioComparison({ userRole }) {
             <button key={f} onClick={() => setFilter(f)} style={{
               padding:"4px 12px", borderRadius:6, border:"none", cursor:"pointer",
               fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:1.5, ...M,
-              background:filter===f?"#D4A520":"#eef1f6",
+              background:filter===f?"#0E6B78":"#eef1f6",
               color:filter===f?"#ebebeb":"#475569",
             }}>{f}</button>
           ))}
@@ -2030,10 +2030,10 @@ function PortfolioComparison({ userRole }) {
       {/* Summary cards */}
       <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
         {[
-          { l:"Active Companies", v:active.length,     c:"#D4A520",                        f:n=>n },
-          { l:"Total Clients",    v:totClients,         c:"#D4A520",                        f:n=>n },
-          { l:"Total Homes",      v:totHomes,           c:"#C9921A",                        f:n=>n },
-          showDollars && { l:"Portfolio Revenue",v:totRev, c:"#5a3800", f:$k },
+          { l:"Active Companies", v:active.length,     c:"#0E6B78",                        f:n=>n },
+          { l:"Total Clients",    v:totClients,         c:"#0E6B78",                        f:n=>n },
+          { l:"Total Homes",      v:totHomes,           c:"#0A5260",                        f:n=>n },
+          showDollars && { l:"Portfolio Revenue",v:totRev, c:"#0A3D47", f:$k },
           { l:"Portfolio EBITDA", v:showDollars?totEbitda:avgMgn, c:mc(Math.max(0,avgMgn)), f:showDollars?$k:pct, sub:showDollars?pct(avgMgn)+" avg mgn":undefined },
           { l:"Portfolio Net",    v:showDollars?totNet:avgNet,    c:nmc(Math.max(0,avgNet)), f:showDollars?$k:pct, sub:showDollars?pct(avgNet)+" avg mgn":undefined, hi:true },
         ].filter(Boolean).map((s,i) => (
@@ -2088,7 +2088,7 @@ function PortfolioComparison({ userRole }) {
                       }}>{rank}</div>
                     )}
                   </td>
-                  <td style={{ padding:"10px 12px", color:"#5a3800", fontWeight:600, fontSize:12 }}>{co.name}</td>
+                  <td style={{ padding:"10px 12px", color:"#0A3D47", fontWeight:600, fontSize:12 }}>{co.name}</td>
                   <td style={{ padding:"10px 12px", textAlign:"right" }}>
                     <span style={{
                       fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:1, ...M,
@@ -2098,9 +2098,9 @@ function PortfolioComparison({ userRole }) {
                       border:active?"1px solid #00e5aa30":"1px solid #f8717130",
                     }}>{co.status}</span>
                   </td>
-                  <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:"#D4A520", fontWeight:700 }}>{co.clients}</td>
-                  <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:"#C9921A", fontWeight:700 }}>{co.homes}</td>
-                  <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:"#5a3800", fontWeight:700 }}>{showDollars ? $k(co.revNet) : "—"}</td>
+                  <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:"#0E6B78", fontWeight:700 }}>{co.clients}</td>
+                  <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:"#0A5260", fontWeight:700 }}>{co.homes}</td>
+                  <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:"#0A3D47", fontWeight:700 }}>{showDollars ? $k(co.revNet) : "—"}</td>
                   <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:mc(co.ebitdaMgn), fontWeight:700 }}>{showDollars ? $k(co.ebitda) : pct(co.ebitdaMgn)}</td>
                   <td style={{ padding:"8px 12px", minWidth:150 }}><MarginBar value={co.ebitdaMgn}/></td>
                   <td style={{ padding:"10px 12px", textAlign:"right", ...M, fontSize:12, color:nmc(co.netMgn), fontWeight:700 }}>{showDollars ? $k(co.netInc) : pct(co.netMgn)}</td>
@@ -2155,8 +2155,8 @@ function ServiceLineTab({ label, active, onRemove, containerRef, isDragging, onP
         padding:"8px 16px", borderRadius:"8px 8px 0 0", border: "none",
         cursor:"inherit", pointerEvents:"none",
         fontSize:11, fontWeight:700, whiteSpace:"nowrap",
-        background: active ? "#141d2c" : "rgba(20,29,44,0.04)",
-        color: active ? "#D4A520" : "#5a7498",
+        background: active ? "#0A2C35" : "rgba(20,29,44,0.04)",
+        color: active ? "#0E6B78" : "#5a7498",
         outline: active ? "1px solid #b5c8de" : "1px solid transparent",
         outlineOffset: 0,
         marginBottom: active ? "-1px" : "0",
@@ -2183,7 +2183,7 @@ function GapIndicator({ width }) {
       width, minWidth:2, alignSelf:"stretch",
       transition:"width 120ms ease", flexShrink:0,
     }}>
-      <div style={{ width:2, height:20, background:"#D4A520", borderRadius:1, opacity:0.85 }} />
+      <div style={{ width:2, height:20, background:"#0E6B78", borderRadius:1, opacity:0.85 }} />
     </div>
   );
 }
@@ -2231,7 +2231,7 @@ function AddServiceLineButton({ existingTypes, onAdd }) {
                       width:"100%", textAlign:"left", padding:"6px 14px",
                       border:"none", background: existing ? "#f5f5f5" : "transparent",
                       cursor: existing ? "not-allowed" : "pointer",
-                      color: existing ? "#94a3b8" : "#5a3800",
+                      color: existing ? "#94a3b8" : "#0A3D47",
                       fontSize:12, fontFamily:"'Sora',sans-serif",
                     }}
                     onMouseEnter={(e) => { if (!existing) e.currentTarget.style.background = "#f7f9fc"; }}
@@ -2263,11 +2263,11 @@ function CatalogPlaceholder({ type }) {
         background:"#fff", border:"1px solid #d0dae8", borderRadius:10,
         padding:24, marginBottom:14,
       }}>
-        <h2 style={{ margin:"0 0 6px", color:"#5a3800", fontSize:18, fontWeight:700 }}>{def.label}</h2>
+        <h2 style={{ margin:"0 0 6px", color:"#0A3D47", fontSize:18, fontWeight:700 }}>{def.label}</h2>
         <div style={{ color:"#64748b", fontSize:13, marginBottom:14 }}>{def.description}</div>
         <div style={{
           padding:14, background:"#fffbe8", border:"1px solid #f4e4a8", borderRadius:8,
-          color:"#5a3800", fontSize:12, fontFamily:"'DM Mono',monospace", lineHeight:1.6,
+          color:"#0A3D47", fontSize:12, fontFamily:"'DM Mono',monospace", lineHeight:1.6,
         }}>
           <strong>Coming soon.</strong> The full UI for this service line is on the roadmap.
           For now, the rate catalog below shows the codes and rates that apply. Once the
@@ -2299,7 +2299,7 @@ function CatalogPlaceholder({ type }) {
               <tbody>
                 {lineRates.map((r, i) => (
                   <tr key={i} style={{ borderBottom:"1px solid #f1f5f9" }}>
-                    <td style={{ padding:"7px 12px", fontWeight:600, color:"#5a3800" }}>{r.code}</td>
+                    <td style={{ padding:"7px 12px", fontWeight:600, color:"#0A3D47" }}>{r.code}</td>
                     <td style={{ padding:"7px 12px", color:"#64748b" }}>{r.modifier || "—"}</td>
                     <td style={{ padding:"7px 12px", color:"#64748b", fontSize:10 }}>{r.tier || ""}</td>
                     <td style={{ padding:"7px 12px", fontSize:11, color:"#475569" }}>{r.desc}</td>
@@ -2828,7 +2828,7 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
   if (!company) {
     return (
       <div style={{ padding:60, textAlign:"center", fontFamily:"'Sora',sans-serif" }}>
-        <h2 style={{ color:"#5a3800", fontSize:18, marginBottom:8 }}>No companies assigned</h2>
+        <h2 style={{ color:"#0A3D47", fontSize:18, marginBottom:8 }}>No companies assigned</h2>
         <p style={{ color:"#64748b", fontSize:13 }}>You haven't been assigned access to any companies yet.<br/>Contact your Intrinsic administrator.</p>
       </div>
     );
@@ -2850,12 +2850,12 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
 
         {/* ── Header ── */}
         <div style={{ padding:"0 24px 0", borderBottom:"1px solid #c8d4e4", background:"linear-gradient(160deg,#e8f0fa,#f5f7fa)", flexShrink:0 }}>
-          <div style={{ height:2, background:"linear-gradient(90deg,#D4A520,#C9921A80,transparent)", marginBottom:0, marginLeft:-24, marginRight:-24 }}/>
+          <div style={{ height:2, background:"linear-gradient(90deg,#D4A520,#0A526080,transparent)", marginBottom:0, marginLeft:-24, marginRight:-24 }}/>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12, paddingTop:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
               <img src={LOGO} alt="Intrinsic Inc" style={{ height:52, width:"auto", objectFit:"contain", filter:"drop-shadow(0 2px 12px #D4A52035)" }}/>
               <div style={{ borderLeft:"1px solid #c8d4e4", paddingLeft:14 }}>
-                <div style={{ fontFamily:"'Cinzel',serif", fontSize:13, color:"#D4A520", letterSpacing:2.5, marginBottom:3 }}>Financial Model Builder</div>
+                <div style={{ fontFamily:"'Cinzel',serif", fontSize:13, color:"#0E6B78", letterSpacing:2.5, marginBottom:3 }}>Financial Model Builder</div>
                 <div style={{ fontSize:9, color:"#64748b", letterSpacing:2, textTransform:"uppercase", ...M, lineHeight:1.5 }}>
                   {legacyCompanyName ? legacyCompanyName + " · " : ""}Idaho HCBS Operations
                 </div>
@@ -2869,7 +2869,7 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                     onChange={(e) => setConfig(prev => ({ ...prev, selectedCompanyId: e.target.value }))}
                     style={{
                       padding:"3px 8px", borderRadius:5, border:"1px solid #c8d4e4",
-                      background:"#fff", fontSize:12, fontWeight:700, color:"#5a3800",
+                      background:"#fff", fontSize:12, fontWeight:700, color:"#0A3D47",
                       fontFamily:"'Sora',sans-serif", minWidth:180,
                     }}>
                     {config.companies.filter(c => !c.archived).map(c => (
@@ -2881,9 +2881,9 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
               {canSeeTopNumbers(userRole) && [
-                { l:"24hr Clients",   v:co.totalClients,           c:"#D4A520" },
-                { l:"Hourly Clients", v:hourlyTotals.count,        c:"#C9921A" },
-                { l:"TSC Caseload",   v:tscSummary.totalCaseload,  c:"#C9921A" },
+                { l:"24hr Clients",   v:co.totalClients,           c:"#0E6B78" },
+                { l:"Hourly Clients", v:hourlyTotals.count,        c:"#0A5260" },
+                { l:"TSC Caseload",   v:tscSummary.totalCaseload,  c:"#0A5260" },
                 canSeeCompanyDollars(userRole)
                   ? { l:"EBITDA",     v:$k(co.ebitda),             c:mc(Math.max(0, co.ebitdaMargin)) }
                   : { l:"EBITDA Mgn", v:pct(co.ebitdaMargin),      c:mc(Math.max(0, co.ebitdaMargin)) },
@@ -2906,8 +2906,8 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                   padding:"7px 18px", borderRadius:8, border:"none", cursor:"pointer",
                   fontWeight:700, fontSize:11, fontFamily:"'Sora',sans-serif",
                   letterSpacing:0.5, transition:"background 0.2s, box-shadow 0.2s, transform 0.1s",
-                  background: saveStatus === "saved" ? "#0f4a1a" : saveStatus === "error" ? "#4a1010" : saveStatus === "saving" ? "#c8b87a" : "#D4A520",
-                  color: saveStatus === "saved" ? "#7defa8" : saveStatus === "error" ? "#fca5a5" : "#0d1a2a",
+                  background: saveStatus === "saved" ? "#0f4a1a" : saveStatus === "error" ? "#4a1010" : saveStatus === "saving" ? "#c8b87a" : "#0E6B78",
+                  color: saveStatus === "saved" ? "#7defa8" : saveStatus === "error" ? "#fca5a5" : saveStatus === "saving" ? "#0A2C35" : "#fff",
                   boxShadow: saveStatus === "idle" ? "0 2px 8px rgba(212,165,32,0.30)" : "none",
                 }}>
                   {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "✓ Saved" : saveStatus === "error" ? "✗ Error" : "Save"}
@@ -3020,8 +3020,8 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                           cursor:"inherit", pointerEvents:"none",
                           fontSize:11, fontWeight:600, whiteSpace:"nowrap",
                           background: "transparent",
-                          color:      subTab === t.id ? "#5a3800" : "#94a3b8",
-                          boxShadow:  subTab === t.id ? "inset 0 -2px 0 #D4A520" : "inset 0 -2px 0 transparent",
+                          color:      subTab === t.id ? "#0A3D47" : "#94a3b8",
+                          boxShadow:  subTab === t.id ? "inset 0 -2px 0 #0E6B78" : "inset 0 -2px 0 transparent",
                           transition: "color 0.15s, box-shadow 0.15s",
                         }}>{t.label}</button>
                       </div>

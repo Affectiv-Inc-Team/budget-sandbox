@@ -2,15 +2,21 @@
 
 /* ── Design tokens ─────────────────────────────────────── */
 :root {
-  /* Brand gold */
+  /* Brand teal — primary */
+  --teal:        #0E6B78;
+  --teal-deep:   #0A5260;
+  --teal-light:  #1A8A9A;
+  --teal-muted:  #7AB5C0;
+
+  /* Brand gold — accent */
   --gold:        #D4A520;
   --gold-deep:   #C9921A;
   --gold-light:  #E8C44A;
   --gold-muted:  #d5c898;
 
   /* Surfaces */
-  --surface-0:   #f8f6f0;   /* parchment white */
-  --surface-1:   #f0f4f8;   /* light blue-grey */
+  --surface-0:   #FAF4E8;   /* warm cream */
+  --surface-1:   #F0F5F8;   /* cool white */
   --surface-2:   #eef1f6;   /* slightly darker */
   --surface-3:   #ebebeb;   /* panel background */
   --bg-page:     #f5f7fa;
@@ -21,25 +27,25 @@
   --border-warm: #d5c898;
 
   /* Dark surfaces (P&L rows) */
-  --dark-900:    #0d1a2a;
-  --dark-800:    #0d0c07;
+  --dark-900:    #0A2C35;
+  --dark-800:    #071C24;
   --ebitda-bg:   #021a0f;
   --loss-bg:     #1a0606;
 
-  /* Text — warm brown scale */
-  --text-900:    #5a3800;   /* primary headings */
-  --text-800:    #5a4020;   /* labels */
+  /* Text — teal scale */
+  --text-900:    #0A3D47;   /* primary headings */
+  --text-800:    #0F4F5E;   /* labels */
   --text-600:    #6a5a30;   /* secondary */
   --text-400:    #9a8050;   /* tertiary/muted */
 
   /* Text — slate scale */
-  --slate-900:   #0d1a2a;
+  --slate-900:   #0A2C35;
   --slate-700:   #334155;
   --slate-500:   #64748b;
   --slate-400:   #94a3b8;
 
   /* Semantic */
-  --success:     #00e5aa;
+  --success:     #00c49a;
   --success-mid: #22c55e;
   --warning:     #f59e0b;
   --danger:      #f87171;
@@ -57,10 +63,10 @@
   --radius-xl:   16px;
 
   /* Shadows */
-  --shadow-sm:   0 1px 3px rgba(13,26,42,0.08), 0 1px 2px rgba(13,26,42,0.04);
-  --shadow-md:   0 4px 12px rgba(13,26,42,0.10), 0 2px 4px rgba(13,26,42,0.06);
-  --shadow-lg:   0 8px 24px rgba(13,26,42,0.12), 0 4px 8px rgba(13,26,42,0.08);
-  --shadow-gold: 0 4px 20px rgba(212,165,32,0.20);
+  --shadow-sm:   0 1px 3px rgba(10,44,53,0.08), 0 1px 2px rgba(10,44,53,0.04);
+  --shadow-md:   0 4px 12px rgba(10,44,53,0.10), 0 2px 4px rgba(10,44,53,0.06);
+  --shadow-lg:   0 8px 24px rgba(10,44,53,0.12), 0 4px 8px rgba(10,44,53,0.08);
+  --shadow-teal: 0 4px 20px rgba(14,107,120,0.22);
 }
 
 /* ── Base reset ─────────────────────────────────────────── */
@@ -104,7 +110,7 @@ input[type=number] {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(212,165,32,0.45);
+  background: rgba(14,107,120,0.45);
 }
 
 /* ── Base elements ──────────────────────────────────────── */
@@ -134,8 +140,8 @@ button {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%,   rgba(212,165,32,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 100%,  rgba(201,146,26,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 50% 0%,   rgba(14,107,120,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%,  rgba(10,82,96,0.07) 0%, transparent 50%),
     linear-gradient(160deg, #eef2f8 0%, #f5f7fa 50%, #f0f4ef 100%);
   padding: 24px;
 }
@@ -146,7 +152,7 @@ button {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(212,165,32,0.06);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(14,107,120,0.06);
   padding: 40px 36px 36px;
   animation: fadeIn 0.35s ease both;
 }
@@ -163,13 +169,13 @@ button {
   height: 64px;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 3px 16px rgba(212,165,32,0.30));
+  filter: drop-shadow(0 3px 16px rgba(14,107,120,0.30));
 }
 
 .login-wordmark {
   font-family: var(--font-serif);
   font-size: 22px;
-  color: var(--gold-deep);
+  color: var(--teal);
   letter-spacing: 4px;
   line-height: 1;
   text-transform: uppercase;
@@ -187,7 +193,7 @@ button {
 .login-divider {
   width: 40px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-muted), transparent);
+  background: linear-gradient(90deg, transparent, var(--teal-muted), transparent);
   margin: 0 auto;
 }
 
@@ -226,9 +232,9 @@ button {
 }
 
 .login-input:focus {
-  border-color: var(--gold);
+  border-color: var(--teal);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(212,165,32,0.12);
+  box-shadow: 0 0 0 3px rgba(14,107,120,0.12);
 }
 
 .login-input::placeholder {
@@ -259,15 +265,15 @@ button {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  background: var(--gold);
-  color: var(--dark-900);
+  background: var(--teal);
+  color: #fff;
   transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
-  box-shadow: var(--shadow-gold);
+  box-shadow: var(--shadow-teal);
 }
 
 .login-btn:hover:not(:disabled) {
-  background: var(--gold-deep);
-  box-shadow: 0 6px 24px rgba(212,165,32,0.30);
+  background: var(--teal-deep);
+  box-shadow: 0 6px 24px rgba(14,107,120,0.30);
   transform: translateY(-1px);
 }
 

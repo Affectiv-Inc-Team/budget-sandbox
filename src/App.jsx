@@ -76,7 +76,7 @@ export default function App() {
           style={{
             position: "fixed", bottom: 16, left: 16, zIndex: 9999,
             padding: "9px 14px", borderRadius: 8, border: "none",
-            background: "#D4A520", color: "#fff", fontSize: 12, fontWeight: 700,
+            background: "#0E6B78", color: "#fff", fontSize: 12, fontWeight: 700,
             cursor: "pointer", letterSpacing: 0.5, fontFamily: "'DM Mono',monospace",
             boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
           }}
