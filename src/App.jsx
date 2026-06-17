@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { supabase, getProfile } from "./supabase.js";
 import { ROLES, ROLE_LABELS, canSeeReferrals } from "./lib/access.js";
 import LoginPage from "./pages/LoginPage.jsx";
 import ToolPage from "./pages/ToolPage.jsx";
 import posthog from "./lib/posthog.js";
 import ReferralTracker from "./pages/ReferralTracker.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+import FeaturesPage from "./pages/FeaturesPage.jsx";
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -14,47 +17,10 @@ function deriveRole(profile) {
   return profile.role ?? ROLES.CEO;           // role col added in Track B
 }
 
-export default function App() {
-  const [session, setSession] = useState(undefined); // undefined = loading
-  const [profile, setProfile] = useState(null);
-  const [devRole, setDevRole] = useState(null);       // null = use derived role
-  const [module, setModule] = useState("tool");        // 'tool' | 'referrals'
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) getProfile().then(setProfile);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      if (session) {
-        getProfile().then(setProfile);
-        if (event === 'SIGNED_IN') {
-          posthog.identify(session.user.id, { email: session.user.email });
-        }
-      } else {
-        setProfile(null);
-        posthog.reset();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (session === undefined) return null; // loading
-
-  if (!session) return <LoginPage />;
-
-  const derivedRole   = deriveRole(profile);
-  const effectiveRole = IS_DEV && devRole ? devRole : derivedRole;
-
-  // On sign-out, onAuthStateChange fires and re-renders back to LoginPage.
-  const handleSignOut = () => {
-    posthog.capture('user_signed_out');
-    supabase.auth.signOut();
-  };
-
+// Authenticated app shell — preserved verbatim from the prior App() return:
+// the tool/referrals switch, the fixed "Referral Tracker →" button, and the
+// IS_DEV role selector. Only the surrounding routing has changed.
+function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, setDevRole, onSignOut }) {
   const showReferrals = canSeeReferrals(effectiveRole) && module === "referrals";
 
   return (
@@ -62,11 +28,11 @@ export default function App() {
       {showReferrals ? (
         <ReferralTracker
           userRole={effectiveRole}
-          onSignOut={handleSignOut}
+          onSignOut={onSignOut}
           onSwitchModule={() => setModule("tool")}
         />
       ) : (
-        <ToolPage userRole={effectiveRole} onSignOut={handleSignOut} />
+        <ToolPage userRole={effectiveRole} onSignOut={onSignOut} />
       )}
 
       {canSeeReferrals(effectiveRole) && module === "tool" && (
@@ -116,5 +82,72 @@ export default function App() {
         </div>
       )}
     </>
+  );
+}
+
+export default function App() {
+  const [session, setSession] = useState(undefined); // undefined = loading
+  const [profile, setProfile] = useState(null);
+  const [devRole, setDevRole] = useState(null);       // null = use derived role
+  const [module, setModule] = useState("tool");        // 'tool' | 'referrals'
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) getProfile().then(setProfile);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      if (session) {
+        getProfile().then(setProfile);
+        if (event === 'SIGNED_IN') {
+          posthog.identify(session.user.id, { email: session.user.email });
+        }
+      } else {
+        setProfile(null);
+        posthog.reset();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const derivedRole   = deriveRole(profile);
+  const effectiveRole = IS_DEV && devRole ? devRole : derivedRole;
+  const isAuthenticated = !!session;
+
+  // On sign-out, onAuthStateChange fires, session becomes null, and the
+  // /app route below redirects back to /login.
+  const handleSignOut = () => {
+    posthog.capture('user_signed_out');
+    supabase.auth.signOut();
+  };
+
+  // Protected /app route: wait while auth is loading, otherwise show the tool
+  // or bounce to /login. Public pages render immediately and never block on this.
+  const appElement =
+    session === undefined ? null
+      : session ? (
+          <AuthedApp
+            effectiveRole={effectiveRole}
+            derivedRole={derivedRole}
+            module={module}
+            setModule={setModule}
+            devRole={devRole}
+            setDevRole={setDevRole}
+            onSignOut={handleSignOut}
+          />
+        )
+      : <Navigate to="/login" replace />;
+
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage isAuthenticated={isAuthenticated} />} />
+      <Route path="/features" element={<FeaturesPage isAuthenticated={isAuthenticated} />} />
+      <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
+      <Route path="/app" element={appElement} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
