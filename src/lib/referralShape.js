@@ -180,7 +180,8 @@ export function isSaveable(draft) {
 
 function fmtDate(d) {
   if (!d) return '';
-  const date = new Date(d);
+  const [y, m, day] = d.split('-').map(Number);
+  const date = new Date(y, m - 1, day);
   if (Number.isNaN(date.getTime())) return String(d);
   return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
 }
