@@ -57,9 +57,9 @@ export const DEFAULT_TSC_RATES = {
 // Editable fields surfaced in the Reimbursement Rates panel.
 // G9002 + G9007 only — H2011 (crisis) stays out of primary views per service-rate-spec.
 const TSC_RATE_FIELDS = [
-  { key:"coord",        code:"G9002",    label:"Service Coordination",           color:"#D4A520", baseline:20.97 },
+  { key:"coord",        code:"G9002",    label:"Service Coordination",           color:"#0E6B78", baseline:20.97 },
   { key:"coordParapro", code:"G9002 HM", label:"Service Coordination — Parapro",  color:"#C9921A", baseline:13.46 },
-  { key:"planDev",      code:"G9007",    label:"Plan Development",                color:"#00e5aa", baseline:20.97 },
+  { key:"planDev",      code:"G9007",    label:"Plan Development",                color:"#00c49a", baseline:20.97 },
 ];
 
 // ──────────────────────────────────────────────────────────────────────
@@ -361,7 +361,7 @@ const textInput = {
 // ──────────────────────────────────────────────────────────────────────
 // Stat tile
 // ──────────────────────────────────────────────────────────────────────
-function Stat({ label, value, color = "#5a3800" }) {
+function Stat({ label, value, color = "#0A3D47" }) {
   return (
     <div style={{
       background:"#fff", borderRadius:8, padding:"6px 13px 6px 11px",
@@ -413,7 +413,7 @@ function ParticipantRow({ p, onUpdate, onRemove, canEdit, userRole }) {
         HM
       </label>
       <div style={{ textAlign:"right" }}>
-        {canSeeCompanyDollars(userRole) && <div style={{ fontSize:13, fontWeight:700, color:"#5a3800", ...M }}>{$k(m.monthlyRev)}/mo</div>}
+        {canSeeCompanyDollars(userRole) && <div style={{ fontSize:13, fontWeight:700, color:"#0A3D47", ...M }}>{$k(m.monthlyRev)}/mo</div>}
         <div style={{ fontSize:9, color:"#64748b", ...M }}>{m.monthlyHours.toFixed(1)} hr/mo</div>
       </div>
       {canEdit && <button onClick={() => onRemove(p.id)} style={{
@@ -449,7 +449,7 @@ function CoordinatorCard({ coord, onUpdate, onRemove, onAddParticipant, onUpdate
         {!hideParticipants && (
           <button onClick={() => setExpanded(e => !e)} style={{
             border:"none", background:"transparent", cursor:"pointer",
-            fontSize:14, color:"#5a3800", width:20,
+            fontSize:14, color:"#0A3D47", width:20,
           }}>{expanded ? "▼" : "▶"}</button>
         )}
 
@@ -540,7 +540,7 @@ function CoordinatorCard({ coord, onUpdate, onRemove, onAddParticipant, onUpdate
           {canEdit && <button onClick={() => onAddParticipant(coord.id)} style={{
             marginTop:10, padding:"6px 14px",
             background:"#fff", border:"1px dashed #c8d4e4", borderRadius:6,
-            color:"#5a3800", cursor:"pointer", fontSize:12, fontWeight:600, ...M,
+            color:"#0A3D47", cursor:"pointer", fontSize:12, fontWeight:600, ...M,
           }}>+ Add participant</button>}
         </div>
       )}
@@ -641,8 +641,8 @@ export function TSCRosterTab({ config, onUpdate, userRole }) {
 
       {canEdit && <button onClick={addCoord} style={{
         marginTop:16, padding:"8px 18px",
-        background:"#D4A520", border:"none", borderRadius:6,
-        color:"#5a3800", cursor:"pointer", fontSize:12, fontWeight:700, ...M,
+        background:"#0E6B78", border:"none", borderRadius:6,
+        color:"#fff", cursor:"pointer", fontSize:12, fontWeight:700, ...M,
       }}>+ Add coordinator</button>}
     </div>
   );
@@ -696,7 +696,7 @@ function ParticipantFlatRow({ p, coordId, coordinators, onUpdate, onReassign, on
         HM
       </label>
       <div style={{ textAlign:"right" }}>
-        {canSeeCompanyDollars(userRole) && <div style={{ fontSize:13, fontWeight:700, color:"#5a3800", ...M }}>{$k(m.monthlyRev)}/mo</div>}
+        {canSeeCompanyDollars(userRole) && <div style={{ fontSize:13, fontWeight:700, color:"#0A3D47", ...M }}>{$k(m.monthlyRev)}/mo</div>}
         <div style={{ fontSize:9, color:"#64748b", ...M }}>{m.monthlyHours.toFixed(1)} hr/mo</div>
       </div>
       {canEdit && <button onClick={() => onRemove(coordId, p.id)} style={{
@@ -798,8 +798,8 @@ export function TSCCoordinatorsTab({ config, onUpdate, userRole }) {
 
       {canEdit && <button onClick={addCoord} style={{
         marginTop:16, padding:"8px 18px",
-        background:"#D4A520", border:"none", borderRadius:6,
-        color:"#5a3800", cursor:"pointer", fontSize:12, fontWeight:700, ...M,
+        background:"#0E6B78", border:"none", borderRadius:6,
+        color:"#fff", cursor:"pointer", fontSize:12, fontWeight:700, ...M,
       }}>+ Add coordinator</button>}
     </div>
   );
@@ -927,9 +927,9 @@ export function TSCParticipantsTab({ config, onUpdate, userRole }) {
         title={noCoords ? "Add a coordinator first" : ""}
         style={{
           marginTop:4, padding:"8px 18px",
-          background: noCoords ? "#e2e8f0" : "#D4A520",
+          background: noCoords ? "#e2e8f0" : "#0E6B78",
           border:"none", borderRadius:6,
-          color: noCoords ? "#94a3b8" : "#5a3800",
+          color: noCoords ? "#94a3b8" : "#fff",
           cursor: noCoords ? "not-allowed" : "pointer",
           fontSize:12, fontWeight:700, ...M,
         }}
@@ -954,7 +954,7 @@ export function TSCProductivityTab({ config }) {
 
   return (
     <div>
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         Coordinator productivity
       </h3>
 
@@ -987,7 +987,7 @@ export function TSCProductivityTab({ config }) {
               padding:"10px 14px", borderBottom:"1px solid #f1f5f9", alignItems:"center",
               fontSize:12, ...M, color:"#334155",
             }}>
-              <span style={{ color:"#5a3800", fontWeight:600 }}>{c.name}</span>
+              <span style={{ color:"#0A3D47", fontWeight:600 }}>{c.name}</span>
               <span style={{ textAlign:"right" }}>{c.metrics.caseloadSize}</span>
               <span style={{ textAlign:"right" }}>{c.metrics.monthlyBillable.toFixed(1)}</span>
               <span style={{ textAlign:"right" }}>{c.metrics.adminMonthly.toFixed(1)}</span>
@@ -1000,7 +1000,7 @@ export function TSCProductivityTab({ config }) {
         })}
       </div>
 
-      <div style={{ marginTop:16, padding:14, background:"#fffbe8", border:"1px solid #f4e4a8", borderRadius:8, fontSize:11, color:"#5a3800", ...M, lineHeight:1.6 }}>
+      <div style={{ marginTop:16, padding:14, background:"#fffbe8", border:"1px solid #f4e4a8", borderRadius:8, fontSize:11, color:"#0A3D47", ...M, lineHeight:1.6 }}>
         <strong>Utilization color key:</strong> green = healthy 85-105% of an FTE (160 hr/month), amber = under-loaded
         (65-85%), red = either over-capacity (&gt;105%, burnout risk) or significantly under-utilized (&lt;65%, margin
         suffers). Billable share &lt; 75% suggests admin overhead is too high for the caseload.
@@ -1040,7 +1040,7 @@ export function TSCPLTab({ config, userRole }) {
 
   const renderCoordRow = (c) => (
     <div key={c.id} style={rowStyle}>
-      <span style={{ color:"#5a3800", fontWeight:600 }}>{c.name}</span>
+      <span style={{ color:"#0A3D47", fontWeight:600 }}>{c.name}</span>
       {showDollars && <span style={{ textAlign:"right", color:"#D4A520" }}>{$k(c.metrics.annualRev)}</span>}
       {showDollars && <span style={{ textAlign:"right" }}>{$k(c.metrics.annualLabor)}</span>}
       {showDollars && <span style={{ textAlign:"right", color: c.metrics.gross > 0 ? "#22c55e" : "#cf6e6e" }}>{$k(c.metrics.gross)}</span>}
@@ -1067,7 +1067,7 @@ export function TSCPLTab({ config, userRole }) {
 
   return (
     <div>
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         TSC service line P&amp;L
       </h3>
 
@@ -1093,7 +1093,7 @@ export function TSCPLTab({ config, userRole }) {
           : summary.coordinators.map(renderCoordRow)
         }
 
-        <div style={{ display:"grid", gridTemplateColumns:cols, padding:"12px 14px", background:"#141d2c", color:"#D4A520", fontSize:13, fontWeight:800, ...M }}>
+        <div style={{ display:"grid", gridTemplateColumns:cols, padding:"12px 14px", background:"#0A2C35", color:"#D4A520", fontSize:13, fontWeight:800, ...M }}>
           <span>Total</span>
           {showDollars && <span style={{ textAlign:"right" }}>{$k(summary.totalAnnualRev)}</span>}
           {showDollars && <span style={{ textAlign:"right", color:"#e4eaf2" }}>{$k(summary.totalAnnualLabor)}</span>}
@@ -1145,7 +1145,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
 
   return (
     <div>
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         Administrative & management staffing
       </h3>
 
@@ -1155,7 +1155,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
           <div style={{ display:"flex", gap:16 }}>
             <div>
               <div style={labelStyle}>Admin staff count</div>
-              <div style={{ fontSize:18, fontWeight:800, color:"#5a3800", ...M }}>{(config.adminStaff ?? []).length}</div>
+              <div style={{ fontSize:18, fontWeight:800, color:"#0A3D47", ...M }}>{(config.adminStaff ?? []).length}</div>
             </div>
             {showCosts && (
               <div>
@@ -1166,7 +1166,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
           </div>
           {canEdit && <button onClick={addStaff} style={{
             padding:"6px 14px", background:"#fff", border:"1px dashed #c8d4e4",
-            borderRadius:6, color:"#5a3800", cursor:"pointer", fontSize:12, fontWeight:600, ...M,
+            borderRadius:6, color:"#0A3D47", cursor:"pointer", fontSize:12, fontWeight:600, ...M,
           }}>+ Add staff</button>}
         </div>
 
@@ -1233,7 +1233,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
       </div>
 
       {/* Productivity assumptions */}
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         Productivity assumptions
       </h3>
 
@@ -1304,7 +1304,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
       </div>
 
       {/* Revenue assumptions */}
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         Revenue collection assumptions
       </h3>
 
@@ -1351,7 +1351,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
       </div>
 
       {/* Operational compliance assumptions */}
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"20px 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"20px 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         Operational compliance assumptions
       </h3>
 
@@ -1388,7 +1388,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
             readOnly={ro}
             style={{ ...numInput, width:64, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}/>
         </div>
-        <div style={{ padding:"10px 14px", background:"#fffbe8", border:"1px solid #f4e4a8", borderRadius:8, fontSize:10, color:"#5a3800", ...M, lineHeight:1.6, maxWidth:260 }}>
+        <div style={{ padding:"10px 14px", background:"#fffbe8", border:"1px solid #f4e4a8", borderRadius:8, fontSize:10, color:"#0A3D47", ...M, lineHeight:1.6, maxWidth:260 }}>
           <strong>Note:</strong> These fields are operational planning inputs. Face-to-face and plan dev rates inform compliance risk; churn rate informs recruitment/onboarding cost modeling; denial write-off reduces net collected revenue.
         </div>
       </div>
@@ -1445,7 +1445,7 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
     <div style={{ display:"grid", gridTemplateColumns:"260px 1fr", gap:16, alignItems:"start" }}>
       {/* Left: reimbursement rates (compact — matches Home Mix Editor) */}
       {canSeeControl(userRole, 'tscRates') ? (
-        <div style={{ padding:"10px 12px", background:"#f8f6f0", borderRadius:9, border:"1px solid #e0e8f0", pointerEvents: canEditRates ? "auto" : "none", opacity: canEditRates ? 1 : 0.65 }}>
+        <div style={{ padding:"10px 12px", background:"#FAF4E8", borderRadius:9, border:"1px solid #e0e8f0", pointerEvents: canEditRates ? "auto" : "none", opacity: canEditRates ? 1 : 0.65 }}>
           <button onClick={() => setRatesOpen(o => !o)} style={{
             background:"none", border:"none", cursor:"pointer", padding:0,
             display:"flex", alignItems:"center", gap:6, width:"100%",
@@ -1496,7 +1496,7 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
               <div style={{ borderTop:"1px solid #e0e8f0", marginTop:2, paddingTop:8, display:"flex", flexDirection:"column", gap:8 }}>
                 <div>
                   <div style={{ fontSize:9, color:"#5a7498", marginBottom:3 }}>Plan Dev cap (G9007)</div>
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"#5a3800", ...M, marginBottom:3 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"#0A3D47", ...M, marginBottom:3 }}>
                     <span>{G9007_CAP} u / participant / yr</span>
                     <span style={{ color: maxPlanDev >= 40 ? "#cf6e6e" : "#64748b" }}>{maxPlanDev}/{G9007_CAP}</span>
                   </div>
@@ -1525,7 +1525,7 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
 
       {/* Right: scenario modeling */}
       <div>
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         Scenario modeling
       </h3>
 
@@ -1575,7 +1575,7 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
             padding:"10px 14px", borderBottom:"1px solid #f1f5f9", fontSize:12, ...M,
           }}>
             <span style={{ color:"#475569" }}>{label}</span>
-            <span style={{ textAlign:"right", color:"#5a3800" }}>{fmt(b)}</span>
+            <span style={{ textAlign:"right", color:"#0A3D47" }}>{fmt(b)}</span>
             <span style={{ textAlign:"right", color:"#D4A520", fontWeight:700 }}>{fmt(scen)}</span>
             <span style={{ textAlign:"right", color: deltaColor(d), fontWeight:700 }}>{fmtD(d)}</span>
           </div>
@@ -1583,14 +1583,14 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
       </div>
 
       {/* Break-even analysis */}
-      <h3 style={{ ...M, fontSize:14, color:"#5a3800", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
+      <h3 style={{ ...M, fontSize:14, color:"#0A3D47", margin:"0 0 14px 0", letterSpacing:1, textTransform:"uppercase" }}>
         Break-even analysis
       </h3>
 
       <div style={{ ...card, display:"flex", gap:20, flexWrap:"wrap" }}>
         <div>
           <div style={labelStyle}>Break-even caseload</div>
-          <div style={{ fontSize:24, fontWeight:800, color:"#5a3800", ...M }}>
+          <div style={{ fontSize:24, fontWeight:800, color:"#0A3D47", ...M }}>
             {bev.breakEvenCaseload ?? "—"}
           </div>
           <div style={{ fontSize:9, color:"#64748b", ...M }}>participants needed to cover fixed costs</div>
