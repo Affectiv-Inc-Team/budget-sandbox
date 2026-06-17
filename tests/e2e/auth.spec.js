@@ -4,7 +4,7 @@ import { E2E_EMAIL, E2E_PASSWORD } from './fixtures/credentials.js';
 
 test.describe('Authentication', () => {
   test('unauthenticated users see the login page, not the tool', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/login');
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
     // The tool's Sign Out button must NOT be present pre-auth.
@@ -12,7 +12,7 @@ test.describe('Authentication', () => {
   });
 
   test('invalid credentials show an error and stay on the login page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/login');
     await page.getByLabel(/email/i).fill('nobody@test.local');
     await page.getByLabel(/password/i).fill('wrong-password');
     await page.getByRole('button', { name: /sign in/i }).click();
