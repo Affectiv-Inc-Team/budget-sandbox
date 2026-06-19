@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { canSeeCompanyDollars, wageDisplayMode, canEditServiceLines } from '../lib/access';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ export function mkStudent(name = 'New Student') {
   };
 }
 
-export function mkClinician(name = 'New Clinician', discipline = 'SPEECH', tier = 'PROFESSIONAL', hourlyWage = 30) {
+export function mkClinician(name = 'New Clinician', discipline = 'SPEECH', tier = 'PROFESSIONAL', hourlyWage = 30, schoolId = null) {
   return {
     id: `sbc_${sbUid()}`,
     name,
@@ -137,8 +137,7 @@ export function mkClinician(name = 'New Clinician', discipline = 'SPEECH', tier 
     tier,
     hourlyWage,
     adminHrsPerWeek: 5,
-    schoolName: '',
-    districtId: null,
+    schoolId,             // FK into config.schools; district is derived from the school
     students: [],
   };
 }
@@ -187,6 +186,41 @@ export function defaultSchoolBasedConfig() {
     defaultTier: 'PROFESSIONAL',
     rateOverrides: {},
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Legacy migration: clinicians used to carry a free-text `schoolName` plus a
+// standalone `districtId`. They now reference a real school via `schoolId`
+// (district is derived from the school). This maps any legacy `schoolName` to a
+// real school — matching by name (case-insensitive) or creating one — and drops
+// the obsolete fields. Idempotent: returns the same config when nothing legacy
+// remains, so callers can guard a one-shot persist on a referential change.
+// ─────────────────────────────────────────────────────────────────────────────
+export function normalizeSchoolBasedClinicians(config = {}) {
+  const clinicians = config.clinicians ?? [];
+  const needsMigration = clinicians.some(cl => cl.schoolId === undefined || 'schoolName' in cl || 'districtId' in cl);
+  if (!needsMigration) return config;
+
+  const schools = [...(config.schools ?? [])];
+  const findOrCreateSchool = (name, districtId) => {
+    const trimmed = (name ?? '').trim();
+    const existing = schools.find(sc => sc.name.trim().toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing.id;
+    const created = mkSchool(trimmed, districtId ?? null);
+    schools.push(created);
+    return created.id;
+  };
+
+  const migrated = clinicians.map(cl => {
+    const { schoolName, districtId, ...rest } = cl;
+    let schoolId = cl.schoolId ?? null;
+    if (!schoolId && schoolName && schoolName.trim()) {
+      schoolId = findOrCreateSchool(schoolName, districtId);
+    }
+    return { ...rest, schoolId };
+  });
+
+  return { ...config, schools, clinicians: migrated };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -259,8 +293,13 @@ export function calcSchoolStudent(s, clinician = {}, rates = _defaultRates, scho
   };
 }
 
-export function calcSchoolClinician(cl, payrollBurdenPct = 22, rates = _defaultRates, schoolYear = {}, productivity = {}, baseOverrides = {}, districts = []) {
-  const clinicianRates = effectiveRates(baseOverrides, cl.districtId ?? null, districts);
+export function calcSchoolClinician(cl, payrollBurdenPct = 22, rates = _defaultRates, schoolYear = {}, productivity = {}, baseOverrides = {}, districts = [], schools = []) {
+  // District is derived from the clinician's school; fall back to a legacy
+  // `cl.districtId` for configs not yet run through normalizeSchoolBasedClinicians.
+  const districtId = cl.schoolId
+    ? (schools.find(s => s.id === cl.schoolId)?.districtId ?? null)
+    : (cl.districtId ?? null);
+  const clinicianRates = effectiveRates(baseOverrides, districtId, districts);
   const sx = (cl.students ?? []).map(s => calcSchoolStudent(s, cl, clinicianRates, schoolYear, productivity));
   const weeks = schoolYearWeeks(schoolYear);
 
@@ -318,7 +357,7 @@ export function calcSchoolBasedService(config = {}) {
 
   const clinicians = (config.clinicians ?? []).map(cl => ({
     ...cl,
-    metrics: calcSchoolClinician(cl, payrollBurdenPct, rates, schoolYear, productivity, baseOverrides, districts),
+    metrics: calcSchoolClinician(cl, payrollBurdenPct, rates, schoolYear, productivity, baseOverrides, districts, config.schools ?? []),
   }));
 
   const totalCaseload    = clinicians.reduce((a, cl) => a + cl.metrics.caseloadSize, 0);
@@ -599,10 +638,14 @@ function SchoolStudentRow({ s, clinician, rates, schoolYear, productivity, onUpd
 // ─────────────────────────────────────────────────────────────────────────────
 // Clinician card
 // ─────────────────────────────────────────────────────────────────────────────
-function SchoolClinicianCard({ cl, payrollBurdenPct, rates, schoolYear, productivity, districts, onUpdate, onRemove, onAddStudent, onUpdateStudent, onRemoveStudent, userRole, canEdit }) {
+function SchoolClinicianCard({ cl, payrollBurdenPct, rates, schoolYear, productivity, districts, schools, baseOverrides, onUpdate, onRemove, onAddStudent, onUpdateStudent, onRemoveStudent, userRole, canEdit }) {
   const [expanded, setExpanded] = useState(true);
-  const m = calcSchoolClinician(cl, payrollBurdenPct, rates, schoolYear, productivity);
+  const m = calcSchoolClinician(cl, payrollBurdenPct, rates, schoolYear, productivity, baseOverrides ?? {}, districts ?? [], schools ?? []);
   const ro = !canEdit;
+
+  // District is derived from the assigned school, never stored on the clinician.
+  const school   = (schools ?? []).find(sc => sc.id === cl.schoolId) ?? null;
+  const district = school?.districtId ? (districts ?? []).find(d => d.id === school.districtId) ?? null : null;
 
   const utilColor   = m.utilization > 1.05 ? "#cf6e6e" : m.utilization > 0.85 ? "#22c55e" : m.utilization > 0.65 ? "#f59e0b" : "#cf6e6e";
   const marginColor = m.grossMargin > 0.35 ? "#22c55e" : m.grossMargin > 0.15 ? "#f59e0b" : "#cf6e6e";
@@ -660,25 +703,21 @@ function SchoolClinicianCard({ cl, payrollBurdenPct, rates, schoolYear, producti
 
         <div>
           <div style={labelStyle}>School</div>
-          <input type="text" value={cl.schoolName ?? ''}
-            onChange={e => onUpdate(cl.id, { schoolName: e.target.value })}
-            readOnly={ro}
-            placeholder="optional"
-            style={{ ...textInput, width: 90, fontSize: 11, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}/>
+          <select value={cl.schoolId ?? ''}
+            onChange={e => onUpdate(cl.id, { schoolId: e.target.value || null })}
+            disabled={ro}
+            style={{ ...textInput, fontSize: 11, padding: "3px 6px", maxWidth: 160, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}>
+            <option value="">No school assigned</option>
+            {(schools ?? []).map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+          </select>
         </div>
 
-        {(districts ?? []).length > 0 && (
-          <div>
-            <div style={labelStyle}>District</div>
-            <select value={cl.districtId ?? ''}
-              onChange={e => onUpdate(cl.id, { districtId: e.target.value || null })}
-              disabled={ro}
-              style={{ ...textInput, fontSize: 11, padding: "3px 6px", pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}>
-              <option value="">None</option>
-              {(districts ?? []).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+        <div>
+          <div style={labelStyle}>District</div>
+          <div style={{ fontSize: 11, color: district ? "#5a3800" : "#94a3b8", ...M, padding: "4px 0", fontWeight: 600 }}>
+            {district?.name ?? '—'}
           </div>
-        )}
+        </div>
 
         {canEdit && <button onClick={() => onRemove(cl.id)} style={{
           border: "1px solid #e8d4d4", background: "#fff5f5",
@@ -727,17 +766,42 @@ function SchoolClinicianCard({ cl, payrollBurdenPct, rates, schoolYear, producti
 // Roster tab
 // ─────────────────────────────────────────────────────────────────────────────
 export function SchoolBasedRosterTab({ config, onUpdate, userRole }) {
+  const [openDistricts, setOpenDistricts] = useState({});
+  const [openSchools, setOpenSchools] = useState({});
+  const [schoolsPanelOpen, setSchoolsPanelOpen] = useState(false);
+
+  // One-shot legacy migration: map any free-text clinician.schoolName onto a real
+  // school and drop the obsolete schoolName/districtId fields. Idempotent — the
+  // normalizer returns the same config reference once nothing legacy remains, so
+  // this fires onUpdate at most once and never loops.
+  useEffect(() => {
+    const normalized = normalizeSchoolBasedClinicians(config);
+    if (normalized !== config) onUpdate(normalized);
+  }, [config, onUpdate]);
+
   const summary  = calcSchoolBasedService(config);
   const rates    = effectiveRates(config.rateOverrides ?? {});
+  const baseOverrides = config.rateOverrides ?? {};
   const canEdit  = canEditServiceLines(userRole);
   const districts = config.districts ?? [];
+  const schools   = config.schools ?? [];
   const ro       = !canEdit;
 
   const clinicians   = config.clinicians ?? [];
   const schoolYear   = config.schoolYear ?? {};
   const productivity = config.productivity ?? {};
 
+  const toggleDistrict = id => setOpenDistricts(o => ({ ...o, [id]: !o[id] }));
+  const toggleSchool   = id => setOpenSchools(o => ({ ...o, [id]: !o[id] }));
+
   const updateField = (field, value) => onUpdate({ ...config, [field]: value });
+
+  const addSchool = () =>
+    onUpdate({ ...config, schools: [...schools, mkSchool(`School ${schools.length + 1}`, null)] });
+  const updateSchool = (schId, partial) =>
+    onUpdate({ ...config, schools: schools.map(sc => sc.id === schId ? { ...sc, ...partial } : sc) });
+  const removeSchool = (schId) =>
+    onUpdate({ ...config, schools: schools.filter(sc => sc.id !== schId) });
 
   const updateClinician = (clId, partial) =>
     onUpdate({ ...config, clinicians: clinicians.map(cl => cl.id === clId ? { ...cl, ...partial } : cl) });
@@ -745,12 +809,12 @@ export function SchoolBasedRosterTab({ config, onUpdate, userRole }) {
   const removeClinician = (clId) =>
     onUpdate({ ...config, clinicians: clinicians.filter(cl => cl.id !== clId) });
 
-  const addClinician = () =>
+  const addClinician = (schoolId = null) =>
     onUpdate({
       ...config,
       clinicians: [
         ...clinicians,
-        mkClinician(`Clinician ${clinicians.length + 1}`, config.defaultDiscipline ?? 'SPEECH', config.defaultTier ?? 'PROFESSIONAL', config.defaultHourlyWage ?? 30),
+        mkClinician(`Clinician ${clinicians.length + 1}`, config.defaultDiscipline ?? 'SPEECH', config.defaultTier ?? 'PROFESSIONAL', config.defaultHourlyWage ?? 30, schoolId),
       ],
     });
 
@@ -788,12 +852,95 @@ export function SchoolBasedRosterTab({ config, onUpdate, userRole }) {
   const updateSup = (field, val) => updateField("supervision", { ...sup, [field]: val });
   const updateYear = (field, val) => updateField("schoolYear", { ...schoolYear, [field]: val });
 
+  // ── Hierarchy helpers (mirror of SchoolBasedParticipantsTab) ──────────────
+  const cliniciansForSchool = (schId) => clinicians.filter(cl => cl.schoolId === schId);
+  const schoolExists        = (id) => schools.some(sc => sc.id === id);
+  const unassignedClinicians = clinicians.filter(cl => !cl.schoolId || !schoolExists(cl.schoolId));
+  const unassignedSchools    = schools.filter(sc => !sc.districtId);
+
+  const renderClinicianCard = (cl) => (
+    <SchoolClinicianCard key={cl.id} cl={cl}
+      payrollBurdenPct={config.payrollBurdenPct}
+      rates={rates}
+      schoolYear={schoolYear}
+      productivity={productivity}
+      districts={districts}
+      schools={schools}
+      baseOverrides={baseOverrides}
+      onUpdate={updateClinician}
+      onRemove={removeClinician}
+      onAddStudent={addStudent}
+      onUpdateStudent={updateStudent}
+      onRemoveStudent={removeStudent}
+      userRole={userRole}
+      canEdit={canEdit}/>
+  );
+
+  const addClinicianBtn = (schoolId) => canEdit && (
+    <button onClick={() => addClinician(schoolId)} style={{
+      marginTop: 10, padding: "6px 14px",
+      background: "#fff", border: "1px dashed #c8d4e4", borderRadius: 6,
+      color: "#5a3800", cursor: "pointer", fontSize: 12, fontWeight: 600, ...M,
+    }}>+ Add clinician</button>
+  );
+
+  const renderSchoolSection = (school) => {
+    const here = cliniciansForSchool(school.id);
+    const open = openSchools[school.id] !== false;
+    return (
+      <div key={school.id} style={{ marginBottom: 8, border: "1px solid #d0dae8", borderRadius: 8, overflow: "hidden" }}>
+        <div onClick={() => toggleSchool(school.id)}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f0f4fa", cursor: "pointer" }}>
+          <span style={{ fontSize: 11, color: "#5a3800" }}>{open ? "▼" : "▶"}</span>
+          <span style={{ fontWeight: 700, fontSize: 12, color: "#5a3800", ...M }}>{school.name}</span>
+          <span style={{ fontSize: 10, color: "#64748b", ...M }}>{here.length} clinician{here.length !== 1 ? 's' : ''}</span>
+        </div>
+        {open && (
+          <div style={{ padding: "10px 12px", background: "#fff", display: "flex", flexDirection: "column", gap: 12 }}>
+            {here.length === 0
+              ? <div style={{ fontSize: 11, color: "#94a3b8", ...M }}>No clinicians assigned to this school.</div>
+              : here.map(renderClinicianCard)}
+            {addClinicianBtn(school.id)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDistrictSection = (dist) => {
+    const distSchools = schools.filter(sc => sc.districtId === dist.id);
+    const open = openDistricts[dist.id] !== false;
+    const total = clinicians.filter(cl => distSchools.some(sc => sc.id === cl.schoolId)).length;
+    return (
+      <div key={dist.id} style={{ marginBottom: 16, border: "1px solid #c8d4e4", borderRadius: 10, overflow: "hidden" }}>
+        <div onClick={() => toggleDistrict(dist.id)}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#141d2c", cursor: "pointer" }}>
+          <span style={{ fontSize: 12, color: "#D4A520" }}>{open ? "▼" : "▶"}</span>
+          <span style={{ fontWeight: 700, fontSize: 13, color: "#D4A520", ...M }}>{dist.name}</span>
+          <span style={{ fontSize: 10, color: "#8ab4c8", ...M }}>
+            {distSchools.length} school{distSchools.length !== 1 ? 's' : ''} · {total} clinician{total !== 1 ? 's' : ''}
+          </span>
+        </div>
+        {open && (
+          <div style={{ padding: "10px 12px", background: "#fff" }}>
+            {distSchools.length === 0
+              ? <div style={{ fontSize: 11, color: "#94a3b8", ...M, padding: "8px 0" }}>No schools assigned to {dist.name}.</div>
+              : distSchools.map(renderSchoolSection)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       {/* Summary bar */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <Stat label="Clinicians"     value={summary.clinicianCount} />
         <Stat label="Total caseload" value={summary.totalCaseload} />
+        <Stat label="Schools"        value={schools.length} />
+        <Stat label="Districts"      value={districts.length} />
+        {unassignedClinicians.length > 0 && <Stat label="No school" value={unassignedClinicians.length} color="#f59e0b" />}
         <Stat label="Service weeks"  value={summary.weeks} />
         {canSeeCompanyDollars(userRole) && <Stat label="Annual Rev"   value={$k(summary.totalAnnualRev)} color="#D4A520"/>}
         {canSeeCompanyDollars(userRole) && <Stat label="Direct Labor" value={$k(summary.totalAnnualLabor)} />}
@@ -847,36 +994,83 @@ export function SchoolBasedRosterTab({ config, onUpdate, userRole }) {
         )}
       </div>
 
-      {/* Clinician cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {clinicians.length === 0 && (
-          <div style={{ ...card, textAlign: "center", padding: 40, color: "#64748b" }}>
-            <div style={{ fontSize: 13, marginBottom: 8 }}>No clinicians yet.</div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>Add a clinician to start building your school-based caseload model.</div>
+      {/* Manage Schools panel */}
+      <div style={{ ...card, marginBottom: 20 }}>
+        <button onClick={() => setSchoolsPanelOpen(o => !o)} style={{
+          background: "none", border: "none", cursor: "pointer", padding: 0,
+          display: "flex", alignItems: "center", gap: 6,
+          fontSize: 9, color: "#9a8050", letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, ...M,
+        }}>
+          <span style={{ fontSize: 11, transition: "transform 200ms", transform: schoolsPanelOpen ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+          Manage Schools ({schools.length})
+        </button>
+        {schoolsPanelOpen && (
+          <div style={{ marginTop: 12 }}>
+            {schools.length === 0 && (
+              <div style={{ fontSize: 11, color: "#94a3b8", ...M, marginBottom: 10 }}>
+                No schools yet. Add schools below, then assign clinicians to them.
+              </div>
+            )}
+            {schools.map(sc => (
+              <div key={sc.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+                <input type="text" value={sc.name}
+                  onChange={e => updateSchool(sc.id, { name: e.target.value })}
+                  readOnly={ro}
+                  style={{ ...textInput, width: 180, fontSize: 12, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}/>
+                <select value={sc.districtId ?? ''}
+                  onChange={e => updateSchool(sc.id, { districtId: e.target.value || null })}
+                  disabled={ro}
+                  style={{ ...textInput, fontSize: 11, padding: "3px 6px", pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}>
+                  <option value="">No district</option>
+                  {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+                {canEdit && (
+                  <button onClick={() => removeSchool(sc.id)} style={{
+                    border: "none", background: "transparent", cursor: "pointer", color: "#cf6e6e", fontSize: 14, padding: 4,
+                  }}>✕</button>
+                )}
+              </div>
+            ))}
+            {canEdit && (
+              <button onClick={addSchool} style={{
+                marginTop: 6, padding: "5px 12px", background: "#fff",
+                border: "1px dashed #c8d4e4", borderRadius: 6,
+                color: "#5a3800", cursor: "pointer", fontSize: 11, fontWeight: 600, ...M,
+              }}>+ Add school</button>
+            )}
           </div>
-        )}
-        {clinicians.map(cl =>
-          <SchoolClinicianCard key={cl.id} cl={cl}
-            payrollBurdenPct={config.payrollBurdenPct}
-            rates={rates}
-            schoolYear={schoolYear}
-            productivity={productivity}
-            districts={districts}
-            onUpdate={updateClinician}
-            onRemove={removeClinician}
-            onAddStudent={addStudent}
-            onUpdateStudent={updateStudent}
-            onRemoveStudent={removeStudent}
-            userRole={userRole}
-            canEdit={canEdit}/>
         )}
       </div>
 
-      {canEdit && <button onClick={addClinician} style={{
-        marginTop: 16, padding: "8px 18px",
-        background: "#D4A520", border: "none", borderRadius: 6,
-        color: "#5a3800", cursor: "pointer", fontSize: 12, fontWeight: 700, ...M,
-      }}>+ Add clinician</button>}
+      {/* District → School → Clinician hierarchy */}
+      {districts.map(renderDistrictSection)}
+
+      {unassignedSchools.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>Schools without a district</div>
+          {unassignedSchools.map(renderSchoolSection)}
+        </div>
+      )}
+
+      {clinicians.length === 0 && (
+        <div style={{ ...card, textAlign: "center", padding: 40, color: "#64748b" }}>
+          <div style={{ fontSize: 13, marginBottom: 8 }}>No clinicians yet.</div>
+          <div style={{ fontSize: 11, color: "#94a3b8" }}>Add a clinician to start building your school-based caseload model.</div>
+        </div>
+      )}
+
+      {/* Clinicians not yet assigned to a school */}
+      <div style={{ marginTop: 16 }}>
+        {unassignedClinicians.length > 0 && (
+          <div style={{ ...labelStyle, marginBottom: 8, color: "#f59e0b" }}>
+            Clinicians not assigned to a school ({unassignedClinicians.length})
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {unassignedClinicians.map(renderClinicianCard)}
+        </div>
+        {addClinicianBtn(null)}
+      </div>
     </div>
   );
 }
@@ -996,9 +1190,11 @@ export function SchoolBasedPLTab({ config, userRole }) {
     );
   }
 
+  const schoolDefs = config.schools ?? [];
+  const schoolNameFor = (id) => schoolDefs.find(sc => sc.id === id)?.name?.trim() || '— Unassigned —';
   const schools = {};
   summary.clinicians.forEach(cl => {
-    const key = cl.schoolName?.trim() || '— Unassigned —';
+    const key = schoolNameFor(cl.schoolId);
     (schools[key] = schools[key] || []).push(cl);
   });
   const isMultiSchool = Object.keys(schools).some(k => k !== '— Unassigned —');
