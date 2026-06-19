@@ -818,12 +818,14 @@ export function SchoolBasedRosterTab({ config, onUpdate, userRole }) {
       ],
     });
 
+  // New students inherit their clinician's school so they surface under the
+  // right school in the Participants tab (rather than the "no school" bucket).
   const addStudent = (clId) =>
     onUpdate({
       ...config,
       clinicians: clinicians.map(cl =>
         cl.id === clId
-          ? { ...cl, students: [...(cl.students ?? []), mkStudent(`Student ${(cl.students ?? []).length + 1}`)] }
+          ? { ...cl, students: [...(cl.students ?? []), { ...mkStudent(`Student ${(cl.students ?? []).length + 1}`), schoolId: cl.schoolId ?? null }] }
           : cl
       ),
     });
@@ -1953,6 +1955,23 @@ export function SchoolBasedParticipantsTab({ config, onUpdate, userRole }) {
       })),
     });
 
+  // Students must belong to a clinician (the calculators iterate cl.students),
+  // so adding a participant here attaches it to the first clinician at that
+  // school and sets its schoolId to match. The button is only shown for schools
+  // that have a clinician — the Participants → Roster mirror of addStudent.
+  const addParticipant = (schoolId) => {
+    const target = clinicians.find(cl => cl.schoolId === schoolId);
+    if (!target) return;
+    onUpdate({
+      ...config,
+      clinicians: clinicians.map(cl =>
+        cl.id === target.id
+          ? { ...cl, students: [...(cl.students ?? []), { ...mkStudent(`Student ${allStudents.length + 1}`), schoolId }] }
+          : cl
+      ),
+    });
+  };
+
   const renderStudentRow = (student) => (
     <div key={student.id} style={{
       display: "grid", gridTemplateColumns: "1.6fr 1.4fr 1fr 1fr",
@@ -1982,6 +2001,23 @@ export function SchoolBasedParticipantsTab({ config, onUpdate, userRole }) {
     </div>
   );
 
+  const addParticipantBtn = (school) => {
+    if (!canEdit) return null;
+    const hasClinician = clinicians.some(cl => cl.schoolId === school.id);
+    return (
+      <div style={{ padding: "10px 12px", borderTop: "1px solid #f1f5f9" }}>
+        {hasClinician
+          ? <button onClick={() => addParticipant(school.id)} style={{
+              padding: "6px 14px", background: "#fff", border: "1px dashed #c8d4e4",
+              borderRadius: 6, color: "#5a3800", cursor: "pointer", fontSize: 12, fontWeight: 600, ...M,
+            }}>+ Add participant</button>
+          : <div style={{ fontSize: 10, color: "#94a3b8", ...M }}>
+              Assign a clinician to this school in the Roster tab to add participants.
+            </div>}
+      </div>
+    );
+  };
+
   const renderSchoolSection = (school) => {
     const studentsHere = allStudents.filter(s => s.schoolId === school.id);
     const open = openSchools[school.id] !== false;
@@ -1994,18 +2030,21 @@ export function SchoolBasedParticipantsTab({ config, onUpdate, userRole }) {
           <span style={{ fontSize: 10, color: "#64748b", ...M }}>{studentsHere.length} student{studentsHere.length !== 1 ? 's' : ''}</span>
         </div>
         {open && (
-          studentsHere.length === 0
-            ? <div style={{ padding: "12px 14px", fontSize: 11, color: "#94a3b8", ...M }}>No students assigned to this school.</div>
-            : (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.4fr 1fr 1fr", padding: "6px 12px", background: "#eef1f6", ...labelStyle }}>
-                  <span>Student</span><span>School</span>
-                  <span style={{ textAlign: "right" }}>Clinician</span>
-                  <span style={{ textAlign: "right" }}>Services</span>
-                </div>
-                {studentsHere.map(renderStudentRow)}
-              </>
-            )
+          <>
+            {studentsHere.length === 0
+              ? <div style={{ padding: "12px 14px", fontSize: 11, color: "#94a3b8", ...M }}>No students assigned to this school.</div>
+              : (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.4fr 1fr 1fr", padding: "6px 12px", background: "#eef1f6", ...labelStyle }}>
+                    <span>Student</span><span>School</span>
+                    <span style={{ textAlign: "right" }}>Clinician</span>
+                    <span style={{ textAlign: "right" }}>Services</span>
+                  </div>
+                  {studentsHere.map(renderStudentRow)}
+                </>
+              )}
+            {addParticipantBtn(school)}
+          </>
         )}
       </div>
     );
