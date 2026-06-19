@@ -6,7 +6,7 @@ import { SERVICE_LINE_TYPES, SERVICE_LINE_DEFS, getShortLabel, getGroupedPickerO
 import { ratesForLine } from "../data/idahoRates.js";
 import { TSCRosterTab, TSCCoordinatorsTab, TSCParticipantsTab, TSCProductivityTab, TSCPLTab, TSCStaffingTab, TSCScenarioTab, calcTSCService } from "../serviceLines/tsc.jsx";
 import { ChildrensDDARosterTab, ChildrensDDAParticipantsTab, ChildrensDDACaseloadTab, ChildrensDDAProductivityTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
-import { CSERosterTab, CSEProductivityTab, CSEPLTab, calcCSEService } from "../serviceLines/cse.jsx";
+import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService } from "../serviceLines/school_based.jsx";
 import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
 
@@ -2357,6 +2357,7 @@ const SUB_TABS = {
     { id: "cse_roster",       label: "👥 Specialists & Caseload" },
     { id: "cse_productivity", label: "📈 Productivity" },
     { id: "cse_pl",           label: "💵 P&L" },
+    { id: "cse_rates",        label: "📋 Billing Codes" },
   ],
   SCHOOL_BASED: [
     { id: "school_roster",        label: "👥 Roster" },
@@ -3181,6 +3182,11 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                 <CSEProductivityTab config={activeSL.config} userRole={userRole}/>}
               {activeSLType === SERVICE_LINE_TYPES.VOC_SERVICES && activeSL && subTab === "cse_pl" && canSeeCompanyDollars(userRole) &&
                 <CSEPLTab config={activeSL.config} userRole={userRole}/>}
+              {activeSLType === SERVICE_LINE_TYPES.VOC_SERVICES && activeSL && subTab === "cse_rates" && (
+                <CSERateScheduleTab config={activeSL.config}
+                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
+                  userRole={userRole}/>
+              )}
               {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_pl" && canSeeCompanyDollars(userRole) && (() => {
                 const revShare = co.annualRevGross > 0 ? tscSummary.totalAnnualRev / co.annualRevGross : 1;
                 const slCo = calcSLCo({ annualRevGrossRaw:tscSummary.totalAnnualRev,
