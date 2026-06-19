@@ -295,3 +295,324 @@ button {
   font-family: var(--font-mono);
   letter-spacing: 1px;
 }
+
+/* ── Marketing / landing pages ──────────────────────────── */
+.mk-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -5%, rgba(14,107,120,0.10) 0%, transparent 60%),
+    linear-gradient(170deg, #eef2f8 0%, var(--bg-page) 45%, #f3f1e8 100%);
+  color: var(--text-900);
+}
+
+/* Header */
+.mk-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px clamp(16px, 5vw, 56px);
+  background: rgba(250, 250, 248, 0.82);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.mk-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.mk-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 10px rgba(14,107,120,0.28));
+}
+.mk-wordmark {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--teal);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.mk-wordmark-sm { font-size: 15px; letter-spacing: 2.5px; }
+
+.mk-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2vw, 22px);
+}
+.mk-navlink {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-800);
+  text-decoration: none;
+  letter-spacing: 0.3px;
+  transition: color 0.15s;
+}
+.mk-navlink:hover { color: var(--teal); }
+.mk-navlink.is-active { color: var(--teal); }
+.mk-navlink-cta { font-weight: 700; }
+
+/* Buttons */
+.mk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  padding: 9px 16px;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s, border-color 0.15s;
+}
+.mk-btn-lg { padding: 13px 24px; font-size: 14px; }
+.mk-btn-primary {
+  background: var(--teal);
+  color: #fff;
+  box-shadow: var(--shadow-teal);
+}
+.mk-btn-primary:hover {
+  background: var(--teal-deep);
+  box-shadow: 0 6px 24px rgba(14,107,120,0.30);
+  transform: translateY(-1px);
+}
+.mk-btn-ghost {
+  background: transparent;
+  color: var(--teal);
+  border-color: var(--teal-muted);
+}
+.mk-btn-ghost:hover {
+  background: rgba(14,107,120,0.06);
+  border-color: var(--teal);
+}
+
+/* Main + sections */
+.mk-main { flex: 1; }
+.mk-section {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(48px, 8vw, 88px) clamp(16px, 5vw, 56px);
+}
+.mk-section-alt {
+  max-width: none;
+  background: rgba(255,255,255,0.55);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+.mk-section-alt > * { max-width: 1080px; margin-left: auto; margin-right: auto; }
+.mk-section-head { margin-bottom: 36px; }
+.mk-kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 10px;
+}
+.mk-kicker-card { color: var(--gold-deep); margin-bottom: 8px; }
+
+/* Hero */
+.mk-hero {
+  padding: clamp(56px, 10vw, 120px) clamp(16px, 5vw, 56px) clamp(40px, 7vw, 80px);
+  text-align: center;
+}
+.mk-hero-sm { padding-top: clamp(48px, 7vw, 80px); padding-bottom: clamp(24px, 4vw, 40px); }
+.mk-hero-inner { max-width: 760px; margin: 0 auto; animation: fadeIn 0.4s ease both; }
+.mk-eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--teal);
+  background: rgba(14,107,120,0.08);
+  border: 1px solid rgba(14,107,120,0.18);
+  border-radius: 999px;
+  padding: 5px 14px;
+  margin-bottom: 22px;
+}
+.mk-h1 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(30px, 5.5vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.5px;
+  color: var(--text-900);
+  margin: 0 0 18px;
+}
+.mk-lede {
+  font-size: clamp(15px, 2.2vw, 19px);
+  line-height: 1.55;
+  color: var(--slate-700);
+  margin: 0 auto 30px;
+  max-width: 620px;
+}
+.mk-cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.mk-cta-row-center { justify-content: center; }
+.mk-hero .mk-cta-row { justify-content: center; }
+
+/* Headings */
+.mk-h2 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(22px, 3.4vw, 32px);
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+  color: var(--text-900);
+  margin: 0;
+}
+
+/* Grids + cards */
+.mk-grid { display: grid; gap: 18px; }
+.mk-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.mk-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.mk-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.18s, transform 0.18s;
+}
+.mk-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.mk-card-title {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-900);
+  margin: 0 0 8px;
+}
+.mk-card-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--slate-700);
+  margin: 0;
+}
+
+/* Steps */
+.mk-step {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.mk-step-n {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--teal-muted);
+  margin-bottom: 12px;
+}
+
+/* Service line lists */
+.mk-sl-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.mk-sl-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border-light);
+}
+.mk-sl-item:first-child { border-top: none; }
+.mk-sl-name { font-size: 13.5px; color: var(--text-800); }
+.mk-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.mk-badge-active { background: rgba(0,196,154,0.14); color: #07795f; border: 1px solid rgba(0,196,154,0.3); }
+.mk-badge-catalog { background: var(--surface-2); color: var(--slate-500); border: 1px solid var(--border); }
+
+/* Trust strip */
+.mk-trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 32px;
+  padding: 24px clamp(16px, 5vw, 56px);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+.mk-trust-item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+
+/* CTA band */
+.mk-cta-band {
+  text-align: center;
+  padding: clamp(56px, 9vw, 96px) clamp(16px, 5vw, 56px);
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 120%, rgba(14,107,120,0.12) 0%, transparent 60%);
+}
+.mk-cta-band-title { margin-bottom: 10px; }
+.mk-cta-band-sub {
+  font-size: 15px;
+  color: var(--slate-700);
+  margin: 0 auto 26px;
+  max-width: 520px;
+}
+
+/* Footer */
+.mk-footer {
+  border-top: 1px solid var(--border);
+  background: rgba(250,250,248,0.7);
+}
+.mk-footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 5vw, 56px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+.mk-footer-line {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--slate-400);
+}
+.mk-footer-links { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; }
+.mk-footer-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-800);
+  text-decoration: none;
+}
+.mk-footer-link:hover { color: var(--teal); }
+
+/* Responsive */
+@media (max-width: 820px) {
+  .mk-grid-2, .mk-grid-3 { grid-template-columns: 1fr; }
+  .mk-wordmark { display: none; }
+}
+@media (max-width: 560px) {
+  .mk-nav { gap: 10px; }
+  .mk-navlink { font-size: 12px; }
+  .mk-btn { padding: 8px 12px; font-size: 12px; }
+  .mk-footer-links { margin-left: 0; width: 100%; }
+}

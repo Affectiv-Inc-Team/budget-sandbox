@@ -2,11 +2,11 @@ import { expect } from '@playwright/test';
 
 // Logs in through the real form and waits for the tool to render.
 //
-// NOTE: the app does not navigate on login — App.jsx swaps LoginPage for the
-// tool via onAuthStateChange, so the URL stays the same. We therefore wait on
-// a tool-only element (the Sign Out button) rather than a URL change.
+// NOTE: the login form lives at /login. On success App.jsx's /login route
+// redirects to /app (via onAuthStateChange setting the session). We wait on a
+// tool-only element (the Sign Out button) rather than asserting the URL.
 export async function loginAs(page, email, password) {
-  await page.goto('/');
+  await page.goto('/login');
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
