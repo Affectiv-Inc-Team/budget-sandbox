@@ -210,6 +210,7 @@ export const SERVICE_LINE_DEFS = {
     status: 'active',
     defaultConfig: () => ({
       specialists: [],
+      rateOverrides: {},
       jobDevelopment: { fteCount: 1, salary: 52000, outreachHoursPerWeek: 20, conversionRate: 15 },
       productivity: { billableHrsPerDay: 5, driveTimePct: 25, documentationTimePct: 15, noShowPct: 10 },
       revenue: { completionRate: 90, billingSuccessRate: 95, collectionRate: 99 },
