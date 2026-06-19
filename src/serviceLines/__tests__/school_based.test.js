@@ -16,6 +16,7 @@ import {
   calcSchoolAdminStaff,
   calcSchoolBasedService,
   calcSchoolScenario,
+  normalizeSchoolBasedClinicians,
 } from "../school_based.jsx";
 
 // Rate constants mirrored from school_based.jsx to keep assertions self-documenting
@@ -62,9 +63,16 @@ describe("factories", () => {
     expect(c.tier).toBe("ASSISTANT");
     expect(c.hourlyWage).toBe(28);
     expect(c.adminHrsPerWeek).toBe(5);
-    expect(c.schoolName).toBe("");
+    expect(c.schoolId).toBeNull();
+    expect(c).not.toHaveProperty("schoolName");
+    expect(c).not.toHaveProperty("districtId");
     expect(c.students).toEqual([]);
     expect(c.id).toMatch(/^sbc_/);
+  });
+
+  it("mkClinician accepts an optional schoolId", () => {
+    const c = mkClinician("Bob", "OT", "TECH", 25, "sbsch_abc");
+    expect(c.schoolId).toBe("sbsch_abc");
   });
 
   it("mkStudent carries every service field regardless of discipline", () => {
@@ -266,6 +274,49 @@ describe("calcSchoolClinician", () => {
     expect(m.grossMargin).toBe(0);
     // still paid for admin hours
     expect(m.annualLabor).toBeGreaterThan(0);
+  });
+
+  it("applies the district rate override resolved via the clinician's school", () => {
+    const district = { ...mkDistrict("Bonneville"), id: "d1", rateOverrides: { speech_prof: 100 } };
+    const school   = { ...mkSchool("North Elementary", "d1"), id: "sch1" };
+    const cl = { ...mkClinician("Alice", "SPEECH", "PROFESSIONAL", 30, "sch1"), students: [therapyStudent(10)] };
+
+    const withOverride = calcSchoolClinician(cl, 22, undefined, {}, { absenceRate: 0 }, {}, [district], [school]);
+    const baseline     = calcSchoolClinician({ ...cl, schoolId: null }, 22, undefined, {}, { absenceRate: 0 }, {}, [district], [school]);
+
+    // speech_prof default is 16.10; the district override raises it to 100 → much higher revenue
+    expect(withOverride.annualRev).toBeGreaterThan(baseline.annualRev);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// normalizeSchoolBasedClinicians (legacy schoolName → schoolId migration)
+// ──────────────────────────────────────────────────────────────────────
+
+describe("normalizeSchoolBasedClinicians", () => {
+  it("returns the same config reference when nothing legacy remains", () => {
+    const config = { schools: [], clinicians: [{ ...mkClinician("A"), id: "c1" }] };
+    expect(normalizeSchoolBasedClinicians(config)).toBe(config);
+  });
+
+  it("maps a legacy schoolName onto a newly created school and drops obsolete fields", () => {
+    const legacy = { id: "c1", name: "A", discipline: "SPEECH", tier: "PROFESSIONAL", hourlyWage: 30, schoolName: "Maple K-8", districtId: "d1", students: [] };
+    const out = normalizeSchoolBasedClinicians({ schools: [], clinicians: [legacy] });
+    const cl = out.clinicians[0];
+    expect(cl.schoolId).toBeTruthy();
+    expect(cl).not.toHaveProperty("schoolName");
+    expect(cl).not.toHaveProperty("districtId");
+    const sch = out.schools.find(s => s.id === cl.schoolId);
+    expect(sch.name).toBe("Maple K-8");
+    expect(sch.districtId).toBe("d1");
+  });
+
+  it("reuses an existing school with a matching name instead of duplicating", () => {
+    const school = { ...mkSchool("Maple K-8", "d1"), id: "sch1" };
+    const legacy = { id: "c1", name: "A", schoolName: "maple k-8", students: [] };
+    const out = normalizeSchoolBasedClinicians({ schools: [school], clinicians: [legacy] });
+    expect(out.schools).toHaveLength(1);
+    expect(out.clinicians[0].schoolId).toBe("sch1");
   });
 });
 
@@ -502,9 +553,10 @@ describe("district rate layering", () => {
     expect(d.id).toMatch(/^sbdist_/);
   });
 
-  it("mkClinician has districtId: null by default", () => {
+  it("mkClinician defaults to no school and carries no districtId (district is derived from the school)", () => {
     const cl = mkClinician();
-    expect(cl.districtId).toBeNull();
+    expect(cl.schoolId).toBeNull();
+    expect(cl).not.toHaveProperty("districtId");
   });
 
   it("district rateOverrides layer on top of base overrides for a clinician in that district", () => {
