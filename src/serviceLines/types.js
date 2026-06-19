@@ -236,6 +236,7 @@ export const SERVICE_LINE_DEFS = {
     status: 'active',
     defaultConfig: () => ({
       providers: [],
+      supervisors: [],
       supervision: { count: 1, salary: 65000, providersPerSupervisor: 8 },
       seasonality: { enabled: false, summerMultiplier: 0.7, holidayReductionPct: 10 },
       productivity: { billableHrsPerDay: 5.5, cancellationRate: 12, driveTimePct: 15, documentationTimePct: 20 },
