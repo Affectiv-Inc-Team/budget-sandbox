@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { canSeeCompanyDollars, wageDisplayMode, canEditServiceLines } from '../lib/access';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,6 +83,17 @@ const TIER_LABELS = {
   EBM_PROF:     'EBM Professional',
 };
 
+// Service phase a participant is in. Reference-only (does not drive the calc) —
+// mirrors the CSE phase model but with the CHIS naming: "Initial" (no "intensive"),
+// "Stabilization", and "Long-Term Supports". Keys are stable so saved data and the
+// label rename never diverge.
+export const DDA_PHASES = ['initial', 'stabilization', 'long_term'];
+export const DDA_PHASE_LABELS = {
+  initial:       'Initial',
+  stabilization: 'Stabilization',
+  long_term:     'Long-Term Supports',
+};
+
 // Pre-built default rates object from the table
 const _defaultRates = {};
 DDA_RATE_TABLE.forEach(r => { _defaultRates[r.key] = r.defaultRate; });
@@ -101,6 +112,7 @@ export function mkDDAParticipant(name = 'New Participant') {
   return {
     id: `ddap_${ddaUid()}`,
     name,
+    phase: 'initial',
     services: {
       biInd:      { hrPerWk: 10 },
       biGrp:      { hrPerWk: 0,  groupSize: 4 },
@@ -125,13 +137,23 @@ export function mkDDAProvider(name = 'New Provider', tier = 'SPECIALIST', hourly
     tier,
     hourlyWage,
     officeName: '',
+    supervisorId: null,   // FK into config.supervisors (null = unassigned)
     participants: [],
+  };
+}
+
+export function mkDDASupervisor(name = 'New Supervisor', salary = 65000) {
+  return {
+    id: `ddasup_${ddaUid()}`,
+    name,
+    salary,
   };
 }
 
 export function defaultChildrensDDAConfig() {
   return {
     providers: [],
+    supervisors: [],
     supervision: { count: 1, salary: 65000, providersPerSupervisor: 8 },
     seasonality:  { enabled: false, summerMultiplier: 0.7, holidayReductionPct: 10 },
     productivity: { billableHrsPerDay: 5.5, cancellationRate: 12, driveTimePct: 15, documentationTimePct: 20 },
@@ -140,6 +162,37 @@ export function defaultChildrensDDAConfig() {
     defaultTier:       'SPECIALIST',
     rateOverrides:     {},
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Legacy migration: the supervision layer used to be a single settings panel
+// (`supervision.{count,salary,providersPerSupervisor}`) with no named entities,
+// and providers carried no supervisor link. The Caseload tab needs real
+// `supervisors[]` with a `supervisorId` FK on each provider. This synthesizes
+// `supervision.count` named supervisors from the legacy settings and backfills a
+// null `supervisorId` on every provider (→ "unassigned" until reassigned). The
+// legacy `supervision` block is preserved as the ratio/fallback source.
+// Idempotent: returns the same config reference once nothing legacy remains, so
+// callers can guard a one-shot persist on a referential change.
+// ─────────────────────────────────────────────────────────────────────────────
+export function normalizeChildrensDDA(config = {}) {
+  const providers = config.providers ?? [];
+  const hasSupervisors    = Array.isArray(config.supervisors);
+  const providersNeedFK   = providers.some(pv => pv.supervisorId === undefined);
+  if (hasSupervisors && !providersNeedFK) return config;
+
+  const sup = config.supervision ?? { count: 1, salary: 65000 };
+  let supervisors = config.supervisors;
+  if (!Array.isArray(supervisors)) {
+    const count = Math.max(0, sup.count ?? 1);
+    supervisors = Array.from({ length: count }, (_, i) =>
+      mkDDASupervisor(`Supervisor ${i + 1}`, sup.salary ?? 65000));
+  }
+
+  const migratedProviders = providers.map(pv =>
+    pv.supervisorId === undefined ? { ...pv, supervisorId: null } : pv);
+
+  return { ...config, supervisors, providers: migratedProviders };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -260,8 +313,16 @@ export function calcChildrensDDAService(config) {
   const totalAnnualRev = providers.reduce((a, pv) => a + pv.metrics.annualRev, 0);
   const totalAnnualLab = providers.reduce((a, pv) => a + pv.metrics.annualLabor, 0);
 
+  // Supervision cost: prefer the named supervisors[] list (sum of salaries);
+  // fall back to the legacy supervision.{count,salary} settings for configs not
+  // yet run through normalizeChildrensDDA.
   const sup = config.supervision ?? { count: 1, salary: 65000 };
-  const supervisionCost = (sup.count ?? 1) * (sup.salary ?? 65000) * (1 + payrollBurdenPct / 100);
+  const supervisorList = Array.isArray(config.supervisors) ? config.supervisors : null;
+  const supervisorCount = supervisorList ? supervisorList.length : (sup.count ?? 1);
+  const salaryTotal = supervisorList
+    ? supervisorList.reduce((a, s) => a + (s.salary ?? sup.salary ?? 65000), 0)
+    : (sup.count ?? 1) * (sup.salary ?? 65000);
+  const supervisionCost = salaryTotal * (1 + payrollBurdenPct / 100);
 
   const totalGross = totalAnnualRev - totalAnnualLab - supervisionCost;
 
@@ -271,6 +332,7 @@ export function calcChildrensDDAService(config) {
     totalAnnualRev,
     totalAnnualLabor:  totalAnnualLab,
     supervisionCost,
+    supervisorCount,
     totalGross,
     totalMargin:   totalAnnualRev > 0 ? totalGross / totalAnnualRev : 0,
     providerCount: providers.length,
@@ -350,6 +412,13 @@ function DDAParticipantRow({ p, tier, rates, onUpdate, onRemove, userRole, canEd
           onChange={e => onUpdate(p.id, "name", e.target.value)}
           readOnly={ro}
           style={{ ...textInput, flex: 1, fontSize: 12, minWidth: 100, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}/>
+        <select value={p.phase ?? 'initial'}
+          onChange={e => onUpdate(p.id, "phase", e.target.value)}
+          disabled={ro}
+          title="Service phase"
+          style={{ ...textInput, fontSize: 11, padding: "3px 6px", flexShrink: 0, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}>
+          {DDA_PHASES.map(ph => <option key={ph} value={ph}>{DDA_PHASE_LABELS[ph]}</option>)}
+        </select>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           {canSeeCompanyDollars(userRole) && <div style={{ fontSize: 13, fontWeight: 700, color: "#5a3800", ...M }}>{$k(m.monthlyRev)}/mo</div>}
           <div style={{ fontSize: 9, color: "#64748b", ...M }}>
@@ -751,7 +820,7 @@ export function ChildrensDDAProductivityTab({ config, userRole }) {
         <div>
           <div style={labelStyle}>Supervision ratio</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#5a3800", ...M }}>
-            {summary.providerCount} : {config.supervision?.count ?? 1}
+            {summary.providerCount} : {summary.supervisorCount}
           </div>
         </div>
       </div>
@@ -792,12 +861,20 @@ export function ChildrensDDAProductivityTab({ config, userRole }) {
       </div>
 
       <div style={{ marginTop: 16, padding: 14, background: "#fffbe8", border: "1px solid #f4e4a8", borderRadius: 8, fontSize: 11, color: "#5a3800", ...M, lineHeight: 1.6 }}>
-        <strong>Supervision note:</strong> {summary.providerCount} direct providers ÷ {config.supervision?.count ?? 1} supervisor{(config.supervision?.count ?? 1) !== 1 ? 's' : ''} =&nbsp;
-        {summary.providerCount > 0 ? (summary.providerCount / (config.supervision?.count ?? 1)).toFixed(1) : 0} providers/supervisor
-        (target: ≤{config.supervision?.providersPerSupervisor ?? 8}).&nbsp;
-        {summary.providerCount / (config.supervision?.count ?? 1) > (config.supervision?.providersPerSupervisor ?? 8)
-          ? "⚠️ Over ratio — consider adding a supervisor."
-          : "✓ Within recommended ratio."}
+        {(() => {
+          const supCount   = summary.supervisorCount;
+          const ratioBase  = Math.max(1, supCount);
+          const ratio      = summary.providerCount / ratioBase;
+          const target     = config.supervision?.providersPerSupervisor ?? 8;
+          return <>
+            <strong>Supervision note:</strong> {summary.providerCount} direct providers ÷ {supCount} supervisor{supCount !== 1 ? 's' : ''} =&nbsp;
+            {summary.providerCount > 0 ? ratio.toFixed(1) : 0} providers/supervisor
+            (target: ≤{target}).&nbsp;
+            {ratio > target
+              ? "⚠️ Over ratio — consider adding a supervisor."
+              : "✓ Within recommended ratio."}
+          </>;
+        })()}
       </div>
       <div style={{ marginTop: 10, padding: 12, background: "#f7f9fc", border: "1px solid #d0dae8", borderRadius: 8, fontSize: 10, color: "#64748b", ...M }}>
         <strong>Group service note:</strong> "Prov hr/mo" shows the actual provider time after applying group efficiency
@@ -898,7 +975,7 @@ export function ChildrensDDAPLTab({ config, userRole }) {
 
         {showDollars && (
           <div style={{ ...rowStyle, background: "#fdf4e7", color: "#78350f" }}>
-            <span style={{ fontStyle: "italic" }}>Clinical supervision ({config.supervision?.count ?? 1} supervisor{(config.supervision?.count ?? 1) !== 1 ? 's' : ''})</span>
+            <span style={{ fontStyle: "italic" }}>Clinical supervision ({summary.supervisorCount} supervisor{summary.supervisorCount !== 1 ? 's' : ''})</span>
             <span style={{ textAlign: "right" }}>—</span>
             <span style={{ textAlign: "right" }}>{$k(summary.supervisionCost)}</span>
             <span style={{ textAlign: "right", color: "#cf6e6e" }}>({$k(summary.supervisionCost)})</span>
@@ -921,7 +998,7 @@ export function ChildrensDDAPLTab({ config, userRole }) {
 
       <div style={{ marginTop: 16, padding: 14, background: "#f7f9fc", border: "1px solid #d0dae8", borderRadius: 8, fontSize: 11, color: "#475569", ...M, lineHeight: 1.6 }}>
         <strong>Note:</strong> Direct labor only. Supervision is the clinical supervisor cost
-        {showDollars && <> at {$k((config.supervision?.count ?? 1) * (config.supervision?.salary ?? 65000))}/yr salary</>}
+        {showDollars && <> at {$k(summary.supervisionCost / (1 + (config.payrollBurdenPct ?? 22) / 100))}/yr salary</>}
         {' '}+ {config.payrollBurdenPct ?? 22}% burden.
         Company overhead, management fees, and billing fees flow through the Whole Company P&amp;L roll-up.
       </div>
@@ -1037,6 +1114,245 @@ export function ChildrensDDARateScheduleTab({ config, onUpdate, userRole }) {
         <strong>Source:</strong> Idaho CHIS fee schedule, effective 9/1/2025. Rates reflect the statewide 4% reduction.
         EBM = Evidence-Based Model (TF modifier). HQ = group service. HA = Technician. HN = Specialist (Bachelor's + licensure). HO = Professional (Master's + licensure). HM = Paraprofessional / Tech in crisis context.
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared provider/participant CRUD helpers — used by the Roster, Participants,
+// and Caseload tabs so the three views mutate the config identically. Each
+// returns a fresh immutable config; callers pass it to onUpdate.
+// ─────────────────────────────────────────────────────────────────────────────
+function ddaCrud(config, onUpdate) {
+  const providers = config.providers ?? [];
+  return {
+    updateProvider: (pvId, field, value) =>
+      onUpdate({ ...config, providers: providers.map(pv => pv.id === pvId ? { ...pv, [field]: value } : pv) }),
+    removeProvider: (pvId) =>
+      onUpdate({ ...config, providers: providers.filter(pv => pv.id !== pvId) }),
+    addParticipant: (pvId) =>
+      onUpdate({ ...config, providers: providers.map(pv =>
+        pv.id === pvId
+          ? { ...pv, participants: [...(pv.participants ?? []), mkDDAParticipant(`Participant ${(pv.participants ?? []).length + 1}`)] }
+          : pv) }),
+    updateParticipant: (pvId, pId, field, value) =>
+      onUpdate({ ...config, providers: providers.map(pv =>
+        pv.id === pvId
+          ? { ...pv, participants: pv.participants.map(p => p.id === pId ? { ...p, [field]: value } : p) }
+          : pv) }),
+    removeParticipant: (pvId, pId) =>
+      onUpdate({ ...config, providers: providers.map(pv =>
+        pv.id === pvId
+          ? { ...pv, participants: pv.participants.filter(p => p.id !== pId) }
+          : pv) }),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Participants tab — flat, cross-provider list of every participant with its
+// owning provider and service phase. Reuses DDAParticipantRow for editing.
+// ─────────────────────────────────────────────────────────────────────────────
+export function ChildrensDDAParticipantsTab({ config, onUpdate, userRole }) {
+  const canEdit = canEditServiceLines(userRole);
+  const rates   = effectiveRates(config.rateOverrides ?? {});
+  const crud    = ddaCrud(config, onUpdate);
+  const providers = config.providers ?? [];
+
+  const rows = providers.flatMap(pv => (pv.participants ?? []).map(p => ({ p, pv })));
+
+  if (rows.length === 0) {
+    return (
+      <div style={{ ...card, textAlign: "center", padding: 40, color: "#64748b" }}>
+        <div style={{ fontSize: 13, marginBottom: 8 }}>No participants yet.</div>
+        <div style={{ fontSize: 11, color: "#94a3b8" }}>Add providers and participants in the Staff Roster tab — they all appear here.</div>
+      </div>
+    );
+  }
+
+  // Phase breakdown for the summary bar
+  const phaseCounts = DDA_PHASES.map(ph => ({
+    ph, n: rows.filter(({ p }) => (p.phase ?? 'initial') === ph).length,
+  }));
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+        <Stat label="Participants" value={rows.length} />
+        {phaseCounts.map(({ ph, n }) => <Stat key={ph} label={DDA_PHASE_LABELS[ph]} value={n} />)}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {rows.map(({ p, pv }) => (
+          <div key={p.id}>
+            <div style={{ ...labelStyle, fontSize: 9, marginBottom: 2, marginLeft: 2 }}>
+              Provider: <span style={{ color: "#5a3800" }}>{pv.name}</span> · {TIER_LABELS[pv.tier] ?? pv.tier}
+            </div>
+            <DDAParticipantRow p={p} tier={pv.tier} rates={rates}
+              onUpdate={(id, f, v) => crud.updateParticipant(pv.id, id, f, v)}
+              onRemove={(id) => crud.removeParticipant(pv.id, id)}
+              userRole={userRole}
+              canEdit={canEdit}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Caseload tab — 3-level org hierarchy: Clinical Supervisor → Provider/Staff →
+// Participant. Reuses DDAProviderCard for the provider/participant levels and
+// adds a supervisor-assignment select per provider plus an "Unassigned" bucket.
+// ─────────────────────────────────────────────────────────────────────────────
+export function ChildrensDDACaseloadTab({ config, onUpdate, userRole }) {
+  // One-shot legacy migration: synthesize named supervisors + backfill provider
+  // supervisorId. Idempotent — fires onUpdate at most once and never loops.
+  useEffect(() => {
+    const normalized = normalizeChildrensDDA(config);
+    if (normalized !== config) onUpdate(normalized);
+  }, [config, onUpdate]);
+
+  const canEdit  = canEditServiceLines(userRole);
+  const ro       = !canEdit;
+  const rates    = effectiveRates(config.rateOverrides ?? {});
+  const summary  = calcChildrensDDAService(config);
+  const crud     = ddaCrud(config, onUpdate);
+
+  const supervisors = config.supervisors ?? [];
+  const providers   = config.providers ?? [];
+  const targetRatio = config.supervision?.providersPerSupervisor ?? 8;
+
+  const [openSup, setOpenSup] = useState({});
+  const toggleSup = id => setOpenSup(o => ({ ...o, [id]: !o[id] }));
+  const isOpen    = id => openSup[id] !== false; // default expanded
+
+  const supExists    = id => supervisors.some(s => s.id === id);
+  const providersFor = supId => providers.filter(pv => pv.supervisorId === supId);
+  const unassigned   = providers.filter(pv => !pv.supervisorId || !supExists(pv.supervisorId));
+
+  const addSupervisor = () =>
+    onUpdate({ ...config, supervisors: [...supervisors, mkDDASupervisor(`Supervisor ${supervisors.length + 1}`, config.supervision?.salary ?? 65000)] });
+  const updateSupervisor = (id, field, val) =>
+    onUpdate({ ...config, supervisors: supervisors.map(s => s.id === id ? { ...s, [field]: val } : s) });
+  const removeSupervisor = (id) =>
+    onUpdate({
+      ...config,
+      supervisors: supervisors.filter(s => s.id !== id),
+      providers: providers.map(pv => pv.supervisorId === id ? { ...pv, supervisorId: null } : pv),
+    });
+
+  const countsFor = (pvs) => ({
+    providers: pvs.length,
+    participants: pvs.reduce((a, pv) => a + (pv.participants ?? []).length, 0),
+  });
+
+  const renderProviderBlock = (pv) => (
+    <div key={pv.id} style={{ marginBottom: 10 }}>
+      {canEdit && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, marginLeft: 2 }}>
+          <span style={labelStyle}>Supervisor</span>
+          <select value={pv.supervisorId ?? ''}
+            onChange={e => crud.updateProvider(pv.id, "supervisorId", e.target.value || null)}
+            style={{ ...textInput, fontSize: 11, padding: "3px 6px" }}>
+            <option value="">— Unassigned —</option>
+            {supervisors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+      )}
+      <DDAProviderCard pv={pv}
+        payrollBurdenPct={config.payrollBurdenPct}
+        rates={rates}
+        onUpdate={crud.updateProvider}
+        onRemove={crud.removeProvider}
+        onAddParticipant={crud.addParticipant}
+        onUpdateParticipant={crud.updateParticipant}
+        onRemoveParticipant={crud.removeParticipant}
+        userRole={userRole}
+        canEdit={canEdit}/>
+    </div>
+  );
+
+  const renderSupervisorSection = (sup) => {
+    const pvs    = providersFor(sup.id);
+    const counts = countsFor(pvs);
+    const over   = counts.providers > targetRatio;
+    return (
+      <div key={sup.id} style={{ marginBottom: 16, border: "1px solid #d0dae8", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+          padding: "10px 14px", background: "#141d2c", color: "#D4A520",
+        }}>
+          <button onClick={() => toggleSup(sup.id)} style={{
+            border: "none", background: "transparent", cursor: "pointer", color: "#D4A520", fontSize: 13, width: 18,
+          }}>{isOpen(sup.id) ? "▼" : "▶"}</button>
+          <input type="text" value={sup.name}
+            onChange={e => updateSupervisor(sup.id, "name", e.target.value)}
+            readOnly={ro}
+            style={{ ...textInput, fontWeight: 700, fontSize: 13, minWidth: 140, color: "#141d2c", pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.8 : 1 }}/>
+          {wageDisplayMode(userRole) === 'dollars' && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ ...labelStyle, color: "#c8b06a" }}>Salary</span>
+              <input type="number" min={30000} max={200000} step={1000} value={sup.salary ?? 65000}
+                onChange={e => updateSupervisor(sup.id, "salary", +e.target.value)}
+                readOnly={ro}
+                style={{ ...numInput, width: 80, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.8 : 1 }}/>
+            </div>
+          )}
+          <span style={{ fontSize: 11, ...M, color: "#e4eaf2" }}>
+            {counts.providers} provider{counts.providers !== 1 ? 's' : ''} · {counts.participants} participant{counts.participants !== 1 ? 's' : ''}
+            {' '}· ratio {counts.providers}:1 {over ? "⚠️" : ""}
+          </span>
+          {canEdit && <button onClick={() => removeSupervisor(sup.id)} style={{
+            marginLeft: "auto", border: "1px solid #5a3800", background: "transparent",
+            color: "#D4A520", padding: "3px 9px", borderRadius: 5, fontSize: 10, cursor: "pointer", ...M,
+          }}>Remove</button>}
+        </div>
+        {isOpen(sup.id) && (
+          <div style={{ padding: 14, background: "#f7f9fc" }}>
+            {pvs.length === 0
+              ? <div style={{ fontSize: 11, color: "#94a3b8", ...M }}>No providers assigned to this supervisor yet.</div>
+              : pvs.map(renderProviderBlock)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+        <Stat label="Supervisors"    value={summary.supervisorCount} />
+        <Stat label="Providers"      value={summary.providerCount} />
+        <Stat label="Total caseload" value={summary.totalCaseload} />
+        {canSeeCompanyDollars(userRole) && <Stat label="Supervision" value={$k(summary.supervisionCost)} />}
+      </div>
+
+      {supervisors.map(renderSupervisorSection)}
+
+      {/* Unassigned providers */}
+      {unassigned.length > 0 && (
+        <div style={{ marginBottom: 16, border: "1px dashed #c8d4e4", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", background: "#eef1f6", color: "#64748b", fontSize: 11, fontWeight: 700, ...M }}>
+            Providers not assigned to a supervisor ({unassigned.length})
+          </div>
+          <div style={{ padding: 14 }}>
+            {unassigned.map(renderProviderBlock)}
+          </div>
+        </div>
+      )}
+
+      {providers.length === 0 && (
+        <div style={{ ...card, textAlign: "center", padding: 40, color: "#64748b" }}>
+          <div style={{ fontSize: 13, marginBottom: 8 }}>No providers yet.</div>
+          <div style={{ fontSize: 11, color: "#94a3b8" }}>Add providers in the Staff Roster tab, then assign them to a supervisor here.</div>
+        </div>
+      )}
+
+      {canEdit && <button onClick={addSupervisor} style={{
+        marginTop: 4, padding: "8px 18px",
+        background: "#141d2c", border: "none", borderRadius: 6,
+        color: "#D4A520", cursor: "pointer", fontSize: 12, fontWeight: 700, ...M,
+      }}>+ Add supervisor</button>}
     </div>
   );
 }

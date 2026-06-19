@@ -5,7 +5,7 @@ import { migrateConfig, getSelectedCompany, createServiceLine, createSharedConfi
 import { SERVICE_LINE_TYPES, SERVICE_LINE_DEFS, getShortLabel, getGroupedPickerOptions } from "../serviceLines/types.js";
 import { ratesForLine } from "../data/idahoRates.js";
 import { TSCRosterTab, TSCCoordinatorsTab, TSCParticipantsTab, TSCProductivityTab, TSCPLTab, TSCStaffingTab, TSCScenarioTab, calcTSCService } from "../serviceLines/tsc.jsx";
-import { ChildrensDDARosterTab, ChildrensDDAProductivityTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
+import { ChildrensDDARosterTab, ChildrensDDAParticipantsTab, ChildrensDDACaseloadTab, ChildrensDDAProductivityTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService } from "../serviceLines/school_based.jsx";
 import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
@@ -2346,7 +2346,9 @@ const SUB_TABS = {
     { id: "tsc_scenario",     label: "🔬 Scenario" },
   ],
   CHILDRENS_DDA: [
-    { id: "chdda_roster",       label: "👥 Roster" },
+    { id: "chdda_roster",       label: "👥 Staff Roster" },
+    { id: "chdda_participants", label: "🧑‍🤝‍🧑 Participants" },
+    { id: "chdda_caseload",     label: "🗂 Caseload" },
     { id: "chdda_productivity", label: "📈 Productivity" },
     { id: "chdda_pl",           label: "💵 P&L" },
     { id: "chdda_rates",        label: "📋 Rate Schedule" },
@@ -3146,6 +3148,16 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
               {/* CHILDRENS_DDA tabs */}
               {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_roster" && (
                 <ChildrensDDARosterTab config={activeSL.config}
+                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
+                  userRole={userRole}/>
+              )}
+              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_participants" && (
+                <ChildrensDDAParticipantsTab config={activeSL.config}
+                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
+                  userRole={userRole}/>
+              )}
+              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_caseload" && (
+                <ChildrensDDACaseloadTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
