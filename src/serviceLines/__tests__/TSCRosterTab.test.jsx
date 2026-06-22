@@ -88,6 +88,24 @@ describe("TSCRosterTab", () => {
     expect(label.nextElementSibling.textContent).toBe("2");
   });
 
+  it("participant row revenue reflects a config.rateOverrides override (not just the default rate)", () => {
+    const coord = {
+      ...mkCoordinator("Alice", 22),
+      id: "c1",
+      participants: [mkParticipant("P1", 16)],  // 16 G9002 units/mo
+    };
+    // Default coord rate is $20.97 → 16 × $20.97 ≈ $336/mo. Override to $10 → $160/mo.
+    render(
+      <TSCRosterTab
+        config={makeConfig({ coordinators: [coord], rateOverrides: { coord: 10 } })}
+        onUpdate={vi.fn()}
+        userRole={ROLES.OWNER}
+      />
+    );
+    expect(screen.getByText("$160/mo")).toBeDefined();
+    expect(screen.queryByText("$336/mo")).toBeNull();
+  });
+
   it("add coordinator button is hidden when userRole has no edit permission", () => {
     render(
       <TSCRosterTab

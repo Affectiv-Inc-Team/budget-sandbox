@@ -1321,6 +1321,8 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
   const hourlyRateFields = RATE_FIELDS.filter(f => f.key === 'iuUnit' || f.key === 'igUnit');
   // Same gate as the Home Mix Editor (these are the same company-wide shared.rates).
   const canEditRates = canEditServiceLines(userRole);
+  // Light-theme P&L colors (match CompanyPL) — readable on the light cards below.
+  const POS = "#0f7a4f", NEG = "#c0453a";
 
   const metrics = useMemo(()=>
     participants.map(p=>({ ...p, m: calcHourlyParticipant(p, rates, wage) })),
@@ -1344,8 +1346,8 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
   const kpiItems = [
     { l:"Hourly Participants", v:participants.length,           c:"#0E6B78", f:n=>n },
     showDollars && { l:"Annual Revenue",     v:totals.annualRev,              c:"#0A3D47", f:$k  },
-    showDollars && { l:"Annual Gross",       v:totals.annualGross,            c:mc(Math.max(0,totals.avgMargin)), f:$k },
-    { l:"Avg Gross Margin",   v:totals.avgMargin,              c:mc(Math.max(0,totals.avgMargin)), f:pct },
+    showDollars && { l:"Annual Gross",       v:totals.annualGross,            c:totals.annualGross>=0?POS:NEG, f:$k },
+    { l:"Avg Gross Margin",   v:totals.avgMargin,              c:totals.avgMargin>=0?POS:NEG, f:pct },
   ].filter(Boolean);
 
   return (
@@ -1353,7 +1355,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
       {/* KPI strip */}
       <div style={{ display:"grid", gridTemplateColumns:`repeat(${kpiItems.length},1fr)`, gap:10 }}>
         {kpiItems.map((s,i)=>(
-          <div key={i} style={{ background:"#0A2C35", borderRadius:10, padding:"14px 16px", border:"1px solid #c8d4e4" }}>
+          <div key={i} style={{ background:"#fff", borderRadius:10, padding:"14px 16px", border:"1px solid #e2e8f0", boxShadow:"0 1px 3px rgba(13,26,42,0.05)" }}>
             <div style={{ fontSize:9, color:"#5a7498", textTransform:"uppercase", letterSpacing:1.5, ...M, marginBottom:6 }}>{s.l}</div>
             <div style={{ fontSize:20, fontWeight:800, color:s.c, ...M }}>{s.f(s.v)}</div>
           </div>
@@ -1373,13 +1375,13 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
               return (
                 <div key={p.id} onClick={()=>setSelId(p.id)} style={{
                   padding:"10px 12px", borderRadius:8, cursor:"pointer",
-                  background:s?"#0D3D4A":"#0A2C35",
-                  border:s?`1px solid ${mc(p.m.margin)}50`:"1px solid #c8d4e4",
+                  background:s?"#eef4fb":"#fff",
+                  border:s?`1px solid ${mc(p.m.margin)}50`:"1px solid #e2e8f0",
                   borderLeft:`3px solid ${mc(p.m.margin)}`,
                 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <span style={{ fontSize:12, fontWeight:700, color:s?"#0A3D47":"#5a7498" }}>{p.name}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:mc(p.m.margin), ...M }}>{pct(p.m.margin)}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:p.m.margin>=0?POS:NEG, ...M }}>{pct(p.m.margin)}</span>
                   </div>
                   <div style={{ fontSize:10, color:"#64748b", marginTop:3, ...M }}>
                     {p.m.totalWeeklyHrs}hr/wk{showDollars ? ` · ${$k(p.m.annualRev)}/yr` : ""}
@@ -1390,7 +1392,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
           </div>
 
           {/* Portfolio totals */}
-          <div style={{ marginTop:10, padding:"12px", background:"#071C24", borderRadius:9, border:"1px solid #0D3D4A" }}>
+          <div style={{ marginTop:10, padding:"12px", background:"#fff", borderRadius:9, border:"1px solid #e2e8f0", boxShadow:"0 1px 3px rgba(13,26,42,0.05)" }}>
             <SL>Portfolio Totals</SL>
             {[
               showDollars && ["Annual Revenue",  $k(totals.annualRev)],
@@ -1398,7 +1400,7 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
               showDollars && ["Annual Gross",    $k(totals.annualGross)],
               ["Avg Margin",      pct(totals.avgMargin)],
             ].filter(Boolean).map(([l,v])=>(
-              <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:"1px solid #0D3D4A" }}>
+              <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:"1px solid #eef1f6" }}>
                 <span style={{ fontSize:10, color:"#5a7498", ...M }}>{l}</span>
                 <span style={{ fontSize:10, fontWeight:700, color:"#0A3D47", ...M }}>{v}</span>
               </div>
@@ -1458,9 +1460,9 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
 
         {/* Editor */}
         {sel && selM && (
-          <div style={{ background:"#0A2C35", borderRadius:13, border:`1px solid ${mc(selM.margin)}30`, borderLeft:`3px solid ${mc(selM.margin)}`, overflow:"hidden" }}>
+          <div style={{ background:"#FAF4E8", borderRadius:13, border:`1px solid ${mc(selM.margin)}30`, borderLeft:`3px solid ${mc(selM.margin)}`, overflow:"hidden" }}>
             {/* Header */}
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", borderBottom:"1px solid #0D3D4A" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", borderBottom:"1px solid #d0dae8" }}>
               <div>
                 <input value={sel.name} onChange={e=>onUpdate(sel.id,"name",e.target.value)}
                   style={{ background:"none", border:"none", color:"#0A3D47", fontWeight:800, fontSize:16, fontFamily:"'Sora',sans-serif", padding:0, outline:"none", width:220 }}/>
@@ -1471,11 +1473,11 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ fontSize:9, color:"#64748b", ...M }}>{showDollars ? "annual gross" : "gross margin"}</div>
-                  <div style={{ fontSize:22, fontWeight:800, color:mc(selM.margin), ...M }}>{showDollars ? $k(selM.gross) : pct(selM.margin)}</div>
+                  <div style={{ fontSize:22, fontWeight:800, color:selM.margin>=0?POS:NEG, ...M }}>{showDollars ? $k(selM.gross) : pct(selM.margin)}</div>
                 </div>
                 {participants.length > 1 && (
                   <button onClick={()=>{ const nxt=participants.find(p=>p.id!==sel.id)?.id; onRemove(sel.id); if(nxt)setSelId(nxt); }}
-                    style={{ background:"#2a0e0e", border:"1px solid #5a1a1a", color:"#f87171", cursor:"pointer", borderRadius:6, padding:"5px 10px", fontSize:10, ...M }}>
+                    style={{ background:"#fcecea", border:"1px solid #e6b4ad", color:"#c0453a", cursor:"pointer", borderRadius:6, padding:"5px 10px", fontSize:10, ...M }}>
                     Remove
                   </button>
                 )}
@@ -1495,22 +1497,22 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
                     format={v=>`${v}hr`}/>
                 </div>
                 {/* Weekly cap display */}
-                <div style={{ padding:"10px 14px", background:"#071C24", borderRadius:8, border:"1px solid #c8d4e4" }}>
+                <div style={{ padding:"10px 14px", background:"#eef1f6", borderRadius:8, border:"1px solid #d0dae8" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <div>
                       <div style={{ fontSize:9, color:"#5a7498", textTransform:"uppercase", letterSpacing:1, ...M }}>Total Weekly Cap</div>
                       <Slider label="" value={sel.weeklyCapHrs} min={1} max={60} step={0.5}
-                        onChange={v=>onUpdate(sel.id,"weeklyCapHrs",v)} color="#E8C44A"
+                        onChange={v=>onUpdate(sel.id,"weeklyCapHrs",v)} color="#C9921A"
                         format={v=>`${v}hr`}/>
                     </div>
                     <div style={{ textAlign:"right", minWidth:100 }}>
                       <div style={{ fontSize:9, color:"#64748b", ...M }}>Utilized</div>
                       <div style={{ fontSize:18, fontWeight:800, ...M,
-                        color: selM.totalWeeklyHrs >= sel.weeklyCapHrs ? "#f87171" : "#22c55e" }}>
+                        color: selM.totalWeeklyHrs >= sel.weeklyCapHrs ? "#c0453a" : "#0f7a4f" }}>
                         {selM.totalWeeklyHrs}/{sel.weeklyCapHrs}hr
                       </div>
                       {selM.totalWeeklyHrs > sel.weeklyCapHrs && (
-                        <div style={{ fontSize:9, color:"#f87171", ...M }}>⚠ Over cap</div>
+                        <div style={{ fontSize:9, color:"#c0453a", ...M }}>⚠ Over cap</div>
                       )}
                     </div>
                   </div>
@@ -1533,31 +1535,31 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
                   { l:"Hourly Individual Rate", v:`$${IU_HR.toFixed(2)}/hr (U2)`, c:"#D4A520" },
                   { l:"Hourly Group Rate",       v:`$${IG_HR.toFixed(2)}/hr (U3)`, c:"#C9921A" },
                 ].map((r,i)=>(
-                  <div key={i} style={{ padding:"8px 12px", background:"#071C24", borderRadius:7, borderLeft:`2px solid ${r.c}` }}>
-                    <div style={{ fontSize:9, color:"#5a7498", ...M, marginBottom:2 }}>{r.l}</div>
-                    <div style={{ fontSize:12, fontWeight:700, color:r.c, ...M }}>{r.v}</div>
+                  <div key={i} style={{ padding:"8px 12px", background:"#FAF4E8", borderRadius:7, border:"1px solid #e6ddca", borderLeft:`2px solid ${r.c}` }}>
+                    <div style={{ fontSize:9, color:"#5a4838", ...M, marginBottom:2 }}>{r.l}</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:"#33291a", ...M }}>{r.v}</div>
                   </div>
                 ))}
               </div>}
 
               {/* Revenue/labor breakdown */}
-              {showDollars && <div style={{ background:"#071C24", borderRadius:10, border:"1px solid #0D3D4A", overflow:"hidden" }}>
-                <div style={{ padding:"10px 14px", borderBottom:"1px solid #0D3D4A" }}>
+              {showDollars && <div style={{ background:"#FAF4E8", borderRadius:10, border:"1px solid #d0dae8", overflow:"hidden" }}>
+                <div style={{ padding:"10px 14px", borderBottom:"1px solid #d0dae8" }}>
                   <SL>Annual Revenue & Labor Breakdown</SL>
                 </div>
                 <table style={{ width:"100%", borderCollapse:"collapse" }}>
                   <tbody>
                     {[
-                      { l:"Individual Hours Revenue", v:$k(selM.annualIndRev),   sub:`${selM.annualIndHrs} hrs × $${IU_HR.toFixed(2)}`, c:"#D4A520" },
-                      { l:"Group Hours Revenue",      v:$k(selM.annualGroupRev), sub:`${selM.annualGroupHrs} hrs × $${IG_HR.toFixed(2)}`, c:"#C9921A" },
-                      { l:"Total Revenue",            v:$k(selM.annualRev),      sub:null, c:"#0A3D47", bold:true },
-                      { l:"Individual Labor Cost",    v:`(${$k(selM.annualIndLabor)})`,   sub:`1:1 staffing`, c:"#f87171" },
-                      { l:"Group Labor Cost",         v:`(${$k(selM.annualGroupLabor)})`, sub:`÷ ${sel.groupSize} participants`, c:"#fb923c" },
-                      { l:"Total Labor",              v:`(${$k(selM.annualLabor)})`,      sub:null, c:"#f87171", bold:true },
-                      { l:"Gross Profit",             v:$k(selM.gross),          sub:null, c:mc(selM.margin), bold:true, bg:true },
-                      { l:"Gross Margin",             v:pct(selM.margin),        sub:null, c:mc(selM.margin), bold:true, bg:true },
+                      { l:"Individual Hours Revenue", v:$k(selM.annualIndRev),   sub:`${selM.annualIndHrs} hrs × $${IU_HR.toFixed(2)}`, c:"#5a4838" },
+                      { l:"Group Hours Revenue",      v:$k(selM.annualGroupRev), sub:`${selM.annualGroupHrs} hrs × $${IG_HR.toFixed(2)}`, c:"#5a4838" },
+                      { l:"Total Revenue",            v:$k(selM.annualRev),      sub:null, c:"#33291a", bold:true },
+                      { l:"Individual Labor Cost",    v:`(${$k(selM.annualIndLabor)})`,   sub:`1:1 staffing`, c:"#c0453a" },
+                      { l:"Group Labor Cost",         v:`(${$k(selM.annualGroupLabor)})`, sub:`÷ ${sel.groupSize} participants`, c:"#c0453a" },
+                      { l:"Total Labor",              v:`(${$k(selM.annualLabor)})`,      sub:null, c:"#c0453a", bold:true },
+                      { l:"Gross Profit",             v:$k(selM.gross),          sub:null, c:(selM.margin>=0?"#0f7a4f":"#c0453a"), bold:true, bg:true },
+                      { l:"Gross Margin",             v:pct(selM.margin),        sub:null, c:(selM.margin>=0?"#0f7a4f":"#c0453a"), bold:true, bg:true },
                     ].map((row,i)=>(
-                      <tr key={i} style={{ borderBottom:"1px solid #0D3D4A", background:row.bg?(selM.gross>=0?"#0a1f0f":"#1f0a0a"):"transparent" }}>
+                      <tr key={i} style={{ borderBottom:"1px solid #e6ddca", background:row.bg?(selM.gross>=0?"#e7f4ec":"#fcece9"):"transparent" }}>
                         <td style={{ padding:"7px 14px", color:row.c, fontWeight:row.bold?700:400, ...M, fontSize:12 }}>
                           {row.l}
                           {row.sub && <div style={{ fontSize:9, color:"#64748b", marginTop:2 }}>{row.sub}</div>}
@@ -1570,8 +1572,8 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
               </div>}
 
               {/* Note on grouping with 24hr clients */}
-              <div style={{ padding:"10px 14px", background:"#1a1506", borderRadius:8, border:"1px solid #D4A52020", fontSize:11, color:"#9a7a1a", lineHeight:1.7 }}>
-                <strong style={{ color:"#D4A520" }}>Note on 24-Hour Home Grouping:</strong> In rare cases, hourly participants may share evening group time with 24-hour supported living clients. When this occurs, add them to the relevant home in the Home Mix Editor (still not to exceed 3 total participants). Their revenue still bills at the unit rates above; the 24-hour clients' billing is unaffected.
+              <div style={{ padding:"10px 14px", background:"#FBF3DC", borderRadius:8, border:"1px solid #e6d9a8", fontSize:11, color:"#6a5320", lineHeight:1.7 }}>
+                <strong style={{ color:"#5a4308" }}>Note on 24-Hour Home Grouping:</strong> In rare cases, hourly participants may share evening group time with 24-hour supported living clients. When this occurs, add them to the relevant home in the Home Mix Editor (still not to exceed 3 total participants). Their revenue still bills at the unit rates above; the 24-hour clients' billing is unaffected.
               </div>
             </div>
           </div>

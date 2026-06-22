@@ -382,8 +382,8 @@ function Stat({ label, value, color = "#0A3D47" }) {
 // ──────────────────────────────────────────────────────────────────────
 // Participant row (inside a coordinator's card)
 // ──────────────────────────────────────────────────────────────────────
-function ParticipantRow({ p, onUpdate, onRemove, canEdit, userRole }) {
-  const m = calcTSCParticipant(p);
+function ParticipantRow({ p, rates, onUpdate, onRemove, canEdit, userRole }) {
+  const m = calcTSCParticipant(p, rates);
   const ro = !canEdit;
   return (
     <div style={{
@@ -656,8 +656,8 @@ export function TSCRosterTab({ config, onUpdate, userRole }) {
 // ──────────────────────────────────────────────────────────────────────
 // Participant row for flat (cross-coordinator) view
 // ──────────────────────────────────────────────────────────────────────
-function ParticipantFlatRow({ p, coordId, coordinators, onUpdate, onReassign, onRemove, canEdit, userRole }) {
-  const m = calcTSCParticipant(p);
+function ParticipantFlatRow({ p, rates, coordId, coordinators, onUpdate, onReassign, onRemove, canEdit, userRole }) {
+  const m = calcTSCParticipant(p, rates);
   const ro = !canEdit;
   return (
     <div style={{
