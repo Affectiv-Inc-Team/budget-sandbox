@@ -229,12 +229,39 @@ function expandHomeTypes(homeTypes = []) {
  * the top level (homeTypes, hourlyPx, wage, etc.). The dev branch had a
  * `companies` array variant. Both are handled here.
  */
+/**
+ * Forward-compat fixes applied to already-v2 configs on load.
+ * Returns the same object when nothing changed (cheap no-op for the common case).
+ *
+ * - TSC rate edits: legacy blobs stored them under `config.rates`; the unified
+ *   cross-module key is `config.rateOverrides`. Rename in place so prior user
+ *   edits survive (the old value was the full merged set — copying it verbatim
+ *   into rateOverrides yields an identical effective rate after the defaults merge).
+ */
+function normalizeV2(config) {
+  let changed = false;
+  const companies = (config.companies ?? []).map(co => {
+    if (!Array.isArray(co.serviceLines)) return co;
+    const serviceLines = co.serviceLines.map(sl => {
+      if (sl?.type === SERVICE_LINE_TYPES.TSC &&
+          sl.config && sl.config.rates && !sl.config.rateOverrides) {
+        changed = true;
+        const { rates, ...rest } = sl.config;
+        return { ...sl, config: { ...rest, rateOverrides: rates } };
+      }
+      return sl;
+    });
+    return { ...co, serviceLines };
+  });
+  return changed ? { ...config, companies } : config;
+}
+
 export function migrateConfig(oldConfig) {
   // No initial config → seed with one default empty company
   if (!oldConfig) return createEmptyConfig();
 
-  // Already migrated
-  if (isNewShape(oldConfig)) return oldConfig;
+  // Already migrated — still run forward-compat normalizations on v2 blobs.
+  if (isNewShape(oldConfig)) return normalizeV2(oldConfig);
 
   // Multi-company v1 (dev shape with `companies` array)
   if (Array.isArray(oldConfig.companies)) {

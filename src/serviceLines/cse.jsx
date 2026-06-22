@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { canSeeCompanyDollars, wageDisplayMode, canEditServiceLines } from '../lib/access';
+import { makeEffectiveRates } from '../lib/rates';
 
 // ──────────────────────────────────────────────────────────────────────
 // Idaho Vocational Services billing codes
@@ -42,9 +43,7 @@ VOC_RATE_TABLE.forEach(r => {
 export const BILLING_CODES = VOC_RATE_TABLE.map(r => r.key);
 
 // Merge user overrides over the Idaho default rates.
-export function effectiveRates(overrides = {}) {
-  return { ..._defaultRates, ...overrides };
-}
+export const effectiveRates = makeEffectiveRates(VOC_RATE_TABLE);
 
 const UNITS_PER_HOUR = 4;  // 15-minute units
 

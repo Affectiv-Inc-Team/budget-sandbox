@@ -38,14 +38,16 @@
 
 import { useState } from "react";
 import { wageDisplayMode, canSeeCompanyDollars, canEditServiceLines, canSeeControl } from "../lib/access.js";
+import { makeEffectiveRates } from "../lib/rates.js";
 
 // ──────────────────────────────────────────────────────────────────────
 // Rate constants (mirror the post-9/1/2025 Idaho catalog)
 // Could be pulled from idahoRates.js; inlined here so the module
 // is self-contained for review.
 // ──────────────────────────────────────────────────────────────────────
-// Default Idaho post-9/1/2025 TSC rates. Stored per-service-line in config.rates
-// so they can be overridden; calc falls back to these for legacy configs.
+// Default Idaho post-9/1/2025 TSC rates. User edits are stored per-service-line
+// in config.rateOverrides (the shared cross-module pattern); calc falls back to
+// these defaults for any key not overridden.
 export const DEFAULT_TSC_RATES = {
   coord:          20.97,  // G9002
   coordParapro:   13.46,  // G9002 HM
@@ -53,6 +55,9 @@ export const DEFAULT_TSC_RATES = {
   crisis:         20.97,  // H2011 (hidden from primary views per spec)
   crisisParapro:  13.46,  // H2011 HM
 };
+
+// Merge user overrides over the defaults (shared with every other module).
+const effectiveRates = makeEffectiveRates(DEFAULT_TSC_RATES);
 
 // Editable fields surfaced in the Reimbursement Rates panel.
 // G9002 + G9007 only — H2011 (crisis) stays out of primary views per service-rate-spec.
@@ -132,7 +137,7 @@ export function defaultTSCConfig() {
       caseloadCount:     null,
       productivityAdjPct: 0,
     },
-    rates: { ...DEFAULT_TSC_RATES },
+    rateOverrides: {},
   };
 }
 
@@ -140,7 +145,7 @@ export function defaultTSCConfig() {
 // Calculators
 // ──────────────────────────────────────────────────────────────────────
 export function calcTSCParticipant(p, rates = DEFAULT_TSC_RATES) {
-  const R = { ...DEFAULT_TSC_RATES, ...(rates ?? {}) };
+  const R = effectiveRates(rates);
   const rateCoord  = p.isParapro ? R.coordParapro  : R.coord;
   const rateCrisis = p.isParapro ? R.crisisParapro : R.crisis;
   const ratePlan   = R.planDev;
@@ -198,7 +203,7 @@ export function calcTSCCoordinator(c, payrollBurdenPct = 22, rates = DEFAULT_TSC
 }
 
 export function calcTSCService(config) {
-  const rates = { ...DEFAULT_TSC_RATES, ...(config.rates ?? {}) };
+  const rates = effectiveRates(config.rateOverrides);
   const coordinators = (config.coordinators ?? []).map(c => ({
     ...c,
     metrics: calcTSCCoordinator(c, config.payrollBurdenPct ?? 22, rates),
@@ -377,8 +382,8 @@ function Stat({ label, value, color = "#0A3D47" }) {
 // ──────────────────────────────────────────────────────────────────────
 // Participant row (inside a coordinator's card)
 // ──────────────────────────────────────────────────────────────────────
-function ParticipantRow({ p, onUpdate, onRemove, canEdit, userRole }) {
-  const m = calcTSCParticipant(p);
+function ParticipantRow({ p, rates, onUpdate, onRemove, canEdit, userRole }) {
+  const m = calcTSCParticipant(p, rates);
   const ro = !canEdit;
   return (
     <div style={{
@@ -554,7 +559,7 @@ function CoordinatorCard({ coord, onUpdate, onRemove, onAddParticipant, onUpdate
 export function TSCRosterTab({ config, onUpdate, userRole }) {
   const summary = calcTSCService(config);
   const canEdit = canEditServiceLines(userRole);
-  const rates = { ...DEFAULT_TSC_RATES, ...(config.rates ?? {}) };
+  const rates = effectiveRates(config.rateOverrides);
 
   const updateField    = (field, value) => onUpdate({ ...config, [field]: value });
   const updateCoord    = (coordId, field, value) =>
@@ -651,8 +656,8 @@ export function TSCRosterTab({ config, onUpdate, userRole }) {
 // ──────────────────────────────────────────────────────────────────────
 // Participant row for flat (cross-coordinator) view
 // ──────────────────────────────────────────────────────────────────────
-function ParticipantFlatRow({ p, coordId, coordinators, onUpdate, onReassign, onRemove, canEdit, userRole }) {
-  const m = calcTSCParticipant(p);
+function ParticipantFlatRow({ p, rates, coordId, coordinators, onUpdate, onReassign, onRemove, canEdit, userRole }) {
+  const m = calcTSCParticipant(p, rates);
   const ro = !canEdit;
   return (
     <div style={{
@@ -714,7 +719,7 @@ function ParticipantFlatRow({ p, coordId, coordinators, onUpdate, onReassign, on
 export function TSCCoordinatorsTab({ config, onUpdate, userRole }) {
   const summary = calcTSCService(config);
   const canEdit = canEditServiceLines(userRole);
-  const rates = { ...DEFAULT_TSC_RATES, ...(config.rates ?? {}) };
+  const rates = effectiveRates(config.rateOverrides);
 
   const updateCoord = (coordId, field, value) =>
     onUpdate({
@@ -816,7 +821,7 @@ export function TSCParticipantsTab({ config, onUpdate, userRole }) {
   const totalUnitsPlanDev = allParticipants.reduce((a, p) => a + (p.unitsPlanDev ?? 0), 0);
   const canEdit = canEditServiceLines(userRole);
   const noCoords = (config.coordinators ?? []).length === 0;
-  const rates = { ...DEFAULT_TSC_RATES, ...(config.rates ?? {}) };
+  const rates = effectiveRates(config.rateOverrides);
 
   const updateParticipant = (coordId, pId, field, value) => onUpdate({
     ...config,
@@ -941,7 +946,7 @@ export function TSCParticipantsTab({ config, onUpdate, userRole }) {
 // ──────────────────────────────────────────────────────────────────────
 // Productivity tab — utilization analysis
 // ──────────────────────────────────────────────────────────────────────
-export function TSCProductivityTab({ config }) {
+export function TSCProductivityTab({ config, userRole }) {
   const summary = calcTSCService(config);
 
   if (summary.coordinatorCount === 0) {
@@ -1410,11 +1415,11 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
   const caseloadCountVal = sc.caseloadCount ?? base.totalCaseload;
 
   // Reimbursement rate overrides — compact left-column panel (mirrors Home Mix Editor)
-  const rates = { ...DEFAULT_TSC_RATES, ...(config.rates ?? {}) };
+  const rates = effectiveRates(config.rateOverrides);
   const [ratesOpen, setRatesOpen] = useState(true);
   const canEditRates = canEdit;
   const setRate = (key, val) =>
-    onUpdate({ ...config, rates: { ...rates, [key]: val } });
+    onUpdate({ ...config, rateOverrides: { ...(config.rateOverrides ?? {}), [key]: val } });
   const G9007_CAP = 48;
   const allPlanDev = (config.coordinators ?? []).flatMap(c =>
     (c.participants ?? []).map(p => p.unitsPlanDev ?? 0));
