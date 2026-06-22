@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { supabase, getProfile } from "./supabase.js";
 import { ROLES, ROLE_LABELS, canSeeReferrals } from "./lib/access.js";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -29,7 +29,7 @@ function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, set
         <ReferralTracker
           userRole={effectiveRole}
           onSignOut={onSignOut}
-          onSwitchModule={() => setModule("tool")}
+          onSwitchModule={() => { posthog.capture('module_switched', { to: 'tool' }); setModule("tool"); }}
         />
       ) : (
         <ToolPage userRole={effectiveRole} onSignOut={onSignOut} />
@@ -38,7 +38,7 @@ function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, set
       {canSeeReferrals(effectiveRole) && module === "tool" && (
         <button
           type="button"
-          onClick={() => setModule("referrals")}
+          onClick={() => { posthog.capture('module_switched', { to: 'referrals' }); setModule("referrals"); }}
           style={{
             position: "fixed", bottom: 16, left: 16, zIndex: 9999,
             padding: "9px 14px", borderRadius: 8, border: "none",
@@ -112,6 +112,13 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Manual pageview capture on route change (capture_pageview is off in posthog.js
+  // so we control exactly what is sent). Gives replays/analytics navigation breadcrumbs.
+  const location = useLocation();
+  useEffect(() => {
+    posthog.capture('$pageview', { path: location.pathname });
+  }, [location.pathname]);
 
   const derivedRole   = deriveRole(profile);
   const effectiveRole = IS_DEV && devRole ? devRole : derivedRole;

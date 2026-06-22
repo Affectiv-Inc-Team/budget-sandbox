@@ -32,3 +32,79 @@ We've built some insights and a dashboard for you to keep an eye on user behavio
 We've left an agent skill folder in your project. You can use this context for further agent development when using Claude Code. This will help ensure the model provides the most up-to-date approaches for integrating PostHog.
 
 </wizard-report>
+
+---
+
+# PostHog ↔ Claude integration (continuous improvement)
+
+This section documents the work added on top of the wizard baseline to make PostHog safe
+for our HIPAA context, connect it to Claude Code, and turn on the remaining free products.
+
+## HIPAA posture — why we mask aggressively (free plan, no BAA)
+
+PostHog **only signs a BAA on the paid Boost/Scale/Enterprise packages**. On the free plan
+PostHog is **not** authorized to receive PHI. We are staying on the free plan, so the rule is:
+**no PHI may ever leave the browser.** PostHog's privacy controls run client-side (masked
+content is redacted *before* transmission), which makes this enforceable.
+
+Controls in `src/lib/posthog.js` (`session_recording`):
+- `maskAllInputs: true` — every `<input>` is masked.
+- `maskTextSelector: '*'` — **all visible text** is masked (the key fix; without it, on-screen
+  names/SSN/DOB/diagnoses would be recorded).
+- `maskCapturedNetworkRequestFn` — strips query strings and drops request/response bodies from
+  captured network metadata.
+
+Defense-in-depth: the most sensitive surfaces carry the **`ph-no-capture`** class, which both
+blocks them from replay AND blocks autocapture (click/text) events on them:
+- The entire Referral editor + referral list (`src/pages/ReferralTracker.jsx`) — SSN, DOB,
+  diagnoses, medications, participant names.
+- Each roster / participant / staffing tab in `src/serviceLines/{tsc,childrens_dda,school_based,cse}.jsx`.
+
+> If real PHI ever needs to reach PostHog, that is a hard prerequisite of a paid Boost/Scale
+> subscription **with a countersigned BAA** (app.posthog.com/legal) on PostHog Cloud **US**.
+> Do not relax the masking above until that is in place.
+
+## Claude Code ↔ PostHog (MCP)
+
+`.mcp.json` (committed, project-scoped) registers PostHog's official remote MCP server:
+
+```json
+{ "mcpServers": { "posthog": { "type": "http", "url": "https://mcp.posthog.com/mcp" } } }
+```
+
+- No secret is stored — auth is **browser OAuth**. First use: run `/mcp` in Claude Code and log
+  in; the endpoint auto-routes to the US region of the signed-in account (project 471586).
+- Gives Claude tools for insights, dashboards, **error tracking** (issue lists + stack traces),
+  HogQL/SQL queries, feature flags, surveys, and annotations.
+- **No session-replay tool exists** — Claude drives improvement from analytics + error tracking
+  + insights, not by reading replays directly.
+- Continuous-improvement loop: Claude reads errors/analytics → proposes/implements fixes →
+  (optionally) creates annotations or toggles flags.
+
+## Products enabled (all free tier)
+
+- **Analytics + replay** — from the wizard; replay now masked (above). Manual `$pageview` and a
+  `module_switched` event are captured in `src/App.jsx` (init keeps `capture_pageview: false`).
+- **Error tracking** — `enable_exception_autocapture` is on; `posthog.captureException` enriches
+  the Supabase `loadConfig`/`saveConfig` catch sites (`src/supabase.js`). Enable the Error
+  Tracking product + a new-issue alert in the PostHog UI.
+- **Feature flags** — `useFeatureFlag(key)` / `isFeatureEnabled(key)` helpers in
+  `src/lib/posthog.js`. Reference gate: the `hide-catalog-service-lines` flag hides
+  in-development service lines from the picker in `src/pages/FinancialTool.jsx` (default off =
+  current behavior). Create the flag in PostHog to use it.
+- **Surveys** — no/low-code; create in the PostHog UI and they render via the loaded `posthog-js`.
+  Suggested first survey: a satisfaction prompt triggered after the `model_saved` event.
+- **Experiments (A/B)** — intentionally **not** set up yet; feature flags above are the
+  prerequisite if we add them later.
+
+## Free-tier allowances to watch (resets monthly)
+
+| Product | Free allowance |
+|---|---|
+| Product analytics | 1M events / mo |
+| Session replay | 5,000 recordings / mo |
+| Feature flags | 1M requests / mo |
+| Surveys | 1,500 responses / mo |
+| Error tracking | 100,000 exceptions / mo |
+
+Free plan also = **1 project**, **1-year retention**, community support.

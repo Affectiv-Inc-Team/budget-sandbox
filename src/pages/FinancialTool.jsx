@@ -11,7 +11,7 @@ import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, Sch
 import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
 
 import { LOGO } from "../assets/logo.js";
-import posthog from "../lib/posthog.js";
+import posthog, { useFeatureFlag } from "../lib/posthog.js";
 
 
 /* ══════════════════════════════════════════════════════════
@@ -989,10 +989,10 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             <div style={{ marginTop:10, display:"flex", flexDirection:"column", gap:8 }}>
               {RATE_FIELDS.map(f => (
                 <div key={f.key}>
-                  <div style={{ fontSize:9, color:"#5a7498", marginBottom:3 }}>{f.label} <span style={{ color:"#9aabb8" }}>{f.unit}</span></div>
+                  <div style={{ fontSize:9, color:"#5a7498", marginBottom:3 }}>{f.label} <span style={{ color:"#64748b" }}>{f.unit}</span></div>
                   <div style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:3, flex:1 }}>
-                      <span style={{ fontSize:10, color:"#9aabb8" }}>$</span>
+                      <span style={{ fontSize:10, color:"#64748b" }}>$</span>
                       <input type="number" step="0.01"
                         value={rates[f.key] ?? f.baseline}
                         onChange={e => setRates(r => ({ ...r, [f.key]: parseFloat(e.target.value)||0 }))}
@@ -1421,10 +1421,10 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
               <div style={{ marginTop:10, display:"flex", flexDirection:"column", gap:8 }}>
                 {hourlyRateFields.map(f => (
                   <div key={f.key}>
-                    <div style={{ fontSize:9, color:"#5a7498", marginBottom:3 }}>{f.label} <span style={{ color:"#9aabb8" }}>{f.unit}</span></div>
+                    <div style={{ fontSize:9, color:"#5a7498", marginBottom:3 }}>{f.label} <span style={{ color:"#64748b" }}>{f.unit}</span></div>
                     <div style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:3, flex:1 }}>
-                        <span style={{ fontSize:10, color:"#9aabb8" }}>$</span>
+                        <span style={{ fontSize:10, color:"#64748b" }}>$</span>
                         <input type="number" step="0.01"
                           value={rates[f.key] ?? f.baseline}
                           onChange={e => setRates(r => ({ ...r, [f.key]: parseFloat(e.target.value)||0 }))}
@@ -2260,6 +2260,10 @@ function AddServiceLineButton({ existingTypes, onAdd }) {
   }, [open]);
 
   const groups = getGroupedPickerOptions();
+  // Kill-switch: enable the `hide-catalog-service-lines` flag in PostHog to hide
+  // in-development (catalog) types from the picker without a deploy. Default off
+  // = current behavior (catalog types shown).
+  const hideCatalog = useFeatureFlag('hide-catalog-service-lines');
 
   return (
     <div ref={ref} style={{ position:"relative", marginLeft:6 }}>
@@ -2284,6 +2288,7 @@ function AddServiceLineButton({ existingTypes, onAdd }) {
               }}>{group.label}</div>
               {group.types.map(t => {
                 const existing = existingTypes.includes(t.type);
+                if (hideCatalog && t.status === 'catalog' && !existing) return null;
                 return (
                   <button key={t.type} disabled={existing}
                     onClick={() => { onAdd(t.type); setOpen(false); }}
