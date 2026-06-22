@@ -255,6 +255,57 @@ describe("migrateConfig — already v2 (identity path)", () => {
   });
 });
 
+describe("migrateConfig — v2 normalization: TSC config.rates → config.rateOverrides", () => {
+  const v2WithTscRates = (slConfig) => ({
+    version: 2,
+    selectedCompanyId: "co_abc",
+    selectedServiceLineId: null,
+    companies: [{
+      id: "co_abc", name: "Acme", archived: false,
+      shared: createSharedConfig(),
+      serviceLines: [{
+        id: "sl_tsc", type: "TSC", name: "", archived: false,
+        overheadOverride: null, subTabOrder: null,
+        config: slConfig,
+      }],
+    }],
+  });
+
+  it("renames the legacy key and preserves the user's edited rate values", () => {
+    const legacy = v2WithTscRates({ coordinators: [], rates: { coord: 19.5, planDev: 18 } });
+    const out = migrateConfig(legacy);
+    const cfg = out.companies[0].serviceLines[0].config;
+    expect(cfg.rateOverrides).toEqual({ coord: 19.5, planDev: 18 });
+    expect(cfg.rates).toBeUndefined();
+  });
+
+  it("leaves an existing rateOverrides untouched (no double-migration)", () => {
+    const already = v2WithTscRates({ coordinators: [], rateOverrides: { coord: 21 } });
+    const out = migrateConfig(already);
+    expect(out.companies[0].serviceLines[0].config.rateOverrides).toEqual({ coord: 21 });
+  });
+
+  it("is a no-op (same reference) for a v2 blob with no TSC rates to migrate", () => {
+    const clean = v2WithTscRates({ coordinators: [], rateOverrides: {} });
+    expect(migrateConfig(clean)).toBe(clean);
+  });
+
+  it("does not touch non-TSC service lines that happen to carry a rates key", () => {
+    const input = {
+      version: 2, selectedCompanyId: "co_abc", selectedServiceLineId: null,
+      companies: [{
+        id: "co_abc", name: "Acme", archived: false, shared: createSharedConfig(),
+        serviceLines: [{
+          id: "sl_x", type: "RES_HAB_DAILY", name: "", archived: false,
+          overheadOverride: null, subTabOrder: null,
+          config: { indHomes: [], rates: { foo: 1 } },
+        }],
+      }],
+    };
+    expect(migrateConfig(input)).toBe(input);
+  });
+});
+
 describe("migrateConfig — flat v1 (production shape)", () => {
   const flatV1 = {
     wage: 18,

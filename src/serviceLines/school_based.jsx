@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { canSeeCompanyDollars, wageDisplayMode, canEditServiceLines } from '../lib/access';
+import { makeEffectiveRates } from '../lib/rates';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Idaho School-Based Services rate table
@@ -35,9 +36,11 @@ export const SCHOOL_RATE_TABLE = [
 const _defaultRates = {};
 SCHOOL_RATE_TABLE.forEach(r => { _defaultRates[r.key] = r.defaultRate; });
 
+// School-Based layers a per-district override on top of the base override.
+const _mergeRates = makeEffectiveRates(SCHOOL_RATE_TABLE);
 function effectiveRates(baseOverrides = {}, districtId = null, districts = []) {
   const dist = districtId ? districts.find(d => d.id === districtId) : null;
-  return { ..._defaultRates, ...baseOverrides, ...(dist?.rateOverrides ?? {}) };
+  return _mergeRates(baseOverrides, dist?.rateOverrides ?? {});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

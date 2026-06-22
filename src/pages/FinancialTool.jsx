@@ -1310,9 +1310,17 @@ function Sidebar({ entityType, setEntityType, ownerRate, setOwnerRate, mgmtFeePc
 /* ══════════════════════════════════════════════════════════
    TAB: HOURLY SERVICES
 ══════════════════════════════════════════════════════════ */
-function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userRole }) {
+function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRates, userRole }) {
   const [selId, setSelId] = useState(participants[0]?.id);
+  const [ratesOpen, setRatesOpen] = useState(true);
   const sel = participants.find(p=>p.id===selId) ?? participants[0];
+
+  // Hourly bills the same Intense Individual (U2) / Group (U3) 15-min codes that
+  // Res Hab Daily uses for hourly add-ons; they live in company-wide shared.rates.
+  // Surface just those two fields here so rates are adjustable in-module.
+  const hourlyRateFields = RATE_FIELDS.filter(f => f.key === 'iuUnit' || f.key === 'igUnit');
+  // Same gate as the Home Mix Editor (these are the same company-wide shared.rates).
+  const canEditRates = canEditServiceLines(userRole);
 
   const metrics = useMemo(()=>
     participants.map(p=>({ ...p, m: calcHourlyParticipant(p, rates, wage) })),
@@ -1396,6 +1404,56 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, userR
               </div>
             ))}
           </div>
+
+          {/* Reimbursement rates — edits the shared U2/U3 15-min rates (company-wide, shared with Res Hab Daily) */}
+          {canSeeControl(userRole, 'resHabRates') && <div style={{ marginTop:10, padding:"10px 12px", background:"#FAF4E8", borderRadius:9, border:"1px solid #e0e8f0", pointerEvents: canEditRates ? "auto" : "none", opacity: canEditRates ? 1 : 0.65 }}>
+            <button onClick={() => setRatesOpen(o => !o)} style={{
+              background:"none", border:"none", cursor:"pointer", padding:0,
+              display:"flex", alignItems:"center", gap:6, width:"100%",
+              fontSize:9, color:"#9a8050", letterSpacing:2, textTransform:"uppercase", fontWeight:700,
+            }}>
+              <span style={{ fontSize:11, transition:"transform 200ms", transform: ratesOpen ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+              Reimbursement Rates
+            </button>
+            {ratesOpen && (
+              <div style={{ marginTop:10, display:"flex", flexDirection:"column", gap:8 }}>
+                {hourlyRateFields.map(f => (
+                  <div key={f.key}>
+                    <div style={{ fontSize:9, color:"#5a7498", marginBottom:3 }}>{f.label} <span style={{ color:"#9aabb8" }}>{f.unit}</span></div>
+                    <div style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:3, flex:1 }}>
+                        <span style={{ fontSize:10, color:"#9aabb8" }}>$</span>
+                        <input type="number" step="0.01"
+                          value={rates[f.key] ?? f.baseline}
+                          onChange={e => setRates(r => ({ ...r, [f.key]: parseFloat(e.target.value)||0 }))}
+                          style={{ width:60, fontSize:12, fontWeight:600, color:f.color,
+                            background:"#f8f8f8", border:"1px solid #d0dae8", borderRadius:5,
+                            padding:"3px 6px", textAlign:"right" }}/>
+                      </div>
+                      <div style={{ display:"flex", gap:3 }}>
+                        {[2,4,6].map(p => (
+                          <button key={p} onClick={() =>
+                            setRates(r => ({ ...r, [f.key]: parseFloat((f.baseline*(1-p/100)).toFixed(4)) }))}
+                            style={{ fontSize:9, padding:"2px 4px", borderRadius:4, border:"1px solid #d0dae8",
+                              background:"#fff", color:"#64748b", cursor:"pointer" }}>
+                            −{p}%
+                          </button>
+                        ))}
+                        <button onClick={() => setRates(r => ({ ...r, [f.key]: f.baseline }))}
+                          style={{ fontSize:9, padding:"2px 4px", borderRadius:4, border:"1px solid #d0dae8",
+                            background:"#fff", color:"#64748b", cursor:"pointer" }}>
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ fontSize:8.5, color:"#9a8050", ...M, lineHeight:1.5 }}>
+                  Shared with Res Hab Daily (intense individual/group add-ons).
+                </div>
+              </div>
+            )}
+          </div>}
         </div>
 
         {/* Editor */}
@@ -3106,7 +3164,7 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
               {activeSLType === SERVICE_LINE_TYPES.RES_HAB_HOURLY && subTab === "hourly" && (
                 <HourlyTab participants={hourlyPx} onUpdate={updateHourly}
                   onAdd={addHourly} onRemove={removeHourly}
-                  wage={wage} rates={rates} userRole={userRole}/>
+                  wage={wage} rates={rates} setRates={setRates} userRole={userRole}/>
               )}
               {activeSLType === SERVICE_LINE_TYPES.RES_HAB_HOURLY && subTab === "hourly_pl" && canSeeCompanyDollars(userRole) && (() => {
                 const revShare = co.annualRevGross > 0 ? hourlyTotals.annualRev / co.annualRevGross : 1;
@@ -3134,7 +3192,7 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                   userRole={userRole}/>
               )}
               {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_productivity" &&
-                <TSCProductivityTab config={activeSL.config}/>}
+                <TSCProductivityTab config={activeSL.config} userRole={userRole}/>}
               {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_staffing" && (
                 <TSCStaffingTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}

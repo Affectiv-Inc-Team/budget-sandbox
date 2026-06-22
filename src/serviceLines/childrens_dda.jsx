@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { canSeeCompanyDollars, wageDisplayMode, canEditServiceLines } from '../lib/access';
+import { makeEffectiveRates } from '../lib/rates';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Idaho CHIS (Children's Habilitation Intervention Services) rate table
@@ -98,9 +99,7 @@ export const DDA_PHASE_LABELS = {
 const _defaultRates = {};
 DDA_RATE_TABLE.forEach(r => { _defaultRates[r.key] = r.defaultRate; });
 
-function effectiveRates(overrides = {}) {
-  return { ..._defaultRates, ...overrides };
-}
+const effectiveRates = makeEffectiveRates(DDA_RATE_TABLE);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Factories
