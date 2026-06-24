@@ -1919,6 +1919,44 @@ export function SchoolBasedScenarioTab({ config, onUpdate, userRole }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Current Services tab — internal Clinicians / Participants sub-tab switcher
+// ─────────────────────────────────────────────────────────────────────────────
+export function SchoolBasedCurrentServicesTab({ config, onUpdate, userRole }) {
+  const [innerTab, setInnerTab] = useState('clinicians');
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[['clinicians', '👤 Clinicians'], ['participants', '👥 Participants']].map(([id, label]) => (
+          <button key={id} onClick={() => setInnerTab(id)} style={{
+            padding: "5px 16px", borderRadius: 20, fontSize: 11, cursor: "pointer", ...M,
+            border: innerTab === id ? "1px solid #5a3800" : "1px solid #d0dae8",
+            background: innerTab === id ? "#5a3800" : "#fff",
+            color: innerTab === id ? "#fff" : "#475569",
+            fontWeight: innerTab === id ? 700 : 400,
+          }}>{label}</button>
+        ))}
+      </div>
+      {innerTab === 'clinicians'
+        ? <SchoolBasedRosterTab config={config} onUpdate={onUpdate} userRole={userRole}/>
+        : <SchoolBasedParticipantsTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sandbox tab — productivity assumptions + admin staffing + scenario modeling
+// ─────────────────────────────────────────────────────────────────────────────
+export function SchoolBasedSandboxTab({ config, onUpdate, userRole }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <SchoolBasedStaffingTab config={config} onUpdate={onUpdate} userRole={userRole}/>
+      <div style={{ borderTop: "2px solid #e2e8f0" }}/>
+      <SchoolBasedScenarioTab config={config} onUpdate={onUpdate} userRole={userRole}/>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Participants tab — District → School → Student hierarchy
 // ─────────────────────────────────────────────────────────────────────────────
 export function SchoolBasedParticipantsTab({ config, onUpdate, userRole }) {
