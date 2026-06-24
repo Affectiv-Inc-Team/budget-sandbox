@@ -1355,3 +1355,272 @@ export function ChildrensDDACaseloadTab({ config, onUpdate, userRole }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Current Services tab — caseload hierarchy + productivity strip + provider/
+// participant nested sub-tabs. Composes existing tab components.
+// ─────────────────────────────────────────────────────────────────────────────
+export function ChildrensDDACurrentServicesTab({ config, onUpdate, userRole }) {
+  const [innerTab, setInnerTab] = useState(null);
+  const summary = calcChildrensDDAService(config);
+  const prod    = config.productivity ?? {};
+
+  const avgUtil = summary.providerCount > 0
+    ? summary.providers.reduce((a, pv) => a + pv.metrics.utilization, 0) / summary.providerCount
+    : 0;
+  const avgBillable = summary.providerCount > 0
+    ? summary.providers.reduce((a, pv) => a + pv.metrics.billableShare, 0) / summary.providerCount
+    : 0;
+  const supRatio = summary.supervisorCount > 0
+    ? (summary.providerCount / summary.supervisorCount).toFixed(1)
+    : '—';
+  const target = config.supervision?.providersPerSupervisor ?? 8;
+  const ratioOver = summary.supervisorCount > 0 && summary.providerCount / summary.supervisorCount > target;
+
+  const utilColor = avgUtil > 0.85 ? "#22c55e" : avgUtil > 0.65 ? "#f59e0b" : "#cf6e6e";
+
+  return (
+    <div>
+      {/* Providers / Participants sub-tabs at top */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[['providers', '👤 Providers'], ['participants', '👥 Participants']].map(([id, label]) => (
+          <button key={id} onClick={() => setInnerTab(prev => prev === id ? null : id)} style={{
+            padding: "5px 16px", borderRadius: 20, fontSize: 11, cursor: "pointer", ...M,
+            border: innerTab === id ? "1px solid #5a3800" : "1px solid #d0dae8",
+            background: innerTab === id ? "#5a3800" : "#fff",
+            color: innerTab === id ? "#fff" : "#475569",
+            fontWeight: innerTab === id ? 700 : 400,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Selected sub-tab content — hidden when nothing selected */}
+      {innerTab === 'providers' && <ChildrensDDARosterTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
+      {innerTab === 'participants' && <ChildrensDDAParticipantsTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
+
+      {/* Divider — only shown when a sub-tab is open */}
+      {innerTab && <div style={{ borderTop: "2px solid #e2e8f0", margin: "20px 0 16px 0" }}/>}
+
+      {/* Productivity summary strip */}
+      <div style={{ ...card, marginBottom: 16, display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div style={{ ...labelStyle, fontSize: 10, alignSelf: "center" }}>Productivity</div>
+        <div>
+          <div style={labelStyle}>Billable hr/day</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#5a3800", ...M }}>{prod.billableHrsPerDay ?? 5.5}</div>
+        </div>
+        <div>
+          <div style={labelStyle}>Cancellation</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#f59e0b", ...M }}>{prod.cancellationRate ?? 12}%</div>
+        </div>
+        <div>
+          <div style={labelStyle}>Drive time</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#64748b", ...M }}>{prod.driveTimePct ?? 15}%</div>
+        </div>
+        {summary.providerCount > 0 && <>
+          <div>
+            <div style={labelStyle}>Avg utilization</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: utilColor, ...M }}>{pct(avgUtil)}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Avg billable share</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#5a3800", ...M }}>{pct(avgBillable)}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Supervision ratio</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: ratioOver ? "#cf6e6e" : "#22c55e", ...M }}>
+              {supRatio} {ratioOver ? "⚠️" : "✓"}
+            </div>
+          </div>
+        </>}
+      </div>
+
+      {/* Caseload hierarchy below */}
+      <ChildrensDDACaseloadTab config={config} onUpdate={onUpdate} userRole={userRole}/>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sandbox tab — what-if scenario modeling for productivity and labor assumptions.
+// Sandbox params are local; "Apply to model" persists changes via onUpdate.
+// ─────────────────────────────────────────────────────────────────────────────
+export function ChildrensDDASandboxTab({ config, onUpdate, userRole }) {
+  const defaults  = defaultChildrensDDAConfig();
+  const canEdit   = canEditServiceLines(userRole);
+  const showDollars = canSeeCompanyDollars(userRole);
+
+  const [sb, setSb] = useState({
+    billableHrsPerDay:      config.productivity?.billableHrsPerDay      ?? defaults.productivity.billableHrsPerDay,
+    cancellationRate:       config.productivity?.cancellationRate       ?? defaults.productivity.cancellationRate,
+    driveTimePct:           config.productivity?.driveTimePct           ?? defaults.productivity.driveTimePct,
+    documentationTimePct:   config.productivity?.documentationTimePct   ?? defaults.productivity.documentationTimePct,
+    defaultHourlyWage:      config.defaultHourlyWage ?? defaults.defaultHourlyWage,
+    payrollBurdenPct:       config.payrollBurdenPct  ?? defaults.payrollBurdenPct,
+  });
+
+  const set = (field, val) => setSb(s => ({ ...s, [field]: val }));
+
+  const liveResult = calcChildrensDDAService(config);
+
+  // Sandbox calc: apply sandbox wage (to any provider currently at the default wage)
+  // and sandbox burden universally. Productivity params are informational — they
+  // don't drive calcDDAProvider so we show them as reference, not financial delta.
+  const sandboxResult = calcChildrensDDAService({
+    ...config,
+    payrollBurdenPct: sb.payrollBurdenPct,
+    providers: (config.providers ?? []).map(pv => ({
+      ...pv,
+      hourlyWage: pv.hourlyWage === (config.defaultHourlyWage ?? defaults.defaultHourlyWage)
+        ? sb.defaultHourlyWage
+        : pv.hourlyWage,
+    })),
+  });
+
+  const isDirty = (
+    sb.billableHrsPerDay    !== (config.productivity?.billableHrsPerDay    ?? defaults.productivity.billableHrsPerDay) ||
+    sb.cancellationRate     !== (config.productivity?.cancellationRate     ?? defaults.productivity.cancellationRate) ||
+    sb.driveTimePct         !== (config.productivity?.driveTimePct         ?? defaults.productivity.driveTimePct) ||
+    sb.documentationTimePct !== (config.productivity?.documentationTimePct ?? defaults.productivity.documentationTimePct) ||
+    sb.defaultHourlyWage    !== (config.defaultHourlyWage ?? defaults.defaultHourlyWage) ||
+    sb.payrollBurdenPct     !== (config.payrollBurdenPct  ?? defaults.payrollBurdenPct)
+  );
+
+  const resetSandbox = () => setSb({
+    billableHrsPerDay:    defaults.productivity.billableHrsPerDay,
+    cancellationRate:     defaults.productivity.cancellationRate,
+    driveTimePct:         defaults.productivity.driveTimePct,
+    documentationTimePct: defaults.productivity.documentationTimePct,
+    defaultHourlyWage:    defaults.defaultHourlyWage,
+    payrollBurdenPct:     defaults.payrollBurdenPct,
+  });
+
+  const applyToModel = () => onUpdate({
+    ...config,
+    productivity: {
+      ...(config.productivity ?? {}),
+      billableHrsPerDay:    sb.billableHrsPerDay,
+      cancellationRate:     sb.cancellationRate,
+      driveTimePct:         sb.driveTimePct,
+      documentationTimePct: sb.documentationTimePct,
+    },
+    defaultHourlyWage: sb.defaultHourlyWage,
+    payrollBurdenPct:  sb.payrollBurdenPct,
+  });
+
+  const $d  = n => (n >= 0 ? "+" : "") + n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const pctD = n => (n >= 0 ? "+" : "") + (n * 100).toFixed(1) + "%";
+  const dc  = n => n >= 0 ? "#22c55e" : "#cf6e6e";
+
+  const effectiveBillablePct = 100 - sb.cancellationRate - sb.driveTimePct - sb.documentationTimePct;
+
+  const inputRow = (label, field, step, min, max, unit = '') => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
+      <span style={{ ...labelStyle, fontSize: 10 }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <input type="number" min={min} max={max} step={step}
+          value={sb[field]}
+          onChange={e => set(field, +e.target.value)}
+          disabled={!canEdit}
+          style={{ ...numInput, width: 70, pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}/>
+        {unit && <span style={{ fontSize: 10, color: "#64748b", ...M }}>{unit}</span>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <h3 style={{ ...M, fontSize: 14, color: "#5a3800", margin: "0 0 4px 0", letterSpacing: 1, textTransform: "uppercase" }}>
+        Sandbox — scenario modeling
+      </h3>
+      <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 16px 0", lineHeight: 1.6 }}>
+        Adjust assumptions below to model impact without changing the live roster.
+        Wage changes apply to providers currently at the default wage. Click <strong>Apply to model</strong> to commit.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, alignItems: "start" }}>
+
+        {/* Left: input panel */}
+        <div style={{ ...card, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ ...labelStyle, fontSize: 10, marginBottom: 4 }}>Labor assumptions</div>
+          {inputRow("Default hourly wage", "defaultHourlyWage", 0.5, 10, 80, "$/hr")}
+          {inputRow("Payroll burden", "payrollBurdenPct", 1, 0, 50, "%")}
+
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
+            <div style={{ ...labelStyle, fontSize: 10, marginBottom: 8 }}>Productivity assumptions</div>
+            <div style={{ fontSize: 9, color: "#94a3b8", ...M, marginBottom: 8, lineHeight: 1.5 }}>
+              These are reference values displayed in Current Services. They do not yet drive the financial model.
+            </div>
+            {inputRow("Billable hr/day", "billableHrsPerDay", 0.5, 1, 12, "hr")}
+            {inputRow("Cancellation rate", "cancellationRate", 1, 0, 50, "%")}
+            {inputRow("Drive time", "driveTimePct", 5, 0, 40, "%")}
+            {inputRow("Documentation time", "documentationTimePct", 5, 0, 40, "%")}
+            <div style={{ marginTop: 8, padding: "6px 10px", background: "#f7f9fc", borderRadius: 6, fontSize: 10, color: "#475569", ...M }}>
+              Effective billable: <strong style={{ color: effectiveBillablePct < 30 ? "#cf6e6e" : "#22c55e" }}>
+                {effectiveBillablePct.toFixed(0)}%
+              </strong>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <button onClick={resetSandbox} style={{
+              flex: 1, padding: "6px 0", fontSize: 10, cursor: "pointer",
+              border: "1px solid #d0dae8", borderRadius: 5, background: "#fff", ...M, color: "#475569",
+            }}>Reset to defaults</button>
+            {canEdit && isDirty && (
+              <button onClick={applyToModel} style={{
+                flex: 1, padding: "6px 0", fontSize: 10, cursor: "pointer",
+                border: "none", borderRadius: 5, background: "#D4A520",
+                color: "#5a3800", fontWeight: 700, ...M,
+              }}>Apply to model</button>
+            )}
+          </div>
+        </div>
+
+        {/* Right: comparison table */}
+        {liveResult.providerCount > 0 ? (
+          <div style={{ ...card, padding: 0, overflow: "hidden" }}>
+            <div style={{
+              display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 1fr",
+              padding: "9px 14px", background: "#eef1f6", borderBottom: "1px solid #d0dae8", ...labelStyle,
+            }}>
+              <span>Metric</span>
+              <span style={{ textAlign: "right" }}>Current</span>
+              <span style={{ textAlign: "right" }}>Sandbox</span>
+              <span style={{ textAlign: "right" }}>Delta</span>
+            </div>
+            {[
+              ...(showDollars ? [
+                { label: "Annual Revenue",   cur: liveResult.totalAnnualRev,   sb: sandboxResult.totalAnnualRev,   fmt: $k, fmtD: $d },
+                { label: "Direct Labor",     cur: liveResult.totalAnnualLabor, sb: sandboxResult.totalAnnualLabor, fmt: $k, fmtD: $d },
+                { label: "Supervision cost", cur: liveResult.supervisionCost,  sb: sandboxResult.supervisionCost,  fmt: $k, fmtD: $d },
+                { label: "Gross profit",     cur: liveResult.totalGross,       sb: sandboxResult.totalGross,       fmt: $k, fmtD: $d },
+              ] : []),
+              { label: "Gross margin",     cur: liveResult.totalMargin,      sb: sandboxResult.totalMargin,      fmt: pct, fmtD: pctD },
+              { label: "Providers",        cur: liveResult.providerCount,    sb: sandboxResult.providerCount,    fmt: n => n, fmtD: n => (n >= 0 ? "+" : "") + n },
+              { label: "Total caseload",   cur: liveResult.totalCaseload,    sb: sandboxResult.totalCaseload,    fmt: n => n, fmtD: n => (n >= 0 ? "+" : "") + n },
+            ].map(({ label, cur, sb: sbVal, fmt, fmtD }) => {
+              const delta = sbVal - cur;
+              return (
+                <div key={label} style={{
+                  display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 1fr",
+                  padding: "9px 14px", borderBottom: "1px solid #f1f5f9", fontSize: 12, ...M, alignItems: "center",
+                }}>
+                  <span style={{ color: "#475569", fontWeight: 500 }}>{label}</span>
+                  <span style={{ textAlign: "right", color: "#334155" }}>{fmt(cur)}</span>
+                  <span style={{ textAlign: "right", color: "#334155", fontWeight: isDirty ? 700 : 400 }}>{fmt(sbVal)}</span>
+                  <span style={{ textAlign: "right", color: dc(delta), fontWeight: 700 }}>
+                    {delta === 0 ? "—" : fmtD(delta)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ ...card, textAlign: "center", padding: 40, color: "#64748b" }}>
+            <div style={{ fontSize: 13 }}>Add providers in Current Services to model scenarios.</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -5,7 +5,7 @@ import { migrateConfig, getSelectedCompany, createServiceLine, createSharedConfi
 import { SERVICE_LINE_TYPES, SERVICE_LINE_DEFS, getShortLabel, getGroupedPickerOptions } from "../serviceLines/types.js";
 import { ratesForLine } from "../data/idahoRates.js";
 import { TSCRosterTab, TSCCoordinatorsTab, TSCParticipantsTab, TSCProductivityTab, TSCPLTab, TSCStaffingTab, TSCScenarioTab, calcTSCService } from "../serviceLines/tsc.jsx";
-import { ChildrensDDARosterTab, ChildrensDDAParticipantsTab, ChildrensDDACaseloadTab, ChildrensDDAProductivityTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
+import { ChildrensDDACurrentServicesTab, ChildrensDDASandboxTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService, SchoolBasedCurrentServicesTab, SchoolBasedSandboxTab } from "../serviceLines/school_based.jsx";
 import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
@@ -2411,12 +2411,10 @@ const SUB_TABS = {
     { id: "tsc_scenario",     label: "🔬 Scenario" },
   ],
   CHILDRENS_DDA: [
-    { id: "chdda_roster",       label: "👥 Staff Roster" },
-    { id: "chdda_participants", label: "🧑‍🤝‍🧑 Participants" },
-    { id: "chdda_caseload",     label: "🗂 Caseload" },
-    { id: "chdda_productivity", label: "📈 Productivity" },
-    { id: "chdda_pl",           label: "💵 P&L" },
-    { id: "chdda_rates",        label: "📋 Rate Schedule" },
+    { id: "chdda_current_services", label: "📋 Current Services" },
+    { id: "chdda_sandbox",          label: "🔬 Sandbox" },
+    { id: "chdda_pl",               label: "💵 P&L" },
+    { id: "chdda_rates",            label: "📋 Rate Schedule" },
   ],
   VOC_SERVICES: [
     { id: "cse_roster",       label: "👥 Specialists & Caseload" },
@@ -2438,7 +2436,7 @@ function getSubTabsFor(slType) {
 
 // Tab IDs that require canSeeCompanyDollars / canEditServiceLines — single source of truth
 const DOLLAR_GATED_TABS  = new Set(['company', 'reshab_pl', 'hourly_pl', 'portfolio', 'tsc_pl', 'cse_pl', 'chdda_pl', 'school_pl']);
-const SENIOR_GATED_TABS  = new Set(['tsc_scenario', 'school_sandbox']);
+const SENIOR_GATED_TABS  = new Set(['tsc_scenario', 'school_sandbox', 'chdda_sandbox']);
 
 function getDefaultSubTab(slType) {
   const tabs = getSubTabsFor(slType);
@@ -3209,23 +3207,16 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
               )}
 
               {/* CHILDRENS_DDA tabs */}
-              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_roster" && (
-                <ChildrensDDARosterTab config={activeSL.config}
+              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_current_services" && (
+                <ChildrensDDACurrentServicesTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
-              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_participants" && (
-                <ChildrensDDAParticipantsTab config={activeSL.config}
+              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_sandbox" && canEditServiceLines(userRole) && (
+                <ChildrensDDASandboxTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
-              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_caseload" && (
-                <ChildrensDDACaseloadTab config={activeSL.config}
-                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
-                  userRole={userRole}/>
-              )}
-              {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_productivity" &&
-                <ChildrensDDAProductivityTab config={activeSL.config} userRole={userRole}/>}
               {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_pl" && canSeeCompanyDollars(userRole) &&
                 <ChildrensDDAPLTab config={activeSL.config} userRole={userRole}/>}
               {activeSLType === SERVICE_LINE_TYPES.CHILDRENS_DDA && activeSL && subTab === "chdda_rates" && (
