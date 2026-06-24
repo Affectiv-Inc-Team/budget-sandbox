@@ -1361,7 +1361,7 @@ export function ChildrensDDACaseloadTab({ config, onUpdate, userRole }) {
 // participant nested sub-tabs. Composes existing tab components.
 // ─────────────────────────────────────────────────────────────────────────────
 export function ChildrensDDACurrentServicesTab({ config, onUpdate, userRole }) {
-  const [innerTab, setInnerTab] = useState('providers');
+  const [innerTab, setInnerTab] = useState(null);
   const summary = calcChildrensDDAService(config);
   const prod    = config.productivity ?? {};
 
@@ -1384,7 +1384,7 @@ export function ChildrensDDACurrentServicesTab({ config, onUpdate, userRole }) {
       {/* Providers / Participants sub-tabs at top */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
         {[['providers', '👤 Providers'], ['participants', '👥 Participants']].map(([id, label]) => (
-          <button key={id} onClick={() => setInnerTab(id)} style={{
+          <button key={id} onClick={() => setInnerTab(prev => prev === id ? null : id)} style={{
             padding: "5px 16px", borderRadius: 20, fontSize: 11, cursor: "pointer", ...M,
             border: innerTab === id ? "1px solid #5a3800" : "1px solid #d0dae8",
             background: innerTab === id ? "#5a3800" : "#fff",
@@ -1394,13 +1394,12 @@ export function ChildrensDDACurrentServicesTab({ config, onUpdate, userRole }) {
         ))}
       </div>
 
-      {/* Selected sub-tab content — pushes caseload section down */}
-      {innerTab === 'providers'
-        ? <ChildrensDDARosterTab config={config} onUpdate={onUpdate} userRole={userRole}/>
-        : <ChildrensDDAParticipantsTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
+      {/* Selected sub-tab content — hidden when nothing selected */}
+      {innerTab === 'providers' && <ChildrensDDARosterTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
+      {innerTab === 'participants' && <ChildrensDDAParticipantsTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
 
-      {/* Divider */}
-      <div style={{ borderTop: "2px solid #e2e8f0", margin: "20px 0 16px 0" }}/>
+      {/* Divider — only shown when a sub-tab is open */}
+      {innerTab && <div style={{ borderTop: "2px solid #e2e8f0", margin: "20px 0 16px 0" }}/>}
 
       {/* Productivity summary strip */}
       <div style={{ ...card, marginBottom: 16, display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
