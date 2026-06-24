@@ -7,7 +7,7 @@ import { ratesForLine } from "../data/idahoRates.js";
 import { TSCRosterTab, TSCCoordinatorsTab, TSCParticipantsTab, TSCProductivityTab, TSCPLTab, TSCStaffingTab, TSCScenarioTab, calcTSCService } from "../serviceLines/tsc.jsx";
 import { ChildrensDDARosterTab, ChildrensDDAParticipantsTab, ChildrensDDACaseloadTab, ChildrensDDAProductivityTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
-import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService } from "../serviceLines/school_based.jsx";
+import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService, SchoolBasedCurrentServicesTab, SchoolBasedSandboxTab } from "../serviceLines/school_based.jsx";
 import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
 
 import { LOGO } from "../assets/logo.js";
@@ -2425,13 +2425,10 @@ const SUB_TABS = {
     { id: "cse_rates",        label: "📋 Billing Codes" },
   ],
   SCHOOL_BASED: [
-    { id: "school_roster",        label: "👥 Roster" },
-    { id: "school_participants",  label: "🏫 Participants" },
-    { id: "school_productivity",  label: "📈 Productivity" },
-    { id: "school_pl",            label: "💵 P&L" },
-    { id: "school_rates",         label: "📋 Rate Schedule" },
-    { id: "school_staffing",      label: "🏢 Staffing" },
-    { id: "school_scenario",      label: "🔬 Scenario" },
+    { id: "school_services", label: "👥 Current Services" },
+    { id: "school_sandbox",  label: "🔬 Sandbox" },
+    { id: "school_pl",       label: "💵 P&L" },
+    { id: "school_rates",    label: "📋 Rates" },
   ],
 };
 
@@ -2441,7 +2438,7 @@ function getSubTabsFor(slType) {
 
 // Tab IDs that require canSeeCompanyDollars / canEditServiceLines — single source of truth
 const DOLLAR_GATED_TABS  = new Set(['company', 'reshab_pl', 'hourly_pl', 'portfolio', 'tsc_pl', 'cse_pl', 'chdda_pl', 'school_pl']);
-const SENIOR_GATED_TABS  = new Set(['tsc_scenario', 'school_scenario']);
+const SENIOR_GATED_TABS  = new Set(['tsc_scenario', 'school_sandbox']);
 
 function getDefaultSubTab(slType) {
   const tabs = getSubTabsFor(slType);
@@ -3272,30 +3269,13 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
               })()}
 
               {/* SCHOOL_BASED tabs */}
-              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_roster" && (
-                <SchoolBasedRosterTab config={activeSL.config}
+              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_services" && (
+                <SchoolBasedCurrentServicesTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
-              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_productivity" &&
-                <SchoolBasedProductivityTab config={activeSL.config} userRole={userRole}/>}
-              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_rates" && (
-                <SchoolBasedRateScheduleTab config={activeSL.config}
-                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
-                  userRole={userRole}/>
-              )}
-              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_staffing" && (
-                <SchoolBasedStaffingTab config={activeSL.config}
-                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
-                  userRole={userRole}/>
-              )}
-              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_participants" && (
-                <SchoolBasedParticipantsTab config={activeSL.config}
-                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
-                  userRole={userRole}/>
-              )}
-              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_scenario" && canEditServiceLines(userRole) && (
-                <SchoolBasedScenarioTab config={activeSL.config}
+              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_sandbox" && canEditServiceLines(userRole) && (
+                <SchoolBasedSandboxTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
@@ -3317,6 +3297,11 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                   </div>
                 );
               })()}
+              {activeSLType === SERVICE_LINE_TYPES.SCHOOL_BASED && activeSL && subTab === "school_rates" && (
+                <SchoolBasedRateScheduleTab config={activeSL.config}
+                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
+                  userRole={userRole}/>
+              )}
 
               {/* Catalog placeholder for service lines without dedicated UI */}
               {activeSL && !SUB_TABS[activeSLType] && (
