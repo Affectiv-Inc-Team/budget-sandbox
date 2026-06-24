@@ -67,6 +67,15 @@ const TSC_RATE_FIELDS = [
   { key:"planDev",      code:"G9007",    label:"Plan Development",                color:"#00c49a", baseline:20.97 },
 ];
 
+// Full rate table for the dedicated Rates tab (all 5 TSC billing codes)
+const TSC_RATE_TABLE = [
+  { key: 'coord',         code: 'G9002', modifier: '',    description: 'Service Coordination',                    group: 'Coordination',     defaultRate: 20.97 },
+  { key: 'coordParapro',  code: 'G9002', modifier: 'HM',  description: 'Service Coordination (Paraprofessional)', group: 'Coordination',     defaultRate: 13.46 },
+  { key: 'planDev',       code: 'G9007', modifier: '',    description: 'Plan Development',                        group: 'Plan Development', defaultRate: 20.97 },
+  { key: 'crisis',        code: 'H2011', modifier: '',    description: 'Crisis Intervention',                     group: 'Crisis',           defaultRate: 20.97 },
+  { key: 'crisisParapro', code: 'H2011', modifier: 'HM',  description: 'Crisis Intervention (Paraprofessional)',  group: 'Crisis',           defaultRate: 13.46 },
+];
+
 // ──────────────────────────────────────────────────────────────────────
 // Factories
 // ──────────────────────────────────────────────────────────────────────
@@ -716,7 +725,7 @@ function ParticipantFlatRow({ p, rates, coordId, coordinators, onUpdate, onReass
 // ──────────────────────────────────────────────────────────────────────
 // Coordinators tab — manage coordinators and their participants
 // ──────────────────────────────────────────────────────────────────────
-export function TSCCoordinatorsTab({ config, onUpdate, userRole }) {
+function TSCCoordinatorsTab({ config, onUpdate, userRole }) {
   const summary = calcTSCService(config);
   const canEdit = canEditServiceLines(userRole);
   const rates = effectiveRates(config.rateOverrides);
@@ -813,7 +822,7 @@ export function TSCCoordinatorsTab({ config, onUpdate, userRole }) {
 // ──────────────────────────────────────────────────────────────────────
 // Participants tab — flat cross-coordinator participant list
 // ──────────────────────────────────────────────────────────────────────
-export function TSCParticipantsTab({ config, onUpdate, userRole }) {
+function TSCParticipantsTab({ config, onUpdate, userRole }) {
   const allParticipants = (config.coordinators ?? []).flatMap(c =>
     (c.participants ?? []).map(p => ({ ...p, coordId: c.id, coordName: c.name }))
   );
@@ -946,7 +955,7 @@ export function TSCParticipantsTab({ config, onUpdate, userRole }) {
 // ──────────────────────────────────────────────────────────────────────
 // Productivity tab — utilization analysis
 // ──────────────────────────────────────────────────────────────────────
-export function TSCProductivityTab({ config, userRole }) {
+function TSCProductivityTab({ config, userRole }) {
   const summary = calcTSCService(config);
 
   if (summary.coordinatorCount === 0) {
@@ -1119,7 +1128,7 @@ export function TSCPLTab({ config, userRole }) {
 // ──────────────────────────────────────────────────────────────────────
 // Staffing tab — admin & management staff matrix
 // ──────────────────────────────────────────────────────────────────────
-export function TSCStaffingTab({ config, onUpdate, userRole }) {
+function TSCStaffingTab({ config, onUpdate, userRole }) {
   const adminResult = calcTSCAdminStaff(config.adminStaff ?? []);
   const prod = config.productivity ?? {};
   const rev  = config.revenue      ?? {};
@@ -1404,7 +1413,7 @@ export function TSCStaffingTab({ config, onUpdate, userRole }) {
 // ──────────────────────────────────────────────────────────────────────
 // Scenario tab — rate / caseload / productivity adjustments
 // ──────────────────────────────────────────────────────────────────────
-export function TSCScenarioTab({ config, onUpdate, userRole }) {
+function TSCScenarioTab({ config, onUpdate, userRole, hideRates = false }) {
   const sc = config.scenario ?? { rateAdjPct: 0, caseloadAdjPct: 0, productivityAdjPct: 0 };
   const canEdit   = canEditServiceLines(userRole);
   const showDollars = canSeeCompanyDollars(userRole);
@@ -1447,9 +1456,9 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
   const tableRows = showDollars ? [...dollarRows, ...pctRows] : pctRows;
 
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"260px 1fr", gap:16, alignItems:"start" }}>
+    <div style={{ display: hideRates ? "block" : "grid", gridTemplateColumns: hideRates ? undefined : "260px 1fr", gap:16, alignItems:"start" }}>
       {/* Left: reimbursement rates (compact — matches Home Mix Editor) */}
-      {canSeeControl(userRole, 'tscRates') ? (
+      {!hideRates && (canSeeControl(userRole, 'tscRates') ? (
         <div style={{ padding:"10px 12px", background:"#FAF4E8", borderRadius:9, border:"1px solid #e0e8f0", pointerEvents: canEditRates ? "auto" : "none", opacity: canEditRates ? 1 : 0.65 }}>
           <button onClick={() => setRatesOpen(o => !o)} style={{
             background:"none", border:"none", cursor:"pointer", padding:0,
@@ -1526,7 +1535,7 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
             </div>
           )}
         </div>
-      ) : <div/>}
+      ) : <div/>)}
 
       {/* Right: scenario modeling */}
       <div>
@@ -1630,6 +1639,195 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
           </div>
         )}
       </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Current Services tab — coordinator/participant toggle + productivity strip
+// ──────────────────────────────────────────────────────────────────────
+export function TSCCurrentServicesTab({ config, onUpdate, userRole }) {
+  const [innerTab, setInnerTab] = useState(null);
+  const summary = calcTSCService(config);
+
+  const avgUtil = summary.coordinatorCount > 0
+    ? summary.coordinators.reduce((a, c) => a + c.metrics.utilization, 0) / summary.coordinatorCount
+    : 0;
+  const avgBillable = summary.coordinatorCount > 0
+    ? summary.coordinators.reduce((a, c) => a + c.metrics.billableShare, 0) / summary.coordinatorCount
+    : 0;
+  const avgMargin = summary.coordinatorCount > 0
+    ? summary.coordinators.reduce((a, c) => a + c.metrics.grossMargin, 0) / summary.coordinatorCount
+    : 0;
+
+  const utilColor = avgUtil > 0.85 ? "#22c55e" : avgUtil > 0.65 ? "#f59e0b" : "#cf6e6e";
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[['coordinators', '👤 Coordinators'], ['participants', '👥 Participants']].map(([id, label]) => (
+          <button key={id} onClick={() => setInnerTab(prev => prev === id ? null : id)} style={{
+            padding: "5px 16px", borderRadius: 20, fontSize: 11, cursor: "pointer", ...M,
+            border: innerTab === id ? "1px solid #0E6B78" : "1px solid #d0dae8",
+            background: innerTab === id ? "#0E6B78" : "#fff",
+            color: innerTab === id ? "#fff" : "#475569",
+            fontWeight: innerTab === id ? 700 : 400,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {innerTab === 'coordinators' && <TSCCoordinatorsTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
+      {innerTab === 'participants' && <TSCParticipantsTab config={config} onUpdate={onUpdate} userRole={userRole}/>}
+
+      {innerTab && <div style={{ borderTop: "2px solid #e2e8f0", margin: "20px 0 16px 0" }}/>}
+
+      <div style={{ ...card, marginBottom: 16, display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div style={{ ...labelStyle, fontSize: 10, alignSelf: "center", minWidth: 80 }}>Productivity</div>
+        <div>
+          <div style={labelStyle}>Coordinators</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#0A3D47", ...M }}>{summary.coordinatorCount}</div>
+        </div>
+        <div>
+          <div style={labelStyle}>Total caseload</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#0A3D47", ...M }}>{summary.totalCaseload}</div>
+        </div>
+        {summary.coordinatorCount > 0 && <>
+          <div>
+            <div style={labelStyle}>Avg utilization</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: utilColor, ...M }}>{pct(avgUtil)}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Avg billable share</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#0A3D47", ...M }}>{pct(avgBillable)}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Avg margin</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: avgMargin > 0.3 ? "#22c55e" : avgMargin > 0.15 ? "#f59e0b" : "#cf6e6e", ...M }}>{pct(avgMargin)}</div>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Sandbox tab — staffing/assumptions + scenario modeling (no rates panel)
+// ──────────────────────────────────────────────────────────────────────
+export function TSCSandboxTab({ config, onUpdate, userRole }) {
+  return (
+    <div>
+      <TSCStaffingTab config={config} onUpdate={onUpdate} userRole={userRole}/>
+      <div style={{ borderTop: "2px solid #e2e8f0", margin: "28px 0 24px" }}/>
+      <TSCScenarioTab config={config} onUpdate={onUpdate} userRole={userRole} hideRates/>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Rate Schedule tab — editable rate table for all TSC billing codes
+// ──────────────────────────────────────────────────────────────────────
+export function TSCRateScheduleTab({ config, onUpdate, userRole }) {
+  const overrides    = config.rateOverrides ?? {};
+  const hasOverrides = Object.keys(overrides).length > 0;
+  const canEdit      = canEditServiceLines(userRole);
+  const ro           = !canEdit;
+
+  const setRate = (key, val) => onUpdate({ ...config, rateOverrides: { ...overrides, [key]: val } });
+  const resetRate = (key) => {
+    const { [key]: _removed, ...rest } = overrides;
+    onUpdate({ ...config, rateOverrides: rest });
+  };
+  const resetAll = () => onUpdate({ ...config, rateOverrides: {} });
+
+  const groups = {};
+  TSC_RATE_TABLE.forEach(r => {
+    if (!groups[r.group]) groups[r.group] = [];
+    groups[r.group].push(r);
+  });
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ ...M, fontSize: 14, color: "#0A3D47", margin: 0, letterSpacing: 1, textTransform: "uppercase" }}>
+          Idaho TSC Rate Schedule
+        </h3>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ fontSize: 10, color: "#64748b", ...M }}>
+            {hasOverrides
+              ? `${Object.keys(overrides).length} rate${Object.keys(overrides).length !== 1 ? 's' : ''} overridden`
+              : 'All rates at Idaho defaults'}
+          </div>
+          {hasOverrides && canEdit && (
+            <button onClick={resetAll} style={{
+              padding: "4px 10px", fontSize: 10, cursor: "pointer",
+              border: "1px solid #d0dae8", borderRadius: 5, background: "#fff", ...M,
+            }}>Reset all to defaults</button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ fontSize: 10, color: "#64748b", ...M, marginBottom: 16, lineHeight: 1.6 }}>
+        All rates are per 15-minute unit, post-9/1/2025 (post-4% reduction). Edit any rate to override it for modeling.
+        Overridden rates are highlighted in amber. Click ↩ to reset an individual rate to its Idaho default.
+      </div>
+
+      {Object.entries(groups).map(([groupName, rows]) => (
+        <div key={groupName} style={{ marginBottom: 20 }}>
+          <div style={{
+            padding: "7px 12px", background: "#141d2c", color: "#D4A520",
+            borderRadius: "6px 6px 0 0", fontSize: 11, fontWeight: 700, ...M,
+          }}>{groupName}</div>
+
+          <div style={{
+            display: "grid", gridTemplateColumns: "0.6fr 0.7fr 2.5fr 1fr 0.7fr",
+            padding: "6px 12px", background: "#eef1f6",
+            borderBottom: "1px solid #d0dae8", ...labelStyle,
+          }}>
+            <span>Code</span>
+            <span>Modifier</span>
+            <span>Description</span>
+            <span style={{ textAlign: "right" }}>Rate / 15min</span>
+            <span style={{ textAlign: "right" }}>Rate / hr</span>
+          </div>
+
+          {rows.map(r => {
+            const isOverridden = r.key in overrides;
+            const activeRate   = isOverridden ? overrides[r.key] : r.defaultRate;
+            return (
+              <div key={r.key} style={{
+                display: "grid", gridTemplateColumns: "0.6fr 0.7fr 2.5fr 1fr 0.7fr",
+                padding: "7px 12px", borderBottom: "1px solid #f1f5f9",
+                alignItems: "center", fontSize: 11, ...M,
+                background: isOverridden ? "#fffbe8" : "#fff",
+              }}>
+                <span style={{ fontWeight: 600, color: "#3b5fc0" }}>{r.code}</span>
+                <span style={{ color: "#64748b", fontSize: 10 }}>{r.modifier || '—'}</span>
+                <span style={{ color: "#334155" }}>{r.description}</span>
+                <div style={{ display: "flex", gap: 4, alignItems: "center", justifyContent: "flex-end" }}>
+                  <input
+                    type="number" min={0} max={200} step={0.01}
+                    value={activeRate}
+                    onChange={e => setRate(r.key, +e.target.value)}
+                    readOnly={ro}
+                    style={{ ...numInput, width: 68, border: isOverridden ? "1px solid #f59e0b" : undefined, pointerEvents: ro ? "none" : "auto", opacity: ro ? 0.65 : 1 }}/>
+                  {isOverridden && canEdit && (
+                    <button onClick={() => resetRate(r.key)} title={`Reset to $${r.defaultRate}`} style={{
+                      border: "none", background: "transparent", cursor: "pointer",
+                      color: "#f59e0b", fontSize: 13, padding: 0, lineHeight: 1,
+                    }}>↩</button>
+                  )}
+                </div>
+                <span style={{ textAlign: "right", color: "#64748b" }}>{$d(activeRate * 4)}</span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      <div style={{ padding: 12, background: "#f7f9fc", border: "1px solid #d0dae8", borderRadius: 8, fontSize: 10, color: "#64748b", ...M, lineHeight: 1.7, marginTop: 4 }}>
+        <strong>Source:</strong> Idaho HCBS fee schedule, effective 9/1/2025. Rates reflect the statewide 4% reduction.
+        HM = Paraprofessional modifier. G9002 = Service Coordination (no monthly cap). G9007 = Plan Development (48 units/year cap per participant). H2011 = Crisis Intervention.
       </div>
     </div>
   );

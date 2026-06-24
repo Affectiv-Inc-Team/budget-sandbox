@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { migrateConfig, getSelectedCompany, createServiceLine, createSharedConfig } from "../lib/companyShape.js";
 import { SERVICE_LINE_TYPES, SERVICE_LINE_DEFS, getShortLabel, getGroupedPickerOptions } from "../serviceLines/types.js";
 import { ratesForLine } from "../data/idahoRates.js";
-import { TSCRosterTab, TSCCoordinatorsTab, TSCParticipantsTab, TSCProductivityTab, TSCPLTab, TSCStaffingTab, TSCScenarioTab, calcTSCService } from "../serviceLines/tsc.jsx";
+import { TSCCurrentServicesTab, TSCSandboxTab, TSCPLTab, TSCRateScheduleTab, calcTSCService } from "../serviceLines/tsc.jsx";
 import { ChildrensDDACurrentServicesTab, ChildrensDDASandboxTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService, SchoolBasedCurrentServicesTab, SchoolBasedSandboxTab } from "../serviceLines/school_based.jsx";
@@ -2403,12 +2403,10 @@ const SUB_TABS = {
     { id: "hourly_pl", label: "💵 P&L" },
   ],
   TSC: [
-    { id: "tsc_coordinators", label: "👤 Coordinators" },
-    { id: "tsc_participants", label: "👥 Participants" },
-    { id: "tsc_productivity", label: "📈 Productivity" },
-    { id: "tsc_pl",           label: "💵 P&L" },
-    { id: "tsc_staffing",     label: "🏢 Staffing" },
-    { id: "tsc_scenario",     label: "🔬 Scenario" },
+    { id: "tsc_current_services", label: "📋 Current Services" },
+    { id: "tsc_sandbox",          label: "🔬 Sandbox" },
+    { id: "tsc_pl",               label: "💵 P&L" },
+    { id: "tsc_rates",            label: "📋 Rates" },
   ],
   CHILDRENS_DDA: [
     { id: "chdda_current_services", label: "📋 Current Services" },
@@ -2436,7 +2434,7 @@ function getSubTabsFor(slType) {
 
 // Tab IDs that require canSeeCompanyDollars / canEditServiceLines — single source of truth
 const DOLLAR_GATED_TABS  = new Set(['company', 'reshab_pl', 'hourly_pl', 'portfolio', 'tsc_pl', 'cse_pl', 'chdda_pl', 'school_pl']);
-const SENIOR_GATED_TABS  = new Set(['tsc_scenario', 'school_sandbox', 'chdda_sandbox']);
+const SENIOR_GATED_TABS  = new Set(['tsc_sandbox', 'school_sandbox', 'chdda_sandbox']);
 
 function getDefaultSubTab(slType) {
   const tabs = getSubTabsFor(slType);
@@ -3183,25 +3181,18 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
               })()}
 
               {/* TSC tabs */}
-              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_coordinators" && (
-                <TSCCoordinatorsTab config={activeSL.config}
+              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_current_services" && (
+                <TSCCurrentServicesTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
-              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_participants" && (
-                <TSCParticipantsTab config={activeSL.config}
+              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_sandbox" && canEditServiceLines(userRole) && (
+                <TSCSandboxTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
-              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_productivity" &&
-                <TSCProductivityTab config={activeSL.config} userRole={userRole}/>}
-              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_staffing" && (
-                <TSCStaffingTab config={activeSL.config}
-                  onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
-                  userRole={userRole}/>
-              )}
-              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_scenario" && canEditServiceLines(userRole) && (
-                <TSCScenarioTab config={activeSL.config}
+              {activeSLType === SERVICE_LINE_TYPES.TSC && activeSL && subTab === "tsc_rates" && (
+                <TSCRateScheduleTab config={activeSL.config}
                   onUpdate={cfg => updateServiceLineConfig(activeSL.id, cfg)}
                   userRole={userRole}/>
               )}
