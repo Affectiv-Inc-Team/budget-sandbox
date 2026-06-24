@@ -3,12 +3,16 @@ import { useEffect, useState } from 'react';
 
 // HIPAA posture (free plan, no BAA): PostHog must never receive PHI. PostHog's
 // privacy controls run in the browser, so masked content is redacted BEFORE it
-// is transmitted. We mask aggressively — all inputs AND all on-screen text —
-// plus scrub network request metadata. Individual PHI-bearing elements also get
-// the `ph-no-capture` class as defense-in-depth (see ReferralTracker / serviceLines).
+// is transmitted. We mask aggressively — all inputs AND all on-screen text (shown
+// as asterisks in replay) — plus scrub network request metadata.
 posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
   api_host: import.meta.env.VITE_POSTHOG_HOST,
   enable_exception_autocapture: true,
+  // DOM autocapture is OFF: it would capture clicked element text (e.g. a
+  // participant name in a referral row) into events, and maskTextSelector only
+  // masks the replay, not event properties. We rely on explicit posthog.capture()
+  // calls instead so no PHI reaches PostHog. (Exception autocapture above is separate.)
+  autocapture: false,
   capture_pageview: false, // captured manually on route change in App.jsx
   disable_session_recording: false,
   session_recording: {
