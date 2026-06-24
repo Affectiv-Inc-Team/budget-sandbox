@@ -605,8 +605,7 @@ export function TSCRosterTab({ config, onUpdate, userRole }) {
   });
 
   return (
-    // ph-no-capture: roster shows coordinator/participant names — keep out of replay & autocapture.
-    <div className="ph-no-capture">
+    <div>
       {/* Summary bar */}
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
         <Stat label="Coordinators"  value={summary.coordinatorCount} />
@@ -765,8 +764,7 @@ export function TSCCoordinatorsTab({ config, onUpdate, userRole }) {
   });
 
   return (
-    // ph-no-capture: shows coordinator names — keep out of replay & autocapture.
-    <div className="ph-no-capture">
+    <div>
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
         <Stat label="Coordinators"   value={summary.coordinatorCount} />
         <Stat label="Total caseload" value={summary.totalCaseload} />
@@ -871,8 +869,7 @@ export function TSCParticipantsTab({ config, onUpdate, userRole }) {
   };
 
   return (
-    // ph-no-capture: shows participant names — keep out of replay & autocapture.
-    <div className="ph-no-capture">
+    <div>
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
         <Stat label="Total participants" value={allParticipants.length} />
         <Stat label="G9002 units/mo"     value={totalUnitsCoord} />

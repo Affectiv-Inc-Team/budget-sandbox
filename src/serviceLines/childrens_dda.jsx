@@ -691,8 +691,7 @@ export function ChildrensDDARosterTab({ config, onUpdate, userRole }) {
   const updateSup = (field, val) => updateField("supervision", { ...sup, [field]: val });
 
   return (
-    // ph-no-capture: roster shows provider/participant names — keep out of replay & autocapture.
-    <div className="ph-no-capture">
+    <div>
       {/* Summary bar */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <Stat label="Providers"      value={summary.providerCount} />
@@ -1175,8 +1174,7 @@ export function ChildrensDDAParticipantsTab({ config, onUpdate, userRole }) {
   }));
 
   return (
-    // ph-no-capture: shows participant names — keep out of replay & autocapture.
-    <div className="ph-no-capture">
+    <div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <Stat label="Participants" value={rows.length} />
         {phaseCounts.map(({ ph, n }) => <Stat key={ph} label={DDA_PHASE_LABELS[ph]} value={n} />)}

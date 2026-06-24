@@ -47,18 +47,20 @@ PostHog is **not** authorized to receive PHI. We are staying on the free plan, s
 **no PHI may ever leave the browser.** PostHog's privacy controls run client-side (masked
 content is redacted *before* transmission), which makes this enforceable.
 
-Controls in `src/lib/posthog.js` (`session_recording`):
-- `maskAllInputs: true` — every `<input>` is masked.
-- `maskTextSelector: '*'` — **all visible text** is masked (the key fix; without it, on-screen
-  names/SSN/DOB/diagnoses would be recorded).
-- `maskCapturedNetworkRequestFn` — strips query strings and drops request/response bodies from
-  captured network metadata.
+Controls in `src/lib/posthog.js`:
+- `session_recording.maskAllInputs: true` — every `<input>` is masked.
+- `session_recording.maskTextSelector: '*'` — **all visible text** is masked, shown as asterisks
+  in replay (the key fix; without it, on-screen names/SSN/DOB/diagnoses would be recorded).
+- `session_recording.maskCapturedNetworkRequestFn` — strips query strings and drops
+  request/response bodies from captured network metadata.
+- `autocapture: false` — DOM autocapture is disabled. `maskTextSelector` only masks the replay,
+  not event properties, so autocapture could otherwise capture clicked element text (e.g. a
+  participant name in a referral row) into events. We use explicit `posthog.capture()` calls
+  instead. (`enable_exception_autocapture` is separate and stays on.)
 
-Defense-in-depth: the most sensitive surfaces carry the **`ph-no-capture`** class, which both
-blocks them from replay AND blocks autocapture (click/text) events on them:
-- The entire Referral editor + referral list (`src/pages/ReferralTracker.jsx`) — SSN, DOB,
-  diagnoses, medications, participant names.
-- Each roster / participant / staffing tab in `src/serviceLines/{tsc,childrens_dda,school_based,cse}.jsx`.
+> We previously also added the `ph-no-capture` class (solid-block redaction) to PHI surfaces,
+> but removed it in favor of asterisk masking everywhere — cleaner replays, and `autocapture:
+> false` covers the event-side leak that `ph-no-capture` had been guarding.
 
 > If real PHI ever needs to reach PostHog, that is a hard prerequisite of a paid Boost/Scale
 > subscription **with a countersigned BAA** (app.posthog.com/legal) on PostHog Cloud **US**.
