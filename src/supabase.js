@@ -91,6 +91,7 @@ export async function saveConfig(config) {
 
   if (error) {
     console.error('saveConfig error:', error);
+    posthog.captureException(error, { endpoint: 'saveConfig', error_code: error.code });
     return false;
   }
 

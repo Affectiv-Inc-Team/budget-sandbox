@@ -605,7 +605,8 @@ export function TSCRosterTab({ config, onUpdate, userRole }) {
   });
 
   return (
-    <div>
+    // ph-no-capture: roster shows coordinator/participant names — keep out of replay & autocapture.
+    <div className="ph-no-capture">
       {/* Summary bar */}
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
         <Stat label="Coordinators"  value={summary.coordinatorCount} />
@@ -764,7 +765,8 @@ export function TSCCoordinatorsTab({ config, onUpdate, userRole }) {
   });
 
   return (
-    <div>
+    // ph-no-capture: shows coordinator names — keep out of replay & autocapture.
+    <div className="ph-no-capture">
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
         <Stat label="Coordinators"   value={summary.coordinatorCount} />
         <Stat label="Total caseload" value={summary.totalCaseload} />
@@ -869,7 +871,8 @@ export function TSCParticipantsTab({ config, onUpdate, userRole }) {
   };
 
   return (
-    <div>
+    // ph-no-capture: shows participant names — keep out of replay & autocapture.
+    <div className="ph-no-capture">
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
         <Stat label="Total participants" value={allParticipants.length} />
         <Stat label="G9002 units/mo"     value={totalUnitsCoord} />
@@ -1466,11 +1469,11 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
                 return (
                   <div key={f.key}>
                     <div style={{ fontSize:9, color:"#5a7498", marginBottom:3 }}>
-                      {f.label} <span style={{ color:"#9aabb8" }}>/15-min · {f.code}</span>
+                      {f.label} <span style={{ color:"#64748b" }}>/15-min · {f.code}</span>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:3, flex:1 }}>
-                        <span style={{ fontSize:10, color:"#9aabb8" }}>$</span>
+                        <span style={{ fontSize:10, color:"#64748b" }}>$</span>
                         <input type="number" step="0.01" value={val}
                           onChange={e => setRate(f.key, parseFloat(e.target.value) || 0)}
                           style={{ width:60, fontSize:12, fontWeight:600, color:f.color,
@@ -1513,7 +1516,7 @@ export function TSCScenarioTab({ config, onUpdate, userRole }) {
                   )}
                 </div>
                 <div style={{ fontSize:9, color:"#5a7498" }}>
-                  Service Coord (G9002): <span style={{ color:"#9aabb8" }}>no monthly cap</span>
+                  Service Coord (G9002): <span style={{ color:"#64748b" }}>no monthly cap</span>
                 </div>
                 <div>
                   <div style={{ fontSize:9, color:"#5a7498", marginBottom:2 }}>Unit basis</div>

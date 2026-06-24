@@ -487,7 +487,8 @@ export function CSERosterTab({ config, onUpdate, userRole }) {
   const updateJD = (field, val) => updateField("jobDevelopment", { ...jd, [field]: val });
 
   return (
-    <div>
+    // ph-no-capture: roster shows specialist/participant names — keep out of replay & autocapture.
+    <div className="ph-no-capture">
       {/* Summary bar */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <Stat label="Specialists"    value={summary.specialistCount} />

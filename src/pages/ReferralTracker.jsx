@@ -201,7 +201,8 @@ function SSNField({ role, referralId, value, onChange }) {
 
 function ReferralList({ items, onSelect, onNew }) {
   return (
-    <div style={{ width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+    // ph-no-capture: list rows show participant display labels (names) — keep out of replay.
+    <div className="ph-no-capture" style={{ width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
       <button type="button" onClick={onNew}
         style={{ padding: "10px", borderRadius: 8, border: "none", background: "#D4A520", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5, ...M }}>
         + New Referral
@@ -223,7 +224,7 @@ function ReferralList({ items, onSelect, onNew }) {
             <div style={{ color: "#f1f5f9", fontSize: 13, fontWeight: 700 }}>
               {r.display_label || buildDisplayLabel(r)}
             </div>
-            <div style={{ color: "#7a8aa3", fontSize: 10, marginTop: 3, ...M }}>
+            <div style={{ color: "#93a6c4", fontSize: 10, marginTop: 3, ...M }}>
               {labelFor("stage", r.stage)}{r.city ? ` · ${r.city}` : ""}{age != null ? ` · ${age}d in stage` : ""}
             </div>
           </button>
@@ -283,11 +284,13 @@ function ReferralForm({ role, companyId, existing, onSaved }) {
   }
 
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
+    // ph-no-capture: this editor holds PHI (name, SSN, DOB, diagnoses, meds).
+    // Excludes it from session replay AND autocapture — see src/lib/posthog.js.
+    <div className="ph-no-capture" style={{ flex: 1, minWidth: 0 }}>
       {/* live label preview + save bar */}
       <div style={{ position: "sticky", top: 0, zIndex: 2, background: "#141d2c", borderRadius: 11, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 8.5, color: "#5a7498", textTransform: "uppercase", letterSpacing: 1.5, ...M }}>Display label</div>
+          <div style={{ fontSize: 8.5, color: "#93a6c4", textTransform: "uppercase", letterSpacing: 1.5, ...M }}>Display label</div>
           <div style={{ fontSize: 15, fontWeight: 800, color: "#f1f5f9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</div>
         </div>
         <button type="button" onClick={save} disabled={!saveable || saving}

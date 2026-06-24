@@ -938,7 +938,8 @@ export function SchoolBasedRosterTab({ config, onUpdate, userRole }) {
   };
 
   return (
-    <div>
+    // ph-no-capture: roster shows clinician/student names — keep out of replay & autocapture.
+    <div className="ph-no-capture">
       {/* Summary bar */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <Stat label="Clinicians"     value={summary.clinicianCount} />
@@ -1589,7 +1590,8 @@ export function SchoolBasedStaffingTab({ config, onUpdate, userRole }) {
   const nonBillablePct = (prod.absenceRate ?? 10) + (prod.documentationTimePct ?? 15) + (prod.travelBetweenSchoolsPct ?? 10);
 
   return (
-    <div>
+    // ph-no-capture: shows management staff names/salaries — keep out of replay & autocapture.
+    <div className="ph-no-capture">
       <h3 style={{ ...M, fontSize: 14, color: "#5a3800", margin: "0 0 14px 0", letterSpacing: 1, textTransform: "uppercase" }}>
         Administrative & management staffing
       </h3>
@@ -1809,11 +1811,11 @@ export function SchoolBasedScenarioTab({ config, onUpdate, userRole }) {
                 return (
                   <div key={key}>
                     <div style={{ fontSize: 9, color: "#5a7498", marginBottom: 3 }}>
-                      {row.group} <span style={{ color: "#9aabb8" }}>/{UNIT_LABELS[row.unit]} · {row.code}</span>
+                      {row.group} <span style={{ color: "#64748b" }}>/{UNIT_LABELS[row.unit]} · {row.code}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 3, flex: 1 }}>
-                        <span style={{ fontSize: 10, color: "#9aabb8" }}>$</span>
+                        <span style={{ fontSize: 10, color: "#64748b" }}>$</span>
                         <input type="number" step="0.01" value={val}
                           onChange={e => setRate(key, parseFloat(e.target.value) || 0)}
                           style={{ width: 60, fontSize: 12, fontWeight: 600, color: "#5a3800",
@@ -2083,7 +2085,8 @@ export function SchoolBasedParticipantsTab({ config, onUpdate, userRole }) {
   const unassignedStudents  = allStudents.filter(s => !s.schoolId);
 
   return (
-    <div>
+    // ph-no-capture: shows student/participant names — keep out of replay & autocapture.
+    <div className="ph-no-capture">
       {/* Schools management panel */}
       <div style={{ ...card, marginBottom: 20 }}>
         <button onClick={() => setSchoolsPanelOpen(o => !o)} style={{
