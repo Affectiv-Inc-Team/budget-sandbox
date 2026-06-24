@@ -26,8 +26,10 @@ test.describe('Financial tool — critical flows', () => {
   test('add TSC service line and model a participant caseload', async ({ page }) => {
     await loginAs(page, E2E_EMAIL, E2E_PASSWORD);
 
-    // Adding a service line auto-selects it and opens its Coordinators sub-tab.
+    // Adding a service line auto-selects it and opens Current Services.
+    // The inner coordinator panel is collapsed — click the toggle to expand it.
     await addServiceLine(page, /targeted service coordination/i);
+    await page.getByRole('button', { name: /👤 Coordinators/i }).click();
     await expect(page.getByText(/no coordinators yet/i)).toBeVisible();
 
     // Add a coordinator → its card renders (name input is the first textbox).
@@ -49,8 +51,9 @@ test.describe('Financial tool — critical flows', () => {
   test('saving and reloading persists a coordinator name', async ({ page }) => {
     await loginAs(page, E2E_EMAIL, E2E_PASSWORD);
 
-    // Auto-selects the new line on its Coordinators sub-tab.
+    // Auto-selects the new line on Current Services. Expand coordinators panel.
     await addServiceLine(page, /targeted service coordination/i);
+    await page.getByRole('button', { name: /👤 Coordinators/i }).click();
 
     await page.getByRole('button', { name: /\+ add coordinator/i }).click();
     await page.getByRole('textbox').first().fill('Jordan Smith');
@@ -64,6 +67,8 @@ test.describe('Financial tool — critical flows', () => {
     await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible({ timeout: 15000 });
     // After reload the tool resets to Whole Company; re-open the TSC tab.
     await clickTab(page, /^TSC/);
+    // innerTab resets on remount — re-expand coordinators to find the textbox.
+    await page.getByRole('button', { name: /👤 Coordinators/i }).click();
     await expect(page.getByRole('textbox').first()).toHaveValue('Jordan Smith');
   });
 
@@ -96,22 +101,24 @@ test.describe('Financial tool — critical flows', () => {
     await expect(page.getByText('$25.00/hr').first()).toBeVisible();
   });
 
-  // ── Flow 4: the 🔬 Scenario sub-tab renders ──────────────────────────────
+  // ── Flow 4: the 🔬 Sandbox sub-tab renders ───────────────────────────────
   // Regression guard for a ReferenceError that blanked the whole app when an
   // editor opened the TSC Scenario tab (undeclared base/scenario/delta/rates/
-  // bev/… — same class PR #24 fixed for the other TSC tabs). The Phase 4 suite
-  // never opened this sub-tab, which is how the crash shipped.
-  test('TSC Scenario sub-tab renders without crashing', async ({ page }) => {
+  // bev/… — same class PR #24 fixed for the other TSC tabs). Scenario modeling
+  // is now in the "Sandbox" tab (4-tab restructure).
+  test('TSC Sandbox sub-tab renders without crashing', async ({ page }) => {
     await loginAs(page, E2E_EMAIL, E2E_PASSWORD);
     await addServiceLine(page, /targeted service coordination/i);
 
-    // A coordinator + participant make the scenario calc and rate panel exercise
-    // the previously-undeclared paths rather than the empty-state shortcut.
+    // Expand coordinators panel so we can add coordinator + participant.
+    // A coordinator + participant make the scenario calc exercise the
+    // previously-undeclared paths rather than the empty-state shortcut.
+    await page.getByRole('button', { name: /👤 Coordinators/i }).click();
     await page.getByRole('button', { name: /\+ add coordinator/i }).click();
     await page.getByRole('button', { name: /\+ add participant/i }).click();
 
-    // Opening this sub-tab used to throw before the component declared its vars.
-    await clickTab(page, /Scenario/i);
+    // Navigate to the top-level Sandbox tab (renamed from Scenario).
+    await clickTab(page, /Sandbox/i);
     await expect(page.getByText(/scenario modeling/i)).toBeVisible();
     await expect(page.getByText(/break-even analysis/i)).toBeVisible();
   });
