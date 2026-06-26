@@ -24,6 +24,29 @@ describe("DDA service phases", () => {
   it("new participants default to the 'initial' phase", () => {
     expect(mkDDAParticipant().phase).toBe("initial");
   });
+
+  // ── [Children's DDA] Update service phase names ───────────────────────
+  // Task: Remove "intensive" from "initial intensive"; change "long-term
+  // retention" to "long-term supports"; keep "stabilization" as-is.
+  // These negative assertions guard against a regression that re-introduces
+  // the old terminology.
+  it("no phase label contains the legacy term 'intensive'", () => {
+    const labels = Object.values(DDA_PHASE_LABELS);
+    expect(labels.some(l => /intensive/i.test(l))).toBe(false);
+  });
+
+  it("no phase label contains the legacy term 'retention'", () => {
+    const labels = Object.values(DDA_PHASE_LABELS);
+    expect(labels.some(l => /retention/i.test(l))).toBe(false);
+  });
+
+  it("legacy label 'Initial Intensive' is not present in any form", () => {
+    expect(Object.values(DDA_PHASE_LABELS)).not.toContain("Initial Intensive");
+  });
+
+  it("legacy label 'Long-Term Retention' is not present in any form", () => {
+    expect(Object.values(DDA_PHASE_LABELS)).not.toContain("Long-Term Retention");
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────
