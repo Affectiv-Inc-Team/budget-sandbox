@@ -2,16 +2,23 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CSERateScheduleTab, defaultCSEConfig } from "../cse.jsx";
 import { ChildrensDDARateScheduleTab, defaultChildrensDDAConfig } from "../childrens_dda.jsx";
+import { TSCRateScheduleTab, defaultTSCConfig } from "../tsc.jsx";
+import { SchoolBasedRateScheduleTab, defaultSchoolBasedConfig } from "../school_based.jsx";
 import { ROLES } from "../../lib/access.js";
 
-// Access cross-referencing: rate-schedule edits are restricted to tiers 1–4
-// (canEditServiceLines). Lower tiers see the rates but cannot change them.
-// These render-level assertions guard against a future tab forgetting the gate.
+// [Technical] Maintain proper access level cross-referencing across all updated modules
+// [Technical] Universal rate adjustment: ensure all service rates are adjustable across ALL modules
+//
+// canEditServiceLines gates rate-schedule edits at tier 4 (REGIONAL_DIRECTOR) and above.
+// Lower tiers see the rates but cannot edit them. Every rate-schedule tab must honour
+// this gate — these render-level assertions prevent any tab from silently dropping it.
 
 describe("Rate schedule read-only enforcement", () => {
   const cases = [
-    { name: "CSE", Tab: CSERateScheduleTab, cfg: defaultCSEConfig },
-    { name: "Children's DDA", Tab: ChildrensDDARateScheduleTab, cfg: defaultChildrensDDAConfig },
+    { name: "CSE",            Tab: CSERateScheduleTab,           cfg: defaultCSEConfig },
+    { name: "Children's DDA", Tab: ChildrensDDARateScheduleTab,  cfg: defaultChildrensDDAConfig },
+    { name: "TSC",            Tab: TSCRateScheduleTab,            cfg: defaultTSCConfig },
+    { name: "School-Based",   Tab: SchoolBasedRateScheduleTab,    cfg: defaultSchoolBasedConfig },
   ];
 
   for (const { name, Tab, cfg } of cases) {
