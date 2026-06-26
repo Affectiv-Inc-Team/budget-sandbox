@@ -9,6 +9,7 @@ import { ChildrensDDACurrentServicesTab, ChildrensDDASandboxTab, ChildrensDDAPLT
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService, SchoolBasedCurrentServicesTab, SchoolBasedSandboxTab } from "../serviceLines/school_based.jsx";
 import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
+import { VolumeTrackerTab } from "../serviceLines/volumeTracker.jsx";
 
 import { LOGO } from "../assets/logo.js";
 import posthog, { useFeatureFlag } from "../lib/posthog.js";
@@ -2387,10 +2388,11 @@ function CatalogPlaceholder({ type }) {
 // ════════════════════════════════════════════════════════════════════
 const SUB_TABS = {
   WHOLE_COMPANY: [
-    { id: "company",   label: "🏢 Company P&L" },
-    { id: "budget",    label: "💰 Budget Builder" },
-    { id: "faq",       label: "❓ FAQ & Help" },
-    { id: "portfolio", label: "📊 Portfolio" },
+    { id: "company",        label: "🏢 Company P&L" },
+    { id: "budget",         label: "💰 Budget Builder" },
+    { id: "volume_tracker", label: "📈 Client Volume" },
+    { id: "faq",            label: "❓ FAQ & Help" },
+    { id: "portfolio",      label: "📊 Portfolio" },
   ],
   RES_HAB_DAILY: [
     { id: "mixeditor",    label: "🏠 Home Mix Editor" },
@@ -2745,6 +2747,17 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
     typeof updater === 'function' ? updater(mgmt) : updater);
   const setOverhead = (updater) => updateShared("overhead",
     typeof updater === 'function' ? updater(overhead) : updater);
+
+  const upsertVolumeEntry = (entry) => {
+    const current = company?.shared?.volumeLog ?? [];
+    const exists  = current.some(e => e.id === entry.id);
+    updateShared("volumeLog", exists
+      ? current.map(e => e.id === entry.id ? entry : e)
+      : [...current, entry]
+    );
+  };
+  const deleteVolumeEntry = (id) =>
+    updateShared("volumeLog", (company?.shared?.volumeLog ?? []).filter(e => e.id !== id));
 
   // Service-line config setters that auto-create the SL if missing
   const ensureSLAndUpdate = (type, fieldName, updater) => {
@@ -3124,9 +3137,16 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                   hourlyCount={hourlyTotals.count} tscCaseload={tscSummary.totalCaseload}
                   slBreakdown={co.slBreakdown} userRole={userRole}/>
               )}
-              {isWholeCompany && subTab === "budget"    && <BudgetBuilderTab co={co} hourlyTotals={hourlyTotals} wage={wage} userRole={userRole}/>}
-              {isWholeCompany && subTab === "faq"       && <FAQTab userRole={userRole}/>}
-              {isWholeCompany && subTab === "portfolio" && canSeeCompanyDollars(userRole) && <PortfolioComparison userRole={userRole}/>}
+              {isWholeCompany && subTab === "budget"         && <BudgetBuilderTab co={co} hourlyTotals={hourlyTotals} wage={wage} userRole={userRole}/>}
+              {isWholeCompany && subTab === "volume_tracker" && company && (
+                <VolumeTrackerTab
+                  shared={company.shared}
+                  serviceLines={company.serviceLines}
+                  onUpsert={upsertVolumeEntry}
+                  onDelete={deleteVolumeEntry}/>
+              )}
+              {isWholeCompany && subTab === "faq"            && <FAQTab userRole={userRole}/>}
+              {isWholeCompany && subTab === "portfolio"      && canSeeCompanyDollars(userRole) && <PortfolioComparison userRole={userRole}/>}
 
               {/* RES_HAB_DAILY tabs */}
               {activeSLType === SERVICE_LINE_TYPES.RES_HAB_DAILY && subTab === "mixeditor" && (

@@ -118,6 +118,9 @@ export function createSharedConfig(overrides = {}) {
     // User-defined tab order for the Whole Company sub-tab strip (null = default SUB_TABS order)
     wholeCompanySubTabOrder: null,
 
+    // Per-agency client census log — array of { id, month, serviceLineId, clientCount, notes }
+    volumeLog: [],
+
     ...overrides,
   };
 }
@@ -251,7 +254,11 @@ function normalizeV2(config) {
       }
       return sl;
     });
-    return { ...co, serviceLines };
+    // Seed volumeLog on companies that predate the feature
+    const shared = co.shared && !co.shared.volumeLog
+      ? (changed = true, { ...co.shared, volumeLog: [] })
+      : co.shared;
+    return { ...co, serviceLines, shared };
   });
   return changed ? { ...config, companies } : config;
 }
