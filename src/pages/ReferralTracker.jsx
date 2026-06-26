@@ -409,15 +409,6 @@ function ReferralForm({ role, companyId, existing, onSaved }) {
         <Row>
           <TriToggle label="Self-guardian? (if adult)" value={draft.self_guardian} onChange={v => set("self_guardian", v)} />
         </Row>
-        <div style={{ borderTop: "1px dashed #d5c898", paddingTop: 10 }}>
-          <div style={{ ...labelStyle, color: "#5a3800" }}>Legal guardian / conservator</div>
-          <Row>
-            <Text label="Name" value={draft.guardian.name} onChange={v => setNested("guardian", "name", v)} />
-            <Text label="Relationship" value={draft.guardian.relationship} onChange={v => setNested("guardian", "relationship", v)} />
-            <Text label="Phone" value={draft.guardian.phone} onChange={v => setNested("guardian", "phone", v)} />
-            <Text label="Email" value={draft.guardian.email} onChange={v => setNested("guardian", "email", v)} />
-          </Row>
-        </div>
         <RepeatableContacts contacts={draft.contactsDraft} onChange={list => set("contactsDraft", list)} />
       </Section>
 
