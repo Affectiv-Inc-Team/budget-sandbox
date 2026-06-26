@@ -217,13 +217,13 @@ function ReferralList({ items, onSelect, onNew }) {
           <button key={r.id} type="button" onClick={() => onSelect(r)}
             style={{
               textAlign: "left", padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-              background: "#141d2c", border: "none",
+              background: "#FAF4E8", border: "1px solid #d5c898",
               borderLeft: `3px solid ${r.priority === "crisis" ? "#f87171" : r.priority === "high" ? "#fb923c" : "#D4A520"}`,
             }}>
-            <div style={{ color: "#f1f5f9", fontSize: 13, fontWeight: 700 }}>
+            <div style={{ color: "#3a2800", fontSize: 13, fontWeight: 700 }}>
               {r.display_label || buildDisplayLabel(r)}
             </div>
-            <div style={{ color: "#93a6c4", fontSize: 10, marginTop: 3, ...M }}>
+            <div style={{ color: "#7a6030", fontSize: 10, marginTop: 3, ...M }}>
               {labelFor("stage", r.stage)}{r.city ? ` · ${r.city}` : ""}{age != null ? ` · ${age}d in stage` : ""}
             </div>
           </button>
@@ -285,13 +285,13 @@ function ReferralForm({ role, companyId, existing, onSaved }) {
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
       {/* live label preview + save bar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "#141d2c", borderRadius: 11, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "#FAF4E8", borderRadius: 11, border: "1px solid #d5c898", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 8.5, color: "#93a6c4", textTransform: "uppercase", letterSpacing: 1.5, ...M }}>Display label</div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#f1f5f9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</div>
+          <div style={{ fontSize: 8.5, color: "#7a6030", textTransform: "uppercase", letterSpacing: 1.5, ...M }}>Display label</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#3a2800", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</div>
         </div>
         <button type="button" onClick={save} disabled={!saveable || saving}
-          style={{ padding: "10px 18px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", ...M, cursor: saveable && !saving ? "pointer" : "not-allowed", background: saveable ? "#00e5aa" : "#33404f", color: saveable ? "#06281f" : "#7a8aa3" }}>
+          style={{ padding: "10px 18px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", ...M, cursor: saveable && !saving ? "pointer" : "not-allowed", background: saveable ? "#00e5aa" : "#e8dcc8", color: saveable ? "#06281f" : "#9a8050" }}>
           {saving ? "Saving…" : existing ? "Save changes" : "Save referral"}
         </button>
       </div>
