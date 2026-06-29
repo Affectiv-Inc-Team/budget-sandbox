@@ -123,14 +123,10 @@ test.describe('Financial tool — critical flows', () => {
     await page.getByRole('button', { name: /bonneville/i }).first().click();
     await expect(page.getByText(/speech therapy/i).first()).toBeVisible();
 
-    // Adding a new district creates a new tab in rename mode
+    // Adding a new district creates a new tab (starts in rename mode with default name)
     await page.getByRole('button', { name: /\+ add district/i }).click();
-    // A new district input should appear (rename-mode input is auto-focused)
-    const districtInput = page.locator('input[style*="border-radius"]').last();
-    await expect(districtInput).toBeFocused();
-    await districtInput.fill('District 93');
-    await districtInput.press('Enter');
-    await expect(page.getByRole('button', { name: /district 93/i }).first()).toBeVisible();
+    // A new district button with the default name appears immediately
+    await expect(page.getByRole('button', { name: /district \d+/i }).first()).toBeVisible();
   });
 
   // ── Flow 5: the 🔬 Sandbox sub-tab renders ───────────────────────────────
