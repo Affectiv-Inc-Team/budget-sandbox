@@ -101,7 +101,35 @@ test.describe('Financial tool — critical flows', () => {
     await expect(page.getByText('$25.00/hr').first()).toBeVisible();
   });
 
-  // ── Flow 4: the 🔬 Sandbox sub-tab renders ───────────────────────────────
+  // ── Flow 4: School Based — Rates tab district selector ──────────────────
+  // Verifies the 3-level rate hierarchy UI: district tabs appear on the Rates
+  // tab, clicking one opens the rate table, and the "Add district" button works.
+  test('School Based Rates tab renders district selector and rate table', async ({ page }) => {
+    await loginAs(page, E2E_EMAIL, E2E_PASSWORD);
+    await addServiceLine(page, /school-based services/i);
+
+    // Navigate to the Rates sub-tab
+    await clickTab(page, /📋 Rates/i);
+
+    // The "Base (all districts)" button is always present
+    await expect(page.getByRole('button', { name: /base \(all districts\)/i })).toBeVisible();
+
+    // The 3 pre-seeded districts should appear as tabs
+    await expect(page.getByRole('button', { name: /bonneville/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /jefferson county/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /madison/i }).first()).toBeVisible();
+
+    // Clicking a district opens its rate table (Speech Therapy group heading visible)
+    await page.getByRole('button', { name: /bonneville/i }).first().click();
+    await expect(page.getByText(/speech therapy/i).first()).toBeVisible();
+
+    // Adding a new district creates a new tab (starts in rename mode with default name)
+    await page.getByRole('button', { name: /\+ add district/i }).click();
+    // A new district button with the default name appears immediately
+    await expect(page.getByRole('button', { name: /district \d+/i }).first()).toBeVisible();
+  });
+
+  // ── Flow 5: the 🔬 Sandbox sub-tab renders ───────────────────────────────
   // Regression guard for a ReferenceError that blanked the whole app when an
   // editor opened the TSC Scenario tab (undeclared base/scenario/delta/rates/
   // bev/… — same class PR #24 fixed for the other TSC tabs). Scenario modeling
