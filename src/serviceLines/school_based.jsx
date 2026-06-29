@@ -36,11 +36,14 @@ export const SCHOOL_RATE_TABLE = [
 const _defaultRates = {};
 SCHOOL_RATE_TABLE.forEach(r => { _defaultRates[r.key] = r.defaultRate; });
 
-// School-Based layers a per-district override on top of the base override.
+// School-Based layers per-district and per-school overrides on top of the base override.
+// Merge order: baseOverrides → districtOverrides → schoolOverrides
 const _mergeRates = makeEffectiveRates(SCHOOL_RATE_TABLE);
-function effectiveRates(baseOverrides = {}, districtId = null, districts = []) {
+function effectiveRates(baseOverrides = {}, districtId = null, districts = [], schoolId = null, schools = []) {
   const dist = districtId ? districts.find(d => d.id === districtId) : null;
-  return _mergeRates(baseOverrides, dist?.rateOverrides ?? {});
+  const districtRates = _mergeRates(baseOverrides, dist?.rateOverrides ?? {});
+  const school = schoolId ? schools.find(s => s.id === schoolId) : null;
+  return _mergeRates(districtRates, school?.rateOverrides ?? {});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,11 +149,26 @@ export function mkClinician(name = 'New Clinician', discipline = 'SPEECH', tier 
 }
 
 export function mkDistrict(name = 'New District') {
-  return { id: `sbdist_${sbUid()}`, name, rateOverrides: {} };
+  // Auto-populate district with default rates
+  const rateOverrides = {};
+  SCHOOL_RATE_TABLE.forEach(r => { rateOverrides[r.key] = r.defaultRate; });
+  return { id: `sbdist_${sbUid()}`, name, rateOverrides };
 }
 
 export function mkSchool(name = 'New School', districtId = null) {
-  return { id: `sbsch_${sbUid()}`, name, districtId };
+  return { id: `sbsch_${sbUid()}`, name, districtId, rateOverrides: {} };
+}
+
+export function mkSchoolWithInheritedRates(name = 'New School', districtId = null, districts = []) {
+  // When creating a new school, copy the parent district's rate overrides
+  const school = mkSchool(name, districtId);
+  if (districtId) {
+    const parentDistrict = districts.find(d => d.id === districtId);
+    if (parentDistrict?.rateOverrides) {
+      school.rateOverrides = { ...parentDistrict.rateOverrides };
+    }
+  }
+  return school;
 }
 
 export function mkSchoolAdminStaffMember(role = 'Scheduler') {
@@ -205,11 +223,12 @@ export function normalizeSchoolBasedClinicians(config = {}) {
   if (!needsMigration) return config;
 
   const schools = [...(config.schools ?? [])];
+  const districts = config.districts ?? [];
   const findOrCreateSchool = (name, districtId) => {
     const trimmed = (name ?? '').trim();
     const existing = schools.find(sc => sc.name.trim().toLowerCase() === trimmed.toLowerCase());
     if (existing) return existing.id;
-    const created = mkSchool(trimmed, districtId ?? null);
+    const created = mkSchoolWithInheritedRates(trimmed, districtId ?? null, districts);
     schools.push(created);
     return created.id;
   };
@@ -302,7 +321,7 @@ export function calcSchoolClinician(cl, payrollBurdenPct = 22, rates = _defaultR
   const districtId = cl.schoolId
     ? (schools.find(s => s.id === cl.schoolId)?.districtId ?? null)
     : (cl.districtId ?? null);
-  const clinicianRates = effectiveRates(baseOverrides, districtId, districts);
+  const clinicianRates = effectiveRates(baseOverrides, districtId, districts, cl.schoolId, schools);
   const sx = (cl.students ?? []).map(s => calcSchoolStudent(s, cl, clinicianRates, schoolYear, productivity));
   const weeks = schoolYearWeeks(schoolYear);
 
@@ -799,8 +818,10 @@ export function SchoolBasedRosterTab({ config, onUpdate, userRole }) {
 
   const updateField = (field, value) => onUpdate({ ...config, [field]: value });
 
-  const addSchool = () =>
-    onUpdate({ ...config, schools: [...schools, mkSchool(`School ${schools.length + 1}`, null)] });
+  const addSchool = () => {
+    const newSchool = mkSchoolWithInheritedRates(`School ${schools.length + 1}`, null, districts);
+    onUpdate({ ...config, schools: [...schools, newSchool] });
+  };
   const updateSchool = (schId, partial) =>
     onUpdate({ ...config, schools: schools.map(sc => sc.id === schId ? { ...sc, ...partial } : sc) });
   const removeSchool = (schId) =>
@@ -1386,10 +1407,17 @@ function RateTable({ overrides, baseOverrides, canEdit, setRate, resetRate }) {
 
 export function SchoolBasedRateScheduleTab({ config, onUpdate, userRole }) {
   const [selectedDistrictId, setSelectedDistrictId] = useState(null); // null = Base
+  const [selectedSchoolId, setSelectedSchoolId] = useState(null);
   const [renamingId, setRenamingId]  = useState(null);
   const [renameVal,  setRenameVal]   = useState('');
   const canEdit   = canEditServiceLines(userRole);
   const districts = config.districts ?? [];
+  const schools   = config.schools ?? [];
+
+  // Clear selected school when district changes
+  useEffect(() => {
+    setSelectedSchoolId(null);
+  }, [selectedDistrictId]);
 
   const startRename = (d) => { setRenamingId(d.id); setRenameVal(d.name); };
   const commitRename = (id) => {
@@ -1403,12 +1431,27 @@ export function SchoolBasedRateScheduleTab({ config, onUpdate, userRole }) {
 
   // Current district object (if a district tab is selected)
   const activeDist = selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null;
-  // Overrides being edited for the active view
-  const activeOverrides = activeDist ? (activeDist.rateOverrides ?? {}) : baseOverrides;
+  // Schools in the active district
+  const districtSchools = activeDist ? schools.filter(s => s.districtId === activeDist.id) : [];
+  // Current school object (if a school is selected within the district)
+  const activeSchool = selectedSchoolId ? schools.find(s => s.id === selectedSchoolId) : null;
+  // Overrides being edited for the active view (school > district > base)
+  const activeOverrides = activeSchool
+    ? (activeSchool.rateOverrides ?? {})
+    : activeDist
+      ? (activeDist.rateOverrides ?? {})
+      : baseOverrides;
   const hasOverrides    = Object.keys(activeOverrides).length > 0;
 
   const setRate = (key, val) => {
-    if (activeDist) {
+    if (activeSchool) {
+      onUpdate({
+        ...config,
+        schools: schools.map(s =>
+          s.id === activeSchool.id ? { ...s, rateOverrides: { ...s.rateOverrides, [key]: val } } : s
+        ),
+      });
+    } else if (activeDist) {
       onUpdate({
         ...config,
         districts: districts.map(d =>
@@ -1421,7 +1464,13 @@ export function SchoolBasedRateScheduleTab({ config, onUpdate, userRole }) {
   };
 
   const resetRate = (key) => {
-    if (activeDist) {
+    if (activeSchool) {
+      const { [key]: _r, ...rest } = activeSchool.rateOverrides ?? {};
+      onUpdate({
+        ...config,
+        schools: schools.map(s => s.id === activeSchool.id ? { ...s, rateOverrides: rest } : s),
+      });
+    } else if (activeDist) {
       const { [key]: _r, ...rest } = activeDist.rateOverrides ?? {};
       onUpdate({
         ...config,
@@ -1434,7 +1483,12 @@ export function SchoolBasedRateScheduleTab({ config, onUpdate, userRole }) {
   };
 
   const resetAll = () => {
-    if (activeDist) {
+    if (activeSchool) {
+      onUpdate({
+        ...config,
+        schools: schools.map(s => s.id === activeSchool.id ? { ...s, rateOverrides: {} } : s),
+      });
+    } else if (activeDist) {
       onUpdate({
         ...config,
         districts: districts.map(d => d.id === activeDist.id ? { ...d, rateOverrides: {} } : d),
@@ -1536,10 +1590,42 @@ export function SchoolBasedRateScheduleTab({ config, onUpdate, userRole }) {
         )}
       </div>
 
+      {/* School selector (shown when a district is selected) */}
+      {activeDist && districtSchools.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16, alignItems: "center", paddingLeft: 12, borderLeft: "3px solid #c8d4e4" }}>
+          <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600, ...M }}>Schools:</span>
+          <button
+            onClick={() => setSelectedSchoolId(null)}
+            style={{
+              padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 15, ...M,
+              border: selectedSchoolId === null ? "1px solid #5a3800" : "1px solid #d0dae8",
+              background: selectedSchoolId === null ? "#5a3800" : "#fff",
+              color: selectedSchoolId === null ? "#fff" : "#475569",
+              fontWeight: selectedSchoolId === null ? 600 : 400,
+            }}
+          >District defaults</button>
+          {districtSchools.map(sc => (
+            <button
+              key={sc.id}
+              onClick={() => setSelectedSchoolId(sc.id)}
+              style={{
+                padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 15, ...M,
+                border: selectedSchoolId === sc.id ? "1px solid #5a3800" : "1px solid #d0dae8",
+                background: selectedSchoolId === sc.id ? "#5a3800" : "#fff",
+                color: selectedSchoolId === sc.id ? "#fff" : "#475569",
+                fontWeight: selectedSchoolId === sc.id ? 600 : 400,
+              }}
+            >{sc.name}</button>
+          ))}
+        </div>
+      )}
+
       <div style={{ fontSize: 10, color: "#64748b", ...M, marginBottom: 16, lineHeight: 1.6 }}>
-        {activeDist
-          ? `Editing ${activeDist.name} district rates. District overrides layer on top of base rates. Rates that differ from base are highlighted amber.`
-          : 'Base rates apply to all clinicians with no district, or as the default before district overrides. Overridden rates are highlighted amber. Click ↩ to reset.'}
+        {activeSchool
+          ? `Editing ${activeSchool.name} school rates in ${activeDist?.name}. School overrides layer on top of district rates.`
+          : activeDist
+            ? `Editing ${activeDist.name} district rates. District overrides layer on top of base rates. Rates that differ from base are highlighted amber.`
+            : 'Base rates apply to all clinicians with no district, or as the default before district overrides. Overridden rates are highlighted amber. Click ↩ to reset.'}
       </div>
 
       <RateTable
@@ -1978,8 +2064,10 @@ export function SchoolBasedParticipantsTab({ config, onUpdate, userRole }) {
   const toggleDistrict = id => setOpenDistricts(o => ({ ...o, [id]: !o[id] }));
   const toggleSchool   = id => setOpenSchools(o => ({ ...o, [id]: !o[id] }));
 
-  const addSchool = () =>
-    onUpdate({ ...config, schools: [...schools, mkSchool(`School ${schools.length + 1}`, null)] });
+  const addSchool = () => {
+    const newSchool = mkSchoolWithInheritedRates(`School ${schools.length + 1}`, null, districts);
+    onUpdate({ ...config, schools: [...schools, newSchool] });
+  };
   const updateSchool = (schId, partial) =>
     onUpdate({ ...config, schools: schools.map(sc => sc.id === schId ? { ...sc, ...partial } : sc) });
   const removeSchool = (schId) =>

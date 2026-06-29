@@ -8,6 +8,7 @@ import {
   mkStudent,
   mkDistrict,
   mkSchool,
+  mkSchoolWithInheritedRates,
   mkSchoolAdminStaffMember,
   defaultSchoolBasedConfig,
   schoolYearWeeks,
@@ -546,11 +547,15 @@ describe("district rate layering", () => {
     expect(defaultSchoolBasedConfig().schools).toEqual([]);
   });
 
-  it("mkDistrict creates a district with empty rateOverrides", () => {
+  it("mkDistrict auto-populates rateOverrides with all Idaho defaults", () => {
     const d = mkDistrict("Test District");
     expect(d.name).toBe("Test District");
-    expect(d.rateOverrides).toEqual({});
     expect(d.id).toMatch(/^sbdist_/);
+    // All 19 codes from SCHOOL_RATE_TABLE should be pre-filled with their defaults
+    expect(Object.keys(d.rateOverrides)).toHaveLength(SCHOOL_RATE_TABLE.length);
+    SCHOOL_RATE_TABLE.forEach(r => {
+      expect(d.rateOverrides[r.key]).toBeCloseTo(r.defaultRate, 4);
+    });
   });
 
   it("mkClinician defaults to no school and carries no districtId (district is derived from the school)", () => {
@@ -615,11 +620,12 @@ describe("district rate layering", () => {
 // ──────────────────────────────────────────────────────────────────────
 
 describe("school and participant factories", () => {
-  it("mkSchool creates a school with correct shape", () => {
+  it("mkSchool creates a school with correct shape including rateOverrides", () => {
     const sc = mkSchool("Skyline Elementary", "dist_bonneville");
     expect(sc.name).toBe("Skyline Elementary");
     expect(sc.districtId).toBe("dist_bonneville");
     expect(sc.id).toMatch(/^sbsch_/);
+    expect(sc.rateOverrides).toEqual({});
   });
 
   it("mkSchool defaults districtId to null", () => {
@@ -636,5 +642,166 @@ describe("school and participant factories", () => {
     const result = calcSchoolBasedService({ ...defaultSchoolBasedConfig(), clinicians: [cl] });
     const studentOut = result.clinicians[0].students[0];
     expect(studentOut.schoolId).toBe("sbsch_test");
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Task 3 — mkSchoolWithInheritedRates
+// ──────────────────────────────────────────────────────────────────────
+
+describe("mkSchoolWithInheritedRates", () => {
+  const district = { id: "d1", name: "Bonneville", rateOverrides: { speech_prof: 20.00, pt_prof: 30.00 } };
+
+  it("returns an empty rateOverrides when no districtId provided", () => {
+    const sc = mkSchoolWithInheritedRates("New School", null, [district]);
+    expect(sc.rateOverrides).toEqual({});
+    expect(sc.districtId).toBeNull();
+  });
+
+  it("copies the parent district's rateOverrides into the new school", () => {
+    const sc = mkSchoolWithInheritedRates("Bonneville High", "d1", [district]);
+    expect(sc.rateOverrides).toEqual({ speech_prof: 20.00, pt_prof: 30.00 });
+    expect(sc.districtId).toBe("d1");
+  });
+
+  it("is a shallow copy — mutating the school's rates does not affect the district", () => {
+    const sc = mkSchoolWithInheritedRates("Bonneville High", "d1", [district]);
+    sc.rateOverrides.speech_prof = 99;
+    expect(district.rateOverrides.speech_prof).toBe(20.00);
+  });
+
+  it("returns empty rateOverrides when districtId does not match any district", () => {
+    const sc = mkSchoolWithInheritedRates("Orphan School", "d_missing", [district]);
+    expect(sc.rateOverrides).toEqual({});
+  });
+
+  it("assigns the correct id prefix and name", () => {
+    const sc = mkSchoolWithInheritedRates("Lincoln High", "d1", [district]);
+    expect(sc.id).toMatch(/^sbsch_/);
+    expect(sc.name).toBe("Lincoln High");
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Task 3 — 3-level rate override precedence (base → district → school)
+// ──────────────────────────────────────────────────────────────────────
+
+describe("school-level rate override precedence", () => {
+  function studentWithTherapy(hrPerWk = 1) {
+    const s = mkStudent();
+    s.services.therapy.hrPerWk = hrPerWk;
+    return s;
+  }
+
+  it("school override takes precedence over district and base", () => {
+    const district = { id: "d1", name: "Bonneville", rateOverrides: { speech_prof: 20.00 } };
+    const school   = { ...mkSchool("Lincoln High", "d1"), id: "sch1", rateOverrides: { speech_prof: 35.00 } };
+    const cl = { ...mkClinician("S", "SPEECH", "PROFESSIONAL", 30, "sch1"), students: [studentWithTherapy(1)] };
+    const cfg = {
+      ...defaultSchoolBasedConfig(),
+      clinicians: [cl],
+      districts: [district],
+      schools: [school],
+      rateOverrides: { speech_prof: 17.00 },
+    };
+    const r = calcSchoolBasedService(cfg);
+    // Should use school rate (35.00), not district (20.00) or base (17.00)
+    expect(r.totalAnnualRev).toBeCloseTo(1 * 4 * 35.00 * WEEKS * ATTEND, 1);
+  });
+
+  it("district override applies when school has no override for that key", () => {
+    const district = { id: "d1", name: "Bonneville", rateOverrides: { speech_prof: 20.00 } };
+    // School has no speech_prof override
+    const school   = { ...mkSchool("Lincoln High", "d1"), id: "sch1", rateOverrides: {} };
+    const cl = { ...mkClinician("S", "SPEECH", "PROFESSIONAL", 30, "sch1"), students: [studentWithTherapy(1)] };
+    const cfg = {
+      ...defaultSchoolBasedConfig(),
+      clinicians: [cl],
+      districts: [district],
+      schools: [school],
+      rateOverrides: { speech_prof: 17.00 },
+    };
+    const r = calcSchoolBasedService(cfg);
+    // Should use district rate (20.00), not base (17.00)
+    expect(r.totalAnnualRev).toBeCloseTo(1 * 4 * 20.00 * WEEKS * ATTEND, 1);
+  });
+
+  it("base override applies when neither district nor school has an override", () => {
+    const district = { id: "d1", name: "Bonneville", rateOverrides: {} };
+    const school   = { ...mkSchool("Lincoln High", "d1"), id: "sch1", rateOverrides: {} };
+    const cl = { ...mkClinician("S", "SPEECH", "PROFESSIONAL", 30, "sch1"), students: [studentWithTherapy(1)] };
+    const cfg = {
+      ...defaultSchoolBasedConfig(),
+      clinicians: [cl],
+      districts: [district],
+      schools: [school],
+      rateOverrides: { speech_prof: 18.00 },
+    };
+    const r = calcSchoolBasedService(cfg);
+    expect(r.totalAnnualRev).toBeCloseTo(1 * 4 * 18.00 * WEEKS * ATTEND, 1);
+  });
+
+  it("two schools in the same district each use their own rate overrides independently", () => {
+    const district = { id: "d1", name: "Bonneville", rateOverrides: {} };
+    const schoolA  = { ...mkSchool("Bonneville High", "d1"), id: "schA", rateOverrides: { speech_prof: 25.00 } };
+    const schoolB  = { ...mkSchool("Lincoln High",    "d1"), id: "schB", rateOverrides: { speech_prof: 30.00 } };
+    const s = studentWithTherapy(1);
+    const clA = { ...mkClinician("A", "SPEECH", "PROFESSIONAL", 30, "schA"), students: [s] };
+    const clB = { ...mkClinician("B", "SPEECH", "PROFESSIONAL", 30, "schB"), students: [{ ...s, id: "sbs_other" }] };
+    const cfg = {
+      ...defaultSchoolBasedConfig(),
+      clinicians: [clA, clB],
+      districts: [district],
+      schools: [schoolA, schoolB],
+    };
+    const r = calcSchoolBasedService(cfg);
+    expect(r.clinicians[0].metrics.annualRev).toBeCloseTo(1 * 4 * 25.00 * WEEKS * ATTEND, 1);
+    expect(r.clinicians[1].metrics.annualRev).toBeCloseTo(1 * 4 * 30.00 * WEEKS * ATTEND, 1);
+  });
+
+  it("clinician with no schoolId uses district then base (unchanged behaviour)", () => {
+    const district = { id: "d1", name: "Bonneville", rateOverrides: { speech_prof: 22.00 } };
+    const cl = { ...mkClinician("S", "SPEECH", "PROFESSIONAL", 30), districtId: "d1", students: [studentWithTherapy(1)] };
+    const cfg = { ...defaultSchoolBasedConfig(), clinicians: [cl], districts: [district] };
+    const r = calcSchoolBasedService(cfg);
+    expect(r.totalAnnualRev).toBeCloseTo(1 * 4 * 22.00 * WEEKS * ATTEND, 1);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Task 3 — normalizeSchoolBasedClinicians with rate inheritance
+// ──────────────────────────────────────────────────────────────────────
+
+describe("normalizeSchoolBasedClinicians — rate inheritance on new schools", () => {
+  it("newly created school inherits its parent district's rateOverrides", () => {
+    const district = { id: "d1", name: "Bonneville", rateOverrides: { speech_prof: 25.00, pt_prof: 28.00 } };
+    const legacy = {
+      id: "c1", name: "Alice", discipline: "SPEECH", tier: "PROFESSIONAL",
+      hourlyWage: 30, schoolName: "Lincoln Elementary", districtId: "d1", students: [],
+    };
+    const out = normalizeSchoolBasedClinicians({ schools: [], districts: [district], clinicians: [legacy] });
+    const createdSchool = out.schools.find(s => s.name === "Lincoln Elementary");
+    expect(createdSchool).toBeDefined();
+    expect(createdSchool.districtId).toBe("d1");
+    expect(createdSchool.rateOverrides).toEqual({ speech_prof: 25.00, pt_prof: 28.00 });
+  });
+
+  it("newly created school with no district gets empty rateOverrides", () => {
+    const legacy = {
+      id: "c1", name: "Alice", discipline: "SPEECH", tier: "PROFESSIONAL",
+      hourlyWage: 30, schoolName: "Orphan School", districtId: null, students: [],
+    };
+    const out = normalizeSchoolBasedClinicians({ schools: [], districts: [], clinicians: [legacy] });
+    const createdSchool = out.schools.find(s => s.name === "Orphan School");
+    expect(createdSchool.rateOverrides).toEqual({});
+  });
+
+  it("existing schools are not modified when they already have a schoolId", () => {
+    const school = { ...mkSchool("Maple K-8", "d1"), id: "sch1", rateOverrides: { speech_prof: 19.00 } };
+    const cl = { id: "c1", name: "Alice", discipline: "SPEECH", schoolId: "sch1", students: [] };
+    const out = normalizeSchoolBasedClinicians({ schools: [school], districts: [], clinicians: [cl] });
+    expect(out).toBe(out); // idempotent — same config reference returned only when nothing needed migration
+    const schoolOut = out.schools.find(s => s.id === "sch1");
+    expect(schoolOut.rateOverrides).toEqual({ speech_prof: 19.00 });
   });
 });
