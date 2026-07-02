@@ -15,6 +15,18 @@ const td      = { padding: "8px 10px", borderBottom: "1px solid #1f2a44" };
 
 const ROLES = ["admin", "editor", "read_only"];
 
+const ORG_ROLES = [
+  { value: "",                  label: "— not set —" },
+  { value: "OWNER",             label: "Owner (T1)" },
+  { value: "CEO",               label: "CEO (T2)" },
+  { value: "FINANCE",           label: "Finance (T3)" },
+  { value: "REGIONAL_DIRECTOR", label: "Regional Director (T4)" },
+  { value: "PROGRAM_MANAGER",   label: "Program Manager (T5)" },
+  { value: "HR_MANAGER",        label: "HR Manager (T6)" },
+  { value: "SCHEDULER",         label: "Scheduler (T7)" },
+  { value: "HOUSE_LEAD",        label: "House Lead (T8)" },
+];
+
 export default function TeamPanel() {
   const navigate = useNavigate();
   const [me, setMe]                 = useState(null);          // profile
@@ -69,6 +81,28 @@ export default function TeamPanel() {
   }, []);
 
   useEffect(() => { loadMembers(selectedCo); }, [selectedCo, loadMembers]);
+
+  const [orgRoles, setOrgRoles] = useState({}); // email(lower) -> role
+  const loadOrgRoles = useCallback(async (companyId) => {
+    if (!companyId) { setOrgRoles({}); return; }
+    const { data, error } = await supabase.rpc("get_company_member_org_roles", { p_company_id: companyId });
+    if (error) return;
+    const m = {};
+    (data ?? []).forEach(r => { if (r.email) m[r.email.toLowerCase()] = r.role || ""; });
+    setOrgRoles(m);
+  }, []);
+  useEffect(() => { loadOrgRoles(selectedCo); }, [selectedCo, loadOrgRoles, members]);
+
+  async function changeOrgRole(email, nextRole) {
+    setErr(null);
+    const { error } = await supabase.rpc("set_member_org_role", {
+      p_company_id: selectedCo,
+      p_target_email: email,
+      p_role: nextRole || null,
+    });
+    if (error) return setErr(error.message);
+    loadOrgRoles(selectedCo);
+  }
 
   const adminCount = useMemo(
     () => members.filter(m => m.role === "admin").length,
@@ -187,7 +221,8 @@ export default function TeamPanel() {
           <thead>
             <tr>
               <th style={th}>Email</th>
-              <th style={th}>Role</th>
+              <th style={th}>Access</th>
+              <th style={th}>Org Role</th>
               <th style={th}>Added</th>
               <th style={th}></th>
             </tr>
@@ -196,6 +231,7 @@ export default function TeamPanel() {
             {members.map(m => {
               const email = m.licensees?.name ?? m.licensee_id;
               const isMe = email === me?.email;
+              const orgRole = orgRoles[String(email).toLowerCase()] ?? "";
               return (
                 <tr key={m.licensee_id}>
                   <td style={td}>{email}{isMe && <span style={{ color: "#94a3b8", fontSize: 11, marginLeft: 6 }}>(you)</span>}</td>
@@ -206,6 +242,15 @@ export default function TeamPanel() {
                       onChange={e => changeRole(m.licensee_id, e.target.value, m.role)}
                     >
                       {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </td>
+                  <td style={td}>
+                    <select
+                      style={{ ...input, marginRight: 0, minWidth: 190 }}
+                      value={orgRole}
+                      onChange={e => changeOrgRole(email, e.target.value)}
+                    >
+                      {ORG_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                   </td>
                   <td style={{ ...td, color: "#64748b", fontSize: 12 }}>
@@ -223,14 +268,13 @@ export default function TeamPanel() {
               );
             })}
             {!members.length && (
-              <tr><td style={{ ...td, color: "#64748b" }} colSpan={4}>No members yet.</td></tr>
+              <tr><td style={{ ...td, color: "#64748b" }} colSpan={5}>No members yet.</td></tr>
             )}
           </tbody>
         </table>
         <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 12, lineHeight: 1.6 }}>
-          <b>admin</b> — manage teammates and edit the financial model. &nbsp;
-          <b>editor</b> — edit the financial model. &nbsp;
-          <b>read_only</b> — view only.
+          <b>Access</b> controls which company they can touch: <b>admin</b> manages teammates and edits the model, <b>editor</b> edits the model, <b>read_only</b> views only.<br/>
+          <b>Org Role</b> controls what they see inside the model — dollars, wages, referral tracker, SSN unmask, and sidebar controls are all gated by tier (T1 Owner → T8 House Lead).
         </div>
       </div>
     </div>
