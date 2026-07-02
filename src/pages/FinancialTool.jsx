@@ -8,7 +8,7 @@ import { TSCCurrentServicesTab, TSCSandboxTab, TSCPLTab, TSCRateScheduleTab, cal
 import { ChildrensDDACurrentServicesTab, ChildrensDDASandboxTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService, SchoolBasedCurrentServicesTab, SchoolBasedSandboxTab } from "../serviceLines/school_based.jsx";
-import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
+import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeMargin, canSeeRevenue, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
 import { VolumeTrackerTab } from "../serviceLines/volumeTracker.jsx";
 
 import { LOGO } from "../assets/logo.js";
@@ -494,20 +494,22 @@ function getLaborApprovalStatus(laborRatio, total) {
 
 function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
   const showDollars = canSeeCompanyDollars(userRole);
+  const showMargin  = canSeeMargin(userRole);
+  const showRevenue = canSeeRevenue(userRole);
   const topChips = [
     { l:"24hr Clients",  v:co.totalClients, c:"#0E6B78", f:n=>n },
     ...(hourlyCount > 0  ? [{ l:"Hourly Clients", v:hourlyCount,  c:"#0A5260", f:n=>n }] : []),
     ...(tscCaseload > 0  ? [{ l:"TSC Caseload",   v:tscCaseload,  c:"#0A5260", f:n=>n }] : []),
     { l:"Homes",         v:co.totalHomes,   c:"#0A5260", f:n=>n },
-    ...(showDollars ? [
+    ...(showDollars && showRevenue ? [
       { l:"Net Revenue", v:co.annualRevNet, c:"#0A3D47", f:$k },
       { l:"EBITDA",      v:co.ebitda,       c:mc(Math.max(0,co.ebitdaMargin)), f:$k },
     ] : []),
-    { l:"EBITDA Mgn",    v:co.ebitdaMargin, c:mc(Math.max(0,co.ebitdaMargin)), f:pct },
+    ...(showMargin ? [{ l:"EBITDA Mgn",    v:co.ebitdaMargin, c:mc(Math.max(0,co.ebitdaMargin)), f:pct }] : []),
   ];
   const bottomChips = [
     ...(showDollars ? [{ l:entityType==="ccorp"?"Net Income":"Owner Net", v:co.netIncome, c:nmc(Math.max(0,co.netMargin)), f:$k, hi:true }] : []),
-    { l:"Net Margin", v:co.netMargin, c:nmc(Math.max(0,co.netMargin)), f:pct, hi:true },
+    ...(showMargin ? [{ l:"Net Margin", v:co.netMargin, c:nmc(Math.max(0,co.netMargin)), f:pct, hi:true }] : []),
   ];
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -515,11 +517,19 @@ function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate,
         <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
           {topChips.map((s,i)=><Chip key={i} label={s.l} value={s.f(s.v)} color={s.c} highlight={s.hi}/>)}
         </div>
-        <div style={{ display:"flex", gap:7 }}>
-          {bottomChips.map((s,i)=><Chip key={i} label={s.l} value={s.f(s.v)} color={s.c} highlight={s.hi}/>)}
-        </div>
+        {bottomChips.length > 0 && (
+          <div style={{ display:"flex", gap:7 }}>
+            {bottomChips.map((s,i)=><Chip key={i} label={s.l} value={s.f(s.v)} color={s.c} highlight={s.hi}/>)}
+          </div>
+        )}
       </div>
-      <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
+      {showMargin ? (
+        <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
+      ) : (
+        <div style={{ background:"#FAF4E8", borderRadius:13, border:"1px solid #d0dae8", padding:"18px 20px", fontSize:11, color:"#7a6040", ...M }}>
+          Financial P&amp;L is restricted to Regional Director and above. Operational metrics remain available in the service-line tabs.
+        </div>
+      )}
     </div>
   );
 }
@@ -927,6 +937,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
   const m   = sel ? calcHome(sel, wage, rates, graveyardWage) : null;
   const canGroup = sel && sel.nIntense>0 && (sel.nHigh+sel.nIntense)>=2;
   const showDollars  = canSeeCompanyDollars(userRole);
+  const showMargin   = canSeeMargin(userRole);
   const showWageCost = wageDisplayMode(userRole) !== 'hidden';
 
   const chH = v => onUpdate(sel.id, "nHigh",    Math.max(0,Math.min(v, 3-sel.nIntense)));
@@ -959,17 +970,17 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                 padding:"9px 12px", borderRadius:8, cursor:"pointer",
                 background: s ? "#fff" : "#f4f1ea",
                 border: s ? "1px solid #d0ccc4" : "1px solid #e0dbd4",
-                borderLeft:s?`4px solid ${mc(hm.margin)}`:`2px solid ${mc(hm.margin)}50`,
+                borderLeft:s?`4px solid ${showMargin?mc(hm.margin):'#9a8050'}`:`2px solid ${showMargin?mc(hm.margin)+'50':'#e0dbd4'}`,
                 boxShadow: s ? "0 2px 8px rgba(13,26,42,0.08)" : "none",
                 transition:"all 0.15s",
               }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontSize:11, fontWeight:700, color:s?"#0A3D47":"#7a6040" }}>{h.label}</span>
-                  <span style={{ fontSize:11, fontWeight:700, color:mc(hm.margin), ...M }}>{pct(hm.margin)}</span>
+                  {showMargin && <span style={{ fontSize:11, fontWeight:700, color:mc(hm.margin), ...M }}>{pct(hm.margin)}</span>}
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:4 }}>
                   <MixBadges nHigh={h.nHigh} nIntense={h.nIntense} size={18}/>
-                  <span style={{ fontSize:9, color:"#9a8050", ...M }}>{showDollars ? `${$d(hm.gross)}/day` : `${pct(hm.margin)} margin`}</span>
+                  <span style={{ fontSize:9, color:"#9a8050", ...M }}>{showDollars ? `${$d(hm.gross)}/day` : (showMargin ? `${pct(hm.margin)} margin` : `${h.nHigh+h.nIntense} client${h.nHigh+h.nIntense===1?'':'s'}`)}</span>
                 </div>
               </div>
             );
@@ -995,10 +1006,10 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
 
       {/* Right: editor */}
       {sel && m && (
-        <div style={{ background:"#FAF4E8", borderRadius:13, border:`1px solid ${mc(m.margin)}22`, borderLeft:`3px solid ${mc(m.margin)}`, overflow:"hidden" }}>
+        <div style={{ background:"#FAF4E8", borderRadius:13, border:`1px solid ${showMargin?mc(m.margin)+'22':'#e0dbd4'}`, borderLeft:`3px solid ${showMargin?mc(m.margin):'#9a8050'}`, overflow:"hidden" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px", borderBottom:"1px solid #e0e8f0" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <MarginRing p={m.margin} size={48}/>
+              {showMargin && <MarginRing p={m.margin} size={48}/>}
               <div>
                 <input value={sel.label} onChange={canEdit ? e=>onUpdate(sel.id,"label",e.target.value) : undefined}
                   readOnly={!canEdit}
@@ -1124,7 +1135,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                   showDollars    && { l:"Daily Revenue",  v:$d(m.rev),               c:"#0A3D47" },
                   showWageCost   && { l:"Daily Labor",    v:$d(m.labor),             c:"#f87171" },
                   showDollars    && { l:"Daily Gross",    v:$d(m.gross),             c:mc(m.margin) },
-                                    { l:"Margin",         v:pct(m.margin),           c:mc(m.margin) },
+                                    showMargin     && { l:"Margin",         v:pct(m.margin),           c:mc(m.margin) },
                                     { l:"Labor Hrs/Day",  v:m.laborHrs+"hrs",        c:"#5a4020" },
                   showWageCost   && { l:"$/Labor Hr",     v:`$${m.plHr.toFixed(2)}`, c:"#f59e0b" },
                   showDollars    && { l:"Annual Revenue", v:$k(m.annualRev),         c:"#6a4c10" },
