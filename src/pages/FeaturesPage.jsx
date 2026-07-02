@@ -91,9 +91,9 @@ export default function FeaturesPage({ isAuthenticated = false }) {
         <h2 className="mk-h2 mk-cta-band-title">Ready to model your numbers?</h2>
         <p className="mk-cta-band-sub">Request a demo or sign in to start modeling.</p>
         <div className="mk-cta-row mk-cta-row-center">
-          <a href={DEMO_MAILTO} className="mk-btn mk-btn-primary mk-btn-lg" onClick={trackDemo}>
+          <button type="button" className="mk-btn mk-btn-primary mk-btn-lg" onClick={openDemo}>
             Request a Demo
-          </a>
+          </button>
           <Link to={isAuthenticated ? "/app" : "/login"} className="mk-btn mk-btn-ghost mk-btn-lg">
             {isAuthenticated ? "Go to App" : "Sign In"}
           </Link>
