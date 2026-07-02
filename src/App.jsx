@@ -152,6 +152,8 @@ export default function App() {
 
   // Protected /app route: wait while auth is loading, otherwise show the tool
   // or bounce to /login. Public pages render immediately and never block on this.
+  const isSuperAdmin = !!profile?.is_super_admin;
+
   const appElement =
     session === undefined ? null
       : session ? (
@@ -163,9 +165,17 @@ export default function App() {
             devRole={devRole}
             setDevRole={setDevRole}
             onSignOut={handleSignOut}
+            isSuperAdmin={isSuperAdmin}
           />
         )
       : <Navigate to="/login" replace />;
+
+  const adminElement =
+    session === undefined ? null
+      : !session ? <Navigate to="/login" replace />
+      : !profile ? null
+      : isSuperAdmin ? <AdminPanel onExit={() => window.location.assign('/app')} />
+      : <Navigate to="/app" replace />;
 
   return (
     <Routes>
@@ -173,6 +183,7 @@ export default function App() {
       <Route path="/features" element={<FeaturesPage isAuthenticated={isAuthenticated} />} />
       <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/app" element={appElement} />
+      <Route path="/admin" element={adminElement} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
