@@ -4,7 +4,7 @@ import { LOGO } from "../assets/logo.js";
 import posthog from "../lib/posthog.js";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState("signin"); // "signin" | "reset"
+  const [mode, setMode] = useState("signin"); // "signin" | "reset" | "sent"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
