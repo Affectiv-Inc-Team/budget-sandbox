@@ -54,6 +54,22 @@ function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, set
         </button>
       )}
 
+      {isSuperAdmin && (
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          style={{
+            position: "fixed", bottom: 16, left: canSeeReferrals(effectiveRole) && module === "tool" ? 180 : 16,
+            zIndex: 9999, padding: "9px 14px", borderRadius: 8, border: "none",
+            background: "#7c3aed", color: "#fff", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", letterSpacing: 0.5, fontFamily: "'DM Mono',monospace",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+          }}
+        >
+          Admin Panel →
+        </button>
+      )}
+
       {IS_DEV && (
         <div style={{
           position: 'fixed', bottom: 16, right: 16, zIndex: 9999,
