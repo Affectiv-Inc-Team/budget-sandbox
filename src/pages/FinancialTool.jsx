@@ -494,20 +494,22 @@ function getLaborApprovalStatus(laborRatio, total) {
 
 function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
   const showDollars = canSeeCompanyDollars(userRole);
+  const showMargin  = canSeeMargin(userRole);
+  const showRevenue = canSeeRevenue(userRole);
   const topChips = [
     { l:"24hr Clients",  v:co.totalClients, c:"#0E6B78", f:n=>n },
     ...(hourlyCount > 0  ? [{ l:"Hourly Clients", v:hourlyCount,  c:"#0A5260", f:n=>n }] : []),
     ...(tscCaseload > 0  ? [{ l:"TSC Caseload",   v:tscCaseload,  c:"#0A5260", f:n=>n }] : []),
     { l:"Homes",         v:co.totalHomes,   c:"#0A5260", f:n=>n },
-    ...(showDollars ? [
+    ...(showDollars && showRevenue ? [
       { l:"Net Revenue", v:co.annualRevNet, c:"#0A3D47", f:$k },
       { l:"EBITDA",      v:co.ebitda,       c:mc(Math.max(0,co.ebitdaMargin)), f:$k },
     ] : []),
-    { l:"EBITDA Mgn",    v:co.ebitdaMargin, c:mc(Math.max(0,co.ebitdaMargin)), f:pct },
+    ...(showMargin ? [{ l:"EBITDA Mgn",    v:co.ebitdaMargin, c:mc(Math.max(0,co.ebitdaMargin)), f:pct }] : []),
   ];
   const bottomChips = [
     ...(showDollars ? [{ l:entityType==="ccorp"?"Net Income":"Owner Net", v:co.netIncome, c:nmc(Math.max(0,co.netMargin)), f:$k, hi:true }] : []),
-    { l:"Net Margin", v:co.netMargin, c:nmc(Math.max(0,co.netMargin)), f:pct, hi:true },
+    ...(showMargin ? [{ l:"Net Margin", v:co.netMargin, c:nmc(Math.max(0,co.netMargin)), f:pct, hi:true }] : []),
   ];
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -515,11 +517,19 @@ function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate,
         <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
           {topChips.map((s,i)=><Chip key={i} label={s.l} value={s.f(s.v)} color={s.c} highlight={s.hi}/>)}
         </div>
-        <div style={{ display:"flex", gap:7 }}>
-          {bottomChips.map((s,i)=><Chip key={i} label={s.l} value={s.f(s.v)} color={s.c} highlight={s.hi}/>)}
-        </div>
+        {bottomChips.length > 0 && (
+          <div style={{ display:"flex", gap:7 }}>
+            {bottomChips.map((s,i)=><Chip key={i} label={s.l} value={s.f(s.v)} color={s.c} highlight={s.hi}/>)}
+          </div>
+        )}
       </div>
-      <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
+      {showMargin ? (
+        <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
+      ) : (
+        <div style={{ background:"#FAF4E8", borderRadius:13, border:"1px solid #d0dae8", padding:"18px 20px", fontSize:11, color:"#7a6040", ...M }}>
+          Financial P&amp;L is restricted to Regional Director and above. Operational metrics remain available in the service-line tabs.
+        </div>
+      )}
     </div>
   );
 }
