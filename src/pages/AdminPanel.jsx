@@ -96,6 +96,23 @@ export default function AdminPanel({ onExit }) {
     reload();
   }
 
+  async function renameCompany(id, currentName) {
+    const next = prompt("Rename company", currentName);
+    if (next == null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === currentName) return;
+    const { error } = await supabase.from("companies").update({ name: trimmed }).eq("id", id);
+    if (error) return setErr(error.message);
+    reload();
+  }
+
+  async function deleteCompany(id, name) {
+    if (!confirm(`Delete company "${name}"? This removes all licensee assignments to it. The financial model config will be lost.`)) return;
+    const { error } = await supabase.from("companies").delete().eq("id", id);
+    if (error) return setErr(error.message);
+    reload();
+  }
+
   async function deleteLicensee(id) {
     if (!confirm("Delete this licensee and all its assignments?")) return;
     const { error } = await supabase.from("licensees").delete().eq("id", id);
