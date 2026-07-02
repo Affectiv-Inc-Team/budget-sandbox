@@ -15,6 +15,18 @@ const td      = { padding: "8px 10px", borderBottom: "1px solid #1f2a44" };
 
 const ROLES = ["admin", "editor", "read_only"];
 
+const ORG_ROLES = [
+  { value: "",                  label: "— not set —" },
+  { value: "OWNER",             label: "Owner (T1)" },
+  { value: "CEO",               label: "CEO (T2)" },
+  { value: "FINANCE",           label: "Finance (T3)" },
+  { value: "REGIONAL_DIRECTOR", label: "Regional Director (T4)" },
+  { value: "PROGRAM_MANAGER",   label: "Program Manager (T5)" },
+  { value: "HR_MANAGER",        label: "HR Manager (T6)" },
+  { value: "SCHEDULER",         label: "Scheduler (T7)" },
+  { value: "HOUSE_LEAD",        label: "House Lead (T8)" },
+];
+
 export default function TeamPanel() {
   const navigate = useNavigate();
   const [me, setMe]                 = useState(null);          // profile
