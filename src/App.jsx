@@ -9,6 +9,7 @@ import ReferralTracker from "./pages/ReferralTracker.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import FeaturesPage from "./pages/FeaturesPage.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
+import TeamPanel from "./pages/TeamPanel.jsx";
 import { useNavigate } from "react-router-dom";
 
 const IS_DEV = import.meta.env.DEV;
@@ -69,6 +70,22 @@ function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, set
           Admin Panel →
         </button>
       )}
+
+      <button
+        type="button"
+        onClick={() => navigate('/team')}
+        style={{
+          position: "fixed", bottom: 16,
+          left: (canSeeReferrals(effectiveRole) && module === "tool" ? 180 : 16) + (isSuperAdmin ? 140 : 0),
+          zIndex: 9999, padding: "9px 14px", borderRadius: 8, border: "none",
+          background: "#0E6B78", color: "#fff", fontSize: 12, fontWeight: 700,
+          cursor: "pointer", letterSpacing: 0.5, fontFamily: "'DM Mono',monospace",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+        }}
+      >
+        Team →
+      </button>
+
 
       {IS_DEV && (
         <div style={{
@@ -184,6 +201,7 @@ export default function App() {
       <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
+      <Route path="/team" element={session ? <TeamPanel /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

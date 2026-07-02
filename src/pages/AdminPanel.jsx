@@ -201,6 +201,7 @@ export default function AdminPanel({ onExit }) {
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select style={input} value={assignRole} onChange={e => setAssignRole(e.target.value)}>
+            <option value="admin">admin</option>
             <option value="editor">editor</option>
             <option value="read_only">read_only</option>
           </select>
