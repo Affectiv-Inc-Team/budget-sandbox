@@ -970,17 +970,17 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                 padding:"9px 12px", borderRadius:8, cursor:"pointer",
                 background: s ? "#fff" : "#f4f1ea",
                 border: s ? "1px solid #d0ccc4" : "1px solid #e0dbd4",
-                borderLeft:s?`4px solid ${mc(hm.margin)}`:`2px solid ${mc(hm.margin)}50`,
+                borderLeft:s?`4px solid ${showMargin?mc(hm.margin):'#9a8050'}`:`2px solid ${showMargin?mc(hm.margin)+'50':'#e0dbd4'}`,
                 boxShadow: s ? "0 2px 8px rgba(13,26,42,0.08)" : "none",
                 transition:"all 0.15s",
               }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontSize:11, fontWeight:700, color:s?"#0A3D47":"#7a6040" }}>{h.label}</span>
-                  <span style={{ fontSize:11, fontWeight:700, color:mc(hm.margin), ...M }}>{pct(hm.margin)}</span>
+                  {showMargin && <span style={{ fontSize:11, fontWeight:700, color:mc(hm.margin), ...M }}>{pct(hm.margin)}</span>}
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:4 }}>
                   <MixBadges nHigh={h.nHigh} nIntense={h.nIntense} size={18}/>
-                  <span style={{ fontSize:9, color:"#9a8050", ...M }}>{showDollars ? `${$d(hm.gross)}/day` : `${pct(hm.margin)} margin`}</span>
+                  <span style={{ fontSize:9, color:"#9a8050", ...M }}>{showDollars ? `${$d(hm.gross)}/day` : (showMargin ? `${pct(hm.margin)} margin` : `${h.nHigh+h.nIntense} client${h.nHigh+h.nIntense===1?'':'s'}`)}</span>
                 </div>
               </div>
             );
