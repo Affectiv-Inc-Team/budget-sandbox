@@ -200,6 +200,7 @@ export default function App() {
       <Route path="/" element={<LandingPage isAuthenticated={isAuthenticated} />} />
       <Route path="/features" element={<FeaturesPage isAuthenticated={isAuthenticated} />} />
       <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
       <Route path="/team" element={session ? <TeamPanel /> : <Navigate to="/login" replace />} />
