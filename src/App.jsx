@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { supabase, getProfile } from "./supabase.js";
 import { ROLES, ROLE_LABELS, canSeeReferrals } from "./lib/access.js";
 import LoginPage from "./pages/LoginPage.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import ToolPage from "./pages/ToolPage.jsx";
 import posthog from "./lib/posthog.js";
 import ReferralTracker from "./pages/ReferralTracker.jsx";
@@ -199,6 +200,7 @@ export default function App() {
       <Route path="/" element={<LandingPage isAuthenticated={isAuthenticated} />} />
       <Route path="/features" element={<FeaturesPage isAuthenticated={isAuthenticated} />} />
       <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
       <Route path="/team" element={session ? <TeamPanel /> : <Navigate to="/login" replace />} />
