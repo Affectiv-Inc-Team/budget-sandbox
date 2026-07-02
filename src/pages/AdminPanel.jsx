@@ -160,8 +160,6 @@ export default function AdminPanel({ onExit }) {
             ))}
           </tbody>
         </table>
-          </tbody>
-        </table>
       </div>
 
       <div style={card}>
