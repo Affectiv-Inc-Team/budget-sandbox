@@ -118,16 +118,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          pending_org_role: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          pending_org_role?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          pending_org_role?: string | null
         }
         Relationships: []
       }
@@ -525,6 +528,17 @@ export type Database = {
         Returns: {
           email: string
           role: string
+        }[]
+      }
+      get_company_member_status: {
+        Args: { p_company_id: string }
+        Returns: {
+          confirmed_at: string
+          email: string
+          has_account: boolean
+          last_sign_in_at: string
+          org_role: string
+          pending_org_role: string
         }[]
       }
       has_company_access: { Args: { p_company_id: string }; Returns: boolean }
