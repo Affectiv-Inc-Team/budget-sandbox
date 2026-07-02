@@ -35,6 +35,11 @@ function tier(role) { return ROLE_TIERS[role] ?? 99; }
 // Rule 1 — Company dollars visible to tiers 1–3 only
 export function canSeeCompanyDollars(role) { return tier(role) <= 3; }
 
+// Rule 1a — Margin & revenue percentages visible to tiers 1–4 only
+// (Program Managers and below do NOT see revenue or margin figures — dollars or %)
+export function canSeeMargin(role)  { return tier(role) <= 4; }
+export function canSeeRevenue(role) { return tier(role) <= 4; }
+
 // Rule 2 — Wage display mode
 // 'dollars' = tiers 1–6  |  'percent' = tier 7  |  'hidden' = tier 8
 export function wageDisplayMode(role) {
