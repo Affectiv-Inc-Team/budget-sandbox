@@ -60,7 +60,7 @@ export default function LoginPage() {
           <a href="/" aria-label="Intrinsic home"><img src={LOGO} alt="Intrinsic" className="login-logo" style={{ cursor: "pointer" }} /></a>
           <div className="login-wordmark">Intrinsic</div>
           <div className="login-subtitle">
-            {isReset ? "Set up or reset your password" : "Financial Model Builder"}
+            {isSent ? "Check your email" : isReset ? "Set up or reset your password" : "Financial Model Builder"}
           </div>
           <div className="login-divider" />
         </div>
