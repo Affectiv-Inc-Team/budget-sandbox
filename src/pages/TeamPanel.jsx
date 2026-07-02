@@ -115,20 +115,11 @@ export default function TeamPanel() {
     const email = inviteEmail.trim().toLowerCase();
     if (!email || !selectedCo) return;
 
-    // Find or create licensee row (name = email)
-    let { data: existing } = await supabase.from("licensees").select("id").eq("name", email).maybeSingle();
-    let licenseeId = existing?.id;
-    if (!licenseeId) {
-      const { data: created, error: cErr } = await supabase.from("licensees")
-        .insert({ name: email }).select("id").single();
-      if (cErr) return setErr(cErr.message);
-      licenseeId = created.id;
-    }
-
-    const { error } = await supabase.from("licensee_companies").upsert(
-      { licensee_id: licenseeId, company_id: selectedCo, role: inviteRole },
-      { onConflict: "licensee_id,company_id" }
-    );
+    const { error } = await supabase.rpc("add_company_member", {
+      p_company_id: selectedCo,
+      p_email: email,
+      p_role: inviteRole,
+    });
     if (error) return setErr(error.message);
     setInviteEmail("");
     loadMembers(selectedCo);
