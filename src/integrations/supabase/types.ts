@@ -484,6 +484,13 @@ export type Database = {
     }
     Functions: {
       can_edit_company: { Args: { p_company_id: string }; Returns: boolean }
+      get_company_member_org_roles: {
+        Args: { p_company_id: string }
+        Returns: {
+          email: string
+          role: string
+        }[]
+      }
       has_company_access: { Args: { p_company_id: string }; Returns: boolean }
       is_company_admin: { Args: { p_company_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
@@ -498,6 +505,10 @@ export type Database = {
       referral_reveal_ssn: { Args: { p_referral_id: string }; Returns: string }
       referral_set_ssn: {
         Args: { p_referral_id: string; p_ssn: string }
+        Returns: undefined
+      }
+      set_member_org_role: {
+        Args: { p_company_id: string; p_role: string; p_target_email: string }
         Returns: undefined
       }
     }
