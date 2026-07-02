@@ -82,13 +82,13 @@ export default function TeamPanel() {
 
   useEffect(() => { loadMembers(selectedCo); }, [selectedCo, loadMembers]);
 
-  const [orgRoles, setOrgRoles] = useState({}); // email(lower) -> role
+  const [orgRoles, setOrgRoles] = useState({}); // email(lower) -> { org_role, pending_org_role, has_account, last_sign_in_at, confirmed_at }
   const loadOrgRoles = useCallback(async (companyId) => {
     if (!companyId) { setOrgRoles({}); return; }
-    const { data, error } = await supabase.rpc("get_company_member_org_roles", { p_company_id: companyId });
+    const { data, error } = await supabase.rpc("get_company_member_status", { p_company_id: companyId });
     if (error) return;
     const m = {};
-    (data ?? []).forEach(r => { if (r.email) m[r.email.toLowerCase()] = r.role || ""; });
+    (data ?? []).forEach(r => { if (r.email) m[r.email.toLowerCase()] = r; });
     setOrgRoles(m);
   }, []);
   useEffect(() => { loadOrgRoles(selectedCo); }, [selectedCo, loadOrgRoles, members]);
