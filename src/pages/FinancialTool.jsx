@@ -1006,10 +1006,10 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
 
       {/* Right: editor */}
       {sel && m && (
-        <div style={{ background:"#FAF4E8", borderRadius:13, border:`1px solid ${mc(m.margin)}22`, borderLeft:`3px solid ${mc(m.margin)}`, overflow:"hidden" }}>
+        <div style={{ background:"#FAF4E8", borderRadius:13, border:`1px solid ${showMargin?mc(m.margin)+'22':'#e0dbd4'}`, borderLeft:`3px solid ${showMargin?mc(m.margin):'#9a8050'}`, overflow:"hidden" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px", borderBottom:"1px solid #e0e8f0" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <MarginRing p={m.margin} size={48}/>
+              {showMargin && <MarginRing p={m.margin} size={48}/>}
               <div>
                 <input value={sel.label} onChange={canEdit ? e=>onUpdate(sel.id,"label",e.target.value) : undefined}
                   readOnly={!canEdit}
