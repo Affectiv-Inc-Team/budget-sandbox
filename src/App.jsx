@@ -8,6 +8,8 @@ import posthog from "./lib/posthog.js";
 import ReferralTracker from "./pages/ReferralTracker.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import FeaturesPage from "./pages/FeaturesPage.jsx";
+import AdminPanel from "./pages/AdminPanel.jsx";
+import { useNavigate } from "react-router-dom";
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -20,7 +22,8 @@ function deriveRole(profile) {
 // Authenticated app shell — preserved verbatim from the prior App() return:
 // the tool/referrals switch, the fixed "Referral Tracker →" button, and the
 // IS_DEV role selector. Only the surrounding routing has changed.
-function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, setDevRole, onSignOut }) {
+function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, setDevRole, onSignOut, isSuperAdmin }) {
+  const navigate = useNavigate();
   const showReferrals = canSeeReferrals(effectiveRole) && module === "referrals";
 
   return (
@@ -48,6 +51,22 @@ function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, set
           }}
         >
           Referral Tracker →
+        </button>
+      )}
+
+      {isSuperAdmin && (
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          style={{
+            position: "fixed", bottom: 16, left: canSeeReferrals(effectiveRole) && module === "tool" ? 180 : 16,
+            zIndex: 9999, padding: "9px 14px", borderRadius: 8, border: "none",
+            background: "#7c3aed", color: "#fff", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", letterSpacing: 0.5, fontFamily: "'DM Mono',monospace",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+          }}
+        >
+          Admin Panel →
         </button>
       )}
 
@@ -133,6 +152,8 @@ export default function App() {
 
   // Protected /app route: wait while auth is loading, otherwise show the tool
   // or bounce to /login. Public pages render immediately and never block on this.
+  const isSuperAdmin = !!profile?.is_super_admin;
+
   const appElement =
     session === undefined ? null
       : session ? (
@@ -144,9 +165,17 @@ export default function App() {
             devRole={devRole}
             setDevRole={setDevRole}
             onSignOut={handleSignOut}
+            isSuperAdmin={isSuperAdmin}
           />
         )
       : <Navigate to="/login" replace />;
+
+  const adminElement =
+    session === undefined ? null
+      : !session ? <Navigate to="/login" replace />
+      : !profile ? null
+      : isSuperAdmin ? <AdminPanel onExit={() => window.location.assign('/app')} />
+      : <Navigate to="/app" replace />;
 
   return (
     <Routes>
@@ -154,6 +183,7 @@ export default function App() {
       <Route path="/features" element={<FeaturesPage isAuthenticated={isAuthenticated} />} />
       <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/app" element={appElement} />
+      <Route path="/admin" element={adminElement} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
