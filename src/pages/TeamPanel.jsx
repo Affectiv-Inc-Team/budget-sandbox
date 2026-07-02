@@ -82,6 +82,28 @@ export default function TeamPanel() {
 
   useEffect(() => { loadMembers(selectedCo); }, [selectedCo, loadMembers]);
 
+  const [orgRoles, setOrgRoles] = useState({}); // email(lower) -> role
+  const loadOrgRoles = useCallback(async (companyId) => {
+    if (!companyId) { setOrgRoles({}); return; }
+    const { data, error } = await supabase.rpc("get_company_member_org_roles", { p_company_id: companyId });
+    if (error) return;
+    const m = {};
+    (data ?? []).forEach(r => { if (r.email) m[r.email.toLowerCase()] = r.role || ""; });
+    setOrgRoles(m);
+  }, []);
+  useEffect(() => { loadOrgRoles(selectedCo); }, [selectedCo, loadOrgRoles, members]);
+
+  async function changeOrgRole(email, nextRole) {
+    setErr(null);
+    const { error } = await supabase.rpc("set_member_org_role", {
+      p_company_id: selectedCo,
+      p_target_email: email,
+      p_role: nextRole || null,
+    });
+    if (error) return setErr(error.message);
+    loadOrgRoles(selectedCo);
+  }
+
   const adminCount = useMemo(
     () => members.filter(m => m.role === "admin").length,
     [members]
