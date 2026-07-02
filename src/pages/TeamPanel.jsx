@@ -223,6 +223,8 @@ export default function TeamPanel() {
               <th style={th}>Email</th>
               <th style={th}>Access</th>
               <th style={th}>Org Role</th>
+              <th style={th}>Account</th>
+              <th style={th}>Last sign-in</th>
               <th style={th}>Added</th>
               <th style={th}></th>
             </tr>
@@ -231,7 +233,10 @@ export default function TeamPanel() {
             {members.map(m => {
               const email = m.licensees?.name ?? m.licensee_id;
               const isMe = email === me?.email;
-              const orgRole = orgRoles[String(email).toLowerCase()] ?? "";
+              const status = orgRoles[String(email).toLowerCase()] || {};
+              const effectiveOrgRole = status.org_role ?? status.pending_org_role ?? "";
+              const hasAccount = !!status.has_account;
+              const isPending = !hasAccount || (!status.org_role && status.pending_org_role);
               return (
                 <tr key={m.licensee_id}>
                   <td style={td}>{email}{isMe && <span style={{ color: "#94a3b8", fontSize: 11, marginLeft: 6 }}>(you)</span>}</td>
@@ -247,11 +252,26 @@ export default function TeamPanel() {
                   <td style={td}>
                     <select
                       style={{ ...input, marginRight: 0, minWidth: 190 }}
-                      value={orgRole}
+                      value={effectiveOrgRole}
                       onChange={e => changeOrgRole(email, e.target.value)}
                     >
                       {ORG_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
+                    {isPending && effectiveOrgRole && (
+                      <div style={{ color: "#fbbf24", fontSize: 11, marginTop: 4 }}>Pending — applies at first sign-in</div>
+                    )}
+                  </td>
+                  <td style={td}>
+                    {hasAccount ? (
+                      <span style={{ color: "#4ade80", fontSize: 12 }}>● Active</span>
+                    ) : (
+                      <span style={{ color: "#fbbf24", fontSize: 12 }}>○ Not signed up</span>
+                    )}
+                  </td>
+                  <td style={{ ...td, color: "#94a3b8", fontSize: 12 }}>
+                    {status.last_sign_in_at
+                      ? new Date(status.last_sign_in_at).toLocaleString()
+                      : hasAccount ? "Never" : "—"}
                   </td>
                   <td style={{ ...td, color: "#64748b", fontSize: 12 }}>
                     {m.assigned_at ? new Date(m.assigned_at).toLocaleDateString() : ""}
@@ -268,7 +288,7 @@ export default function TeamPanel() {
               );
             })}
             {!members.length && (
-              <tr><td style={{ ...td, color: "#64748b" }} colSpan={5}>No members yet.</td></tr>
+              <tr><td style={{ ...td, color: "#64748b" }} colSpan={7}>No members yet.</td></tr>
             )}
           </tbody>
         </table>
