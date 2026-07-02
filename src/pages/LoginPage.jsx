@@ -33,7 +33,7 @@ export default function LoginPage() {
     <div className="login-root">
       <div className="login-card">
         <div className="login-brand">
-          <img src={LOGO} alt="Intrinsic" className="login-logo" />
+          <a href="/" aria-label="Intrinsic home"><img src={LOGO} alt="Intrinsic" className="login-logo" style={{ cursor: "pointer" }} /></a>
           <div className="login-wordmark">Intrinsic</div>
           <div className="login-subtitle">Financial Model Builder</div>
           <div className="login-divider" />

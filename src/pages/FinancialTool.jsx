@@ -2942,7 +2942,7 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
           <div style={{ height:2, background:"linear-gradient(90deg,#D4A520,#0A526080,transparent)", marginBottom:0, marginLeft:-24, marginRight:-24 }}/>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12, paddingTop:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <img src={LOGO} alt="Intrinsic Inc" style={{ height:52, width:"auto", objectFit:"contain", filter:"drop-shadow(0 2px 12px #D4A52035)" }}/>
+              <a href="/" aria-label="Intrinsic home" style={{ display:"inline-flex" }}><img src={LOGO} alt="Intrinsic Inc" style={{ height:52, width:"auto", objectFit:"contain", filter:"drop-shadow(0 2px 12px #D4A52035)", cursor:"pointer" }}/></a>
               <div style={{ borderLeft:"1px solid #c8d4e4", paddingLeft:14 }}>
                 <div style={{ fontFamily:"'Cinzel',serif", fontSize:13, color:"#0E6B78", letterSpacing:2.5, marginBottom:3 }}>Financial Model Builder</div>
                 <div style={{ fontSize:9, color:"#64748b", letterSpacing:2, textTransform:"uppercase", ...M, lineHeight:1.5 }}>
