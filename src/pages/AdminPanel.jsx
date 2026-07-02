@@ -151,9 +151,15 @@ export default function AdminPanel({ onExit }) {
                 <td style={{ ...td, fontFamily: "monospace", color: "#64748b" }}>{c.id}</td>
                 <td style={td}>{c.name}</td>
                 <td style={td}>{c.archived ? "Archived" : "Active"}</td>
-                <td style={td}><button style={btnGhost} onClick={() => archiveCompany(c.id, c.archived)}>{c.archived ? "Unarchive" : "Archive"}</button></td>
+                <td style={{ ...td, whiteSpace: "nowrap" }}>
+                  <button style={{ ...btnGhost, marginRight: 6 }} onClick={() => renameCompany(c.id, c.name)}>Rename</button>
+                  <button style={{ ...btnGhost, marginRight: 6 }} onClick={() => archiveCompany(c.id, c.archived)}>{c.archived ? "Unarchive" : "Archive"}</button>
+                  <button style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }} onClick={() => deleteCompany(c.id, c.name)}>Delete</button>
+                </td>
               </tr>
             ))}
+          </tbody>
+        </table>
           </tbody>
         </table>
       </div>
