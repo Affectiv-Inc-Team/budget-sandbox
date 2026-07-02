@@ -45,12 +45,13 @@ export default function LoginPage() {
     if (resetError) {
       setError(resetError.message);
     } else {
-      setInfo("Check your email for a secure link to set your password. It works for both first-time setup and password resets.");
       posthog.capture('password_reset_requested');
+      setMode("sent");
     }
   }
 
   const isReset = mode === "reset";
+  const isSent = mode === "sent";
 
   return (
     <div className="login-root">
