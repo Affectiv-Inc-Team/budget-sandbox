@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { LOGO } from "../assets/logo.js";
 import posthog from "../lib/posthog.js";
-import { DEMO_MAILTO, FOOTER_LINE } from "./content.js";
+import { FOOTER_LINE } from "./content.js";
+import DemoRequestModal from "./DemoRequestModal.jsx";
 
 /**
  * Shared chrome (header nav + footer) for the public marketing pages.
@@ -9,9 +11,30 @@ import { DEMO_MAILTO, FOOTER_LINE } from "./content.js";
  * `isAuthenticated` swaps the secondary CTA between "Sign In" (→ /login) and
  * "Go to App" (→ /app), so a logged-in visitor browsing the marketing site
  * gets a direct route back into the tool.
+ *
+ * Hosts the DemoRequestModal. Any child can open it by dispatching
+ * `window.dispatchEvent(new CustomEvent('open-demo-modal', { detail: { page } }))`
+ * or by importing `openDemoModal()` from this file.
  */
+export function openDemoModal(page) {
+  window.dispatchEvent(new CustomEvent("open-demo-modal", { detail: { page } }));
+}
+
 export default function MarketingLayout({ isAuthenticated = false, page = "home", children }) {
-  const trackDemo = () => posthog.capture("demo_requested", { page });
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [demoPage, setDemoPage] = useState(page);
+
+  useEffect(() => {
+    const onOpen = e => {
+      setDemoPage(e?.detail?.page ?? page);
+      setDemoOpen(true);
+      posthog.capture("demo_requested", { page: e?.detail?.page ?? page });
+    };
+    window.addEventListener("open-demo-modal", onOpen);
+    return () => window.removeEventListener("open-demo-modal", onOpen);
+  }, [page]);
+
+  const openHere = () => openDemoModal(page);
   const trackSignIn = () => posthog.capture("landing_signin_clicked", { page, authed: isAuthenticated });
 
   return (
@@ -36,9 +59,9 @@ export default function MarketingLayout({ isAuthenticated = false, page = "home"
           >
             {isAuthenticated ? "Go to App" : "Sign In"}
           </Link>
-          <a href={DEMO_MAILTO} className="mk-btn mk-btn-primary" onClick={trackDemo}>
+          <button type="button" className="mk-btn mk-btn-primary" onClick={openHere}>
             Request a Demo
-          </a>
+          </button>
         </nav>
       </header>
 
@@ -53,10 +76,14 @@ export default function MarketingLayout({ isAuthenticated = false, page = "home"
             <Link to={isAuthenticated ? "/app" : "/login"} className="mk-footer-link" onClick={trackSignIn}>
               {isAuthenticated ? "Go to App" : "Sign In"}
             </Link>
-            <a href={DEMO_MAILTO} className="mk-footer-link" onClick={trackDemo}>Request a Demo</a>
+            <button type="button" className="mk-footer-link mk-footer-link-btn" onClick={openHere}>
+              Request a Demo
+            </button>
           </div>
         </div>
       </footer>
+
+      <DemoRequestModal open={demoOpen} onClose={() => setDemoOpen(false)} page={demoPage} />
     </div>
   );
 }

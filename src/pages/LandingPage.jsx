@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
-import MarketingLayout from "../marketing/MarketingLayout.jsx";
-import posthog from "../lib/posthog.js";
+import MarketingLayout, { openDemoModal } from "../marketing/MarketingLayout.jsx";
 import {
-  HERO, VALUE_PROPS, STEPS, TRUST, DEMO_MAILTO,
+  HERO, VALUE_PROPS, STEPS, TRUST,
 } from "../marketing/content.js";
 
 export default function LandingPage({ isAuthenticated = false }) {
-  const trackDemo = () => posthog.capture("demo_requested", { page: "home" });
+  const openDemo = () => openDemoModal("home");
 
   return (
     <MarketingLayout isAuthenticated={isAuthenticated} page="home">
@@ -17,9 +16,9 @@ export default function LandingPage({ isAuthenticated = false }) {
           <h1 className="mk-h1">{HERO.headline}</h1>
           <p className="mk-lede">{HERO.subhead}</p>
           <div className="mk-cta-row">
-            <a href={DEMO_MAILTO} className="mk-btn mk-btn-primary mk-btn-lg" onClick={trackDemo}>
+            <button type="button" className="mk-btn mk-btn-primary mk-btn-lg" onClick={openDemo}>
               Request a Demo
-            </a>
+            </button>
             <Link to={isAuthenticated ? "/app" : "/login"} className="mk-btn mk-btn-ghost mk-btn-lg">
               {isAuthenticated ? "Go to App" : "Sign In"}
             </Link>
@@ -74,9 +73,9 @@ export default function LandingPage({ isAuthenticated = false }) {
           A short walkthrough with your own staffing and caseload numbers.
         </p>
         <div className="mk-cta-row mk-cta-row-center">
-          <a href={DEMO_MAILTO} className="mk-btn mk-btn-primary mk-btn-lg" onClick={trackDemo}>
+          <button type="button" className="mk-btn mk-btn-primary mk-btn-lg" onClick={openDemo}>
             Request a Demo
-          </a>
+          </button>
           <Link to={isAuthenticated ? "/app" : "/login"} className="mk-btn mk-btn-ghost mk-btn-lg">
             {isAuthenticated ? "Go to App" : "Sign In"}
           </Link>

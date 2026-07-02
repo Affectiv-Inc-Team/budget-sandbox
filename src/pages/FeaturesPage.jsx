@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
-import MarketingLayout from "../marketing/MarketingLayout.jsx";
-import posthog from "../lib/posthog.js";
-import { CAPABILITIES, ROLE_GROUPS, DEMO_MAILTO } from "../marketing/content.js";
+import MarketingLayout, { openDemoModal } from "../marketing/MarketingLayout.jsx";
+import { CAPABILITIES, ROLE_GROUPS } from "../marketing/content.js";
 import {
   TYPE_LIST, getActiveTypes, getGroupedPickerOptions,
 } from "../serviceLines/types.js";
 
 export default function FeaturesPage({ isAuthenticated = false }) {
-  const trackDemo = () => posthog.capture("demo_requested", { page: "features" });
+  const openDemo = () => openDemoModal("features");
 
   // Derive the catalog from the live registry so counts never go stale.
   const groups = getGroupedPickerOptions();
@@ -92,9 +91,9 @@ export default function FeaturesPage({ isAuthenticated = false }) {
         <h2 className="mk-h2 mk-cta-band-title">Ready to model your numbers?</h2>
         <p className="mk-cta-band-sub">Request a demo or sign in to start modeling.</p>
         <div className="mk-cta-row mk-cta-row-center">
-          <a href={DEMO_MAILTO} className="mk-btn mk-btn-primary mk-btn-lg" onClick={trackDemo}>
+          <button type="button" className="mk-btn mk-btn-primary mk-btn-lg" onClick={openDemo}>
             Request a Demo
-          </a>
+          </button>
           <Link to={isAuthenticated ? "/app" : "/login"} className="mk-btn mk-btn-ghost mk-btn-lg">
             {isAuthenticated ? "Go to App" : "Sign In"}
           </Link>
