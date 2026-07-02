@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
-import MarketingLayout from "../marketing/MarketingLayout.jsx";
-import posthog from "../lib/posthog.js";
+import MarketingLayout, { openDemoModal } from "../marketing/MarketingLayout.jsx";
 import {
-  HERO, VALUE_PROPS, STEPS, TRUST, DEMO_MAILTO,
+  HERO, VALUE_PROPS, STEPS, TRUST,
 } from "../marketing/content.js";
 
 export default function LandingPage({ isAuthenticated = false }) {
-  const trackDemo = () => posthog.capture("demo_requested", { page: "home" });
+  const openDemo = () => openDemoModal("home");
 
   return (
     <MarketingLayout isAuthenticated={isAuthenticated} page="home">
