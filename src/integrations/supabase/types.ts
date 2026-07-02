@@ -522,6 +522,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_company_member: {
+        Args: { p_company_id: string; p_email: string; p_role: string }
+        Returns: undefined
+      }
       can_edit_company: { Args: { p_company_id: string }; Returns: boolean }
       get_company_member_org_roles: {
         Args: { p_company_id: string }
