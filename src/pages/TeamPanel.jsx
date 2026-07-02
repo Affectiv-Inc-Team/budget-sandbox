@@ -221,7 +221,8 @@ export default function TeamPanel() {
           <thead>
             <tr>
               <th style={th}>Email</th>
-              <th style={th}>Role</th>
+              <th style={th}>Access</th>
+              <th style={th}>Org Role</th>
               <th style={th}>Added</th>
               <th style={th}></th>
             </tr>
@@ -230,6 +231,7 @@ export default function TeamPanel() {
             {members.map(m => {
               const email = m.licensees?.name ?? m.licensee_id;
               const isMe = email === me?.email;
+              const orgRole = orgRoles[String(email).toLowerCase()] ?? "";
               return (
                 <tr key={m.licensee_id}>
                   <td style={td}>{email}{isMe && <span style={{ color: "#94a3b8", fontSize: 11, marginLeft: 6 }}>(you)</span>}</td>
@@ -240,6 +242,15 @@ export default function TeamPanel() {
                       onChange={e => changeRole(m.licensee_id, e.target.value, m.role)}
                     >
                       {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </td>
+                  <td style={td}>
+                    <select
+                      style={{ ...input, marginRight: 0, minWidth: 190 }}
+                      value={orgRole}
+                      onChange={e => changeOrgRole(email, e.target.value)}
+                    >
+                      {ORG_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                   </td>
                   <td style={{ ...td, color: "#64748b", fontSize: 12 }}>
@@ -257,14 +268,13 @@ export default function TeamPanel() {
               );
             })}
             {!members.length && (
-              <tr><td style={{ ...td, color: "#64748b" }} colSpan={4}>No members yet.</td></tr>
+              <tr><td style={{ ...td, color: "#64748b" }} colSpan={5}>No members yet.</td></tr>
             )}
           </tbody>
         </table>
         <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 12, lineHeight: 1.6 }}>
-          <b>admin</b> — manage teammates and edit the financial model. &nbsp;
-          <b>editor</b> — edit the financial model. &nbsp;
-          <b>read_only</b> — view only.
+          <b>Access</b> controls which company they can touch: <b>admin</b> manages teammates and edits the model, <b>editor</b> edits the model, <b>read_only</b> views only.<br/>
+          <b>Org Role</b> controls what they see inside the model — dollars, wages, referral tracker, SSN unmask, and sidebar controls are all gated by tier (T1 Owner → T8 House Lead).
         </div>
       </div>
     </div>
