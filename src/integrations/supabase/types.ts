@@ -485,6 +485,7 @@ export type Database = {
     Functions: {
       can_edit_company: { Args: { p_company_id: string }; Returns: boolean }
       has_company_access: { Args: { p_company_id: string }; Returns: boolean }
+      is_company_admin: { Args: { p_company_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       postgres_fdw_disconnect: { Args: { "": string }; Returns: boolean }
       postgres_fdw_disconnect_all: { Args: never; Returns: boolean }
