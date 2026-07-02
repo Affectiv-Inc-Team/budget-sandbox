@@ -937,6 +937,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
   const m   = sel ? calcHome(sel, wage, rates, graveyardWage) : null;
   const canGroup = sel && sel.nIntense>0 && (sel.nHigh+sel.nIntense)>=2;
   const showDollars  = canSeeCompanyDollars(userRole);
+  const showMargin   = canSeeMargin(userRole);
   const showWageCost = wageDisplayMode(userRole) !== 'hidden';
 
   const chH = v => onUpdate(sel.id, "nHigh",    Math.max(0,Math.min(v, 3-sel.nIntense)));
