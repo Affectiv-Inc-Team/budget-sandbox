@@ -201,6 +201,7 @@ export default function App() {
       <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
+      <Route path="/team" element={session ? <TeamPanel /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
