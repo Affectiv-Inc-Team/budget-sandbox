@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
-import MarketingLayout from "../marketing/MarketingLayout.jsx";
-import posthog from "../lib/posthog.js";
-import { CAPABILITIES, ROLE_GROUPS, DEMO_MAILTO } from "../marketing/content.js";
+import MarketingLayout, { openDemoModal } from "../marketing/MarketingLayout.jsx";
+import { CAPABILITIES, ROLE_GROUPS } from "../marketing/content.js";
 import {
   TYPE_LIST, getActiveTypes, getGroupedPickerOptions,
 } from "../serviceLines/types.js";
 
 export default function FeaturesPage({ isAuthenticated = false }) {
-  const trackDemo = () => posthog.capture("demo_requested", { page: "features" });
+  const openDemo = () => openDemoModal("features");
 
   // Derive the catalog from the live registry so counts never go stale.
   const groups = getGroupedPickerOptions();
