@@ -1135,7 +1135,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                   showDollars    && { l:"Daily Revenue",  v:$d(m.rev),               c:"#0A3D47" },
                   showWageCost   && { l:"Daily Labor",    v:$d(m.labor),             c:"#f87171" },
                   showDollars    && { l:"Daily Gross",    v:$d(m.gross),             c:mc(m.margin) },
-                                    { l:"Margin",         v:pct(m.margin),           c:mc(m.margin) },
+                                    showMargin     && { l:"Margin",         v:pct(m.margin),           c:mc(m.margin) },
                                     { l:"Labor Hrs/Day",  v:m.laborHrs+"hrs",        c:"#5a4020" },
                   showWageCost   && { l:"$/Labor Hr",     v:`$${m.plHr.toFixed(2)}`, c:"#f59e0b" },
                   showDollars    && { l:"Annual Revenue", v:$k(m.annualRev),         c:"#6a4c10" },
