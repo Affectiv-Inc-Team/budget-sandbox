@@ -73,9 +73,9 @@ export default function LandingPage({ isAuthenticated = false }) {
           A short walkthrough with your own staffing and caseload numbers.
         </p>
         <div className="mk-cta-row mk-cta-row-center">
-          <a href={DEMO_MAILTO} className="mk-btn mk-btn-primary mk-btn-lg" onClick={trackDemo}>
+          <button type="button" className="mk-btn mk-btn-primary mk-btn-lg" onClick={openDemo}>
             Request a Demo
-          </a>
+          </button>
           <Link to={isAuthenticated ? "/app" : "/login"} className="mk-btn mk-btn-ghost mk-btn-lg">
             {isAuthenticated ? "Go to App" : "Sign In"}
           </Link>
