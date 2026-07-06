@@ -1,31 +1,48 @@
 <wizard-report>
 # PostHog post-wizard report
 
-The wizard has completed a deep integration of PostHog analytics into the Intrinsic financial modeling app. PostHog is initialized via a shared singleton in `src/lib/posthog.js` using `posthog-js` (the browser SDK, appropriate for this Vite + React SPA). User identity is established at login and cleared on sign-out. Eight business events are tracked across four files covering authentication, model persistence, service line management, and data loading errors.
+PostHog analytics is fully integrated into the Intrinsic Vite + React SPA via a shared singleton in `src/lib/posthog.js` using `posthog-js`. The integration covers authentication, financial model persistence, service line activity, marketing conversion, referral intake pipeline events, error tracking, and user identification. Fourteen business events are tracked across six files. This run added `referral_created` and `referral_updated` to `src/pages/ReferralTracker.jsx`, which previously had no instrumentation despite being a core business module.
 
 | Event | Description | File |
 |---|---|---|
 | `user_signed_in` | User successfully authenticated via email/password | `src/pages/LoginPage.jsx` |
 | `user_sign_in_failed` | Login attempt returned an authentication error | `src/pages/LoginPage.jsx` |
-| `user_signed_out` | User explicitly triggered sign-out from the header | `src/App.jsx` |
+| `user_signed_out` | User explicitly triggered sign-out from the app header | `src/App.jsx` |
+| `module_switched` | User toggled between Financial Tool and Referral Tracker modules | `src/App.jsx` |
+| `$pageview` | Route change captured manually; includes `path` | `src/App.jsx` |
 | `model_saved` | User saved the financial model config to Supabase; includes `success`, `company_count`, `service_line_count` | `src/pages/FinancialTool.jsx` |
 | `service_line_added` | User added a new service line; includes `service_line_type` | `src/pages/FinancialTool.jsx` |
 | `service_line_removed` | User confirmed removal of a service line; includes `service_line_type` | `src/pages/FinancialTool.jsx` |
 | `service_line_viewed` | User navigated to a service line tab; includes `service_line_type` | `src/pages/FinancialTool.jsx` |
 | `config_load_failed` | Supabase query failed when loading the company config; includes `error_message`, `error_code` | `src/supabase.js` |
+| `demo_requested` | Visitor clicked 'Request a Demo' on a marketing page; includes `page` | `src/pages/LandingPage.jsx`, `src/pages/FeaturesPage.jsx` |
+| `landing_signin_clicked` | Visitor clicked Sign In in the marketing site header; includes `page`, `authed` | `src/marketing/MarketingLayout.jsx` |
+| `referral_created` | User saved a new referral into the intake pipeline; includes `stage`, `priority`, `source_type`, `service_level`, `pay_source` | `src/pages/ReferralTracker.jsx` |
+| `referral_updated` | User saved changes to an existing referral; includes `stage`, `priority`, `source_type`, `stage_changed`, `outcome_set` | `src/pages/ReferralTracker.jsx` |
 
-User identification: `posthog.identify()` is called with the Supabase user UUID and email on successful login (both in `LoginPage.jsx` and via `onAuthStateChange` in `App.jsx`). `posthog.reset()` is called on sign-out to clear the identity. Exception autocapture is enabled globally via `enable_exception_autocapture: true` in the PostHog init config.
+User identification: `posthog.identify()` is called with the Supabase user UUID and email on successful login (both in `LoginPage.jsx` and via `onAuthStateChange` in `App.jsx`). `posthog.reset()` is called on sign-out to clear the identity. Exception autocapture is enabled globally via `enable_exception_autocapture: true`. `posthog.captureException()` is called explicitly in the `loadConfig` and `saveConfig` catch blocks in `src/supabase.js`.
 
 ## Next steps
 
-We've built some insights and a dashboard for you to keep an eye on user behavior, based on the events we just instrumented:
+We've built some insights and a dashboard for you to keep an eye on user behavior, based on the events instrumented in this project:
 
-- [Analytics basics (wizard) — Dashboard](https://us.posthog.com/project/471586/dashboard/1715178)
-- [Daily sign-ins](https://us.posthog.com/project/471586/insights/dBsWxgsC) — Unique users signing in per day
-- [Model saves over time](https://us.posthog.com/project/471586/insights/ePj68Ug7) — Total saves vs failed saves per day
-- [Sign-in to model save funnel](https://us.posthog.com/project/471586/insights/VnDX2Yc2) — Conversion from login to saving the financial model
-- [Service line adoptions by type](https://us.posthog.com/project/471586/insights/HpIdIv7H) — Which service line types are added most often
-- [Sign-in failure rate](https://us.posthog.com/project/471586/insights/01vQtjsq) — Percentage of login attempts that fail over time
+- [Analytics basics (wizard) — Dashboard](https://us.posthog.com/project/471586/dashboard/1806474)
+- [Referrals created over time](https://us.posthog.com/project/471586/insights/HHqICCeV) — New referrals entering the intake pipeline per day
+- [Referrals created vs updated](https://us.posthog.com/project/471586/insights/yuhXfkvI) — Intake velocity vs case management activity
+- [Stage changes per day](https://us.posthog.com/project/471586/insights/hvtCSMgR) — How actively referrals are being moved through the pipeline
+- [Demo requests over time](https://us.posthog.com/project/471586/insights/46Odul14) — Top-of-funnel prospect interest from marketing pages
+- [Sign-in to referral creation funnel](https://us.posthog.com/project/471586/insights/7yvKkdW6) — Conversion from login to capturing a new referral
+
+Prior dashboard (authentication, model saves, service lines):
+- [Original wizard dashboard](https://us.posthog.com/project/471586/dashboard/1715178)
+
+## Verify before merging
+
+- [x] Run a full production build (`npm run build`) and fix any lint or type errors introduced by the generated code. *(2026-07-06: passes clean — only pre-existing chunk-size and Vite deprecation warnings.)*
+- [x] Run the test suite (`npm test`) — instrumented call sites in `ReferralTracker.jsx` may need updated mocks or fixtures. *(2026-07-06: 475/475 pass with the new instrumentation in place; no mock changes needed.)*
+- [x] Add `VITE_POSTHOG_KEY` and `VITE_POSTHOG_HOST` to `.env.example` so collaborators know what to set. *(2026-07-06: created `.env.example` with the PostHog and Supabase vars.)*
+- [ ] Wire source-map upload (`posthog-cli sourcemap` or Vite source-map plugin) into CI so production stack traces de-minify in PostHog error tracking. *(Deferred 2026-07-06: not wireable yet — Lovable builds and deploys the frontend from `main`, so GitHub Actions never produces the served bundles, and `posthog-cli sourcemap inject` must run on the exact deployed chunks. Revisit when the deploy moves to a pipeline we control, e.g. the planned AWS ECS Fargate setup.)*
+- [x] Confirm the returning-visitor path (page refresh while already logged in) also calls `posthog.identify()` — the `onAuthStateChange` handler in `App.jsx` fires on `SIGNED_IN` only; the initial `getSession()` call at mount does not explicitly identify. *(2026-07-06: confirmed the gap — supabase-js emits `INITIAL_SESSION`, not `SIGNED_IN`, on session restore. Fixed by also identifying on `INITIAL_SESSION` in `App.jsx`.)*
 
 ### Agent skill
 
