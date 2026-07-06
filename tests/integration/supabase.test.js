@@ -1,23 +1,21 @@
 // Integration tests for the persistence layer (src/supabase.js) against a live
 // local Supabase instance.
 //
-// IMPORTANT — these tests assert the schema's ACTUAL behavior, which diverges
-// from docs/TEST_PHASE_3.md in two material ways (see FLAGGED GAP comments and
-// docs/TEST_PHASE_3.md "Known risks"):
+// IMPORTANT — these tests assert the schema's ACTUAL behavior.
 //
-//   GAP 1 — Regular (editor/read_only) users cannot SELECT or UPDATE companies
-//   at all. The companies RLS policies use EXISTS subqueries over
-//   `licensee_companies` and `licensees`, but those tables are super-admin-only
-//   under RLS, so the subqueries return nothing for a regular user. Net effect:
-//   loadConfig() returns null even for a correctly-assigned licensee, and
-//   saveConfig() fails for non-super-admins.
+//   GAP 1 (FIXED 2026-07-02) — regular users previously could not SELECT or
+//   UPDATE companies at all (the policies' EXISTS subqueries read tables the
+//   user couldn't see under RLS). The 2026-07-02 migrations made membership
+//   visible (SECURITY DEFINER helpers + scoped SELECT policies on
+//   `licensee_companies`/`licensees`), so loadConfig() now returns the
+//   assigned companies for a regular licensee.
 //
-//   GAP 2 — saveConfig() uses upsert (INSERT ... ON CONFLICT). Regular users
-//   have no INSERT policy on companies, so the upsert is RLS-denied outright.
-//
-// Consequently the loadConfig/saveConfig happy paths only function for a
-// super-admin today. These tests pin that reality so the regression surfaces
-// the day the licensee policies are fixed.
+//   GAP 2 (still open) — saveConfig() uses upsert (INSERT ... ON CONFLICT).
+//   Regular users still have no INSERT policy on companies, so the upsert is
+//   RLS-denied outright and saveConfig() returns false for non-super-admins,
+//   even for companies they could UPDATE directly. The test below pins this
+//   so the regression surfaces the day an INSERT path (or UPDATE-based save)
+//   lands.
 //
 // The signed-in entity MUST be src/supabase.js's module-level `supabase` client
 // (loadConfig/saveConfig read its session). Fixtures are created via adminClient.
@@ -92,7 +90,7 @@ describe('loadConfig', () => {
     expect(await loadConfig()).toBeNull();
   });
 
-  it('GAP 1: returns null even when a regular licensee IS assigned a company', async () => {
+  it('returns a v2 blob for a regular licensee assigned a company (GAP 1 fixed 2026-07-02)', async () => {
     // A correctly-provisioned editor: licensee named = email, company, assignment.
     const { email } = await signInModuleClientAsNewUser();
     const licenseeId = await createLicenseeFor(email);
@@ -100,9 +98,10 @@ describe('loadConfig', () => {
     const companyId = await makeCompany(sampleConfig());
     await assignCompany(licenseeId, companyId, 'editor');
 
-    // Per the docs this SHOULD return a v2 blob with the assigned company.
-    // It does not: the licensee read policy cannot see the assignment row.
-    expect(await loadConfig()).toBeNull();
+    const config = await loadConfig();
+    expect(config).not.toBeNull();
+    expect(config.version).toBe(2);
+    expect(config.companies.some((c) => c.id === companyId)).toBe(true);
   });
 
   it('returns a v2 config blob for a super-admin who can see companies', async () => {
@@ -133,7 +132,7 @@ describe('loadConfig', () => {
 });
 
 describe('saveConfig', () => {
-  it('GAP 1/2: returns false for a regular editor (upsert is RLS-denied)', async () => {
+  it('GAP 2: returns false for a regular editor (upsert INSERT path is RLS-denied)', async () => {
     const { email } = await signInModuleClientAsNewUser();
     const licenseeId = await createLicenseeFor(email);
     created.licenseeIds.push(licenseeId);

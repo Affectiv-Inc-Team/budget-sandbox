@@ -207,21 +207,20 @@ only (not on every PR) to keep PR feedback fast.
 
 ## Known risks
 
-**🔴 FINDING — regular licensees can read/write nothing (policies are over-restrictive).**
-The `companies` SELECT/UPDATE policies use `EXISTS` subqueries over `licensee_companies` and
-`licensees`. Those tables are super-admin-only under RLS, so when a *regular* user's policy is
-evaluated the subqueries return no rows — the user can SELECT/UPDATE **no** companies, even ones
-correctly assigned to them. Verified empirically and pinned by the tests:
-- `loadConfig()` returns `null` for a correctly-assigned editor (`supabase.test.js`).
-- editor and read_only `UPDATE`s affect 0 rows with no error (`rls.test.js`).
-- `saveConfig()` returns `false` — its upsert hits an INSERT path with no matching policy.
-- Only **super-admins** can currently read/write companies.
-
-The crucial security property still **holds**: no user sees another licensee's data — the bug
-is the inverse. Fix belongs in Track B: a `security definer` membership-lookup function (so the
-policy subquery bypasses RLS on the join tables) and/or the planned `licensee_id` FK on
-`profiles` to replace the temporary `licensees.name = profiles.email` join. When that lands,
-flip the `GAP:`-annotated assertions to the intended behavior.
+**🟢 FIXED 2026-07-02 — regular licensees can now read/write their assigned companies.**
+Originally the `companies` SELECT/UPDATE policies' `EXISTS` subqueries read
+`licensee_companies`/`licensees`, which regular users could not see under RLS, so an assigned
+licensee could SELECT/UPDATE **no** companies. The 2026-07-02 Lovable migrations fixed this
+exactly as predicted: `SECURITY DEFINER` membership helpers (`has_company_access`,
+`can_edit_company`, `is_company_admin`) plus scoped SELECT policies on `licensee_companies`
+(members can view own company rows) and `licensees` ("restricted view": super-admin, self, or
+shared-company admin). Current behavior, pinned by the updated tests:
+- `loadConfig()` returns the assigned companies for a regular editor (`supabase.test.js`).
+- editors (and the new `admin` role) can UPDATE their own companies; read_only members can
+  read but not write (`rls.test.js`).
+- **Still open (GAP 2):** `saveConfig()` returns `false` for non-super-admins — its upsert
+  hits an INSERT path with no matching policy.
+- Isolation holds throughout: no user sees or writes another licensee's data.
 
 **`licensee_id` on profiles — TODO in schema**
 The current RLS policy joins `licensees.name = profiles.email` as a temporary measure
