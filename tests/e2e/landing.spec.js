@@ -6,7 +6,8 @@ test.describe('Public landing pages', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     // Primary "Request a Demo" + secondary "Sign In" both present pre-auth.
-    await expect(page.getByRole('link', { name: /request a demo/i }).first()).toBeVisible();
+    // Demo CTA is a button since 2026-07-02 — it opens DemoRequestModal in-page.
+    await expect(page.getByRole('button', { name: /request a demo/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /^sign in$/i }).first()).toBeVisible();
     // The login form must NOT be on the public home page.
     await expect(page.getByLabel(/password/i)).toHaveCount(0);
