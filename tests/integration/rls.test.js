@@ -1,18 +1,18 @@
 // Row Level Security isolation tests — the HIPAA-critical layer.
 //
-// These assert the schema's ACTUAL behavior. The headline finding (verified
-// empirically, see docs/TEST_PHASE_3.md "Known risks"):
+// These assert the schema's ACTUAL behavior. History: the original policies
+// were over-restrictive — the companies SELECT/UPDATE policies' EXISTS
+// subqueries read `licensee_companies`/`licensees`, which regular users could
+// not see under RLS, so assigned licensees could read/write NO companies.
+// The 2026-07-02 migrations fixed this by making the joined tables visible to
+// members (SECURITY DEFINER helpers `has_company_access`/`can_edit_company`/
+// `is_company_admin`, a members-can-view policy on `licensee_companies`, and
+// a scoped "restricted view" policy on `licensees`: super-admin, self, or
+// shared-company admin). Assigned editors/admins can now read and update
+// their own companies; read_only members can read but not write.
 //
-//   The companies SELECT/UPDATE policies use EXISTS subqueries over
-//   `licensee_companies` and `licensees`. Those tables are super-admin-only
-//   under RLS, so when a *regular* user's policy is evaluated the subqueries
-//   return nothing — a regular licensee can SELECT/UPDATE NO companies, even
-//   ones correctly assigned to them. Only super-admins can read/write companies.
-//
-// The crucial security property still HOLDS: a user never sees another
-// licensee's data. The bug is the inverse (assigned data is invisible too),
-// which is a functionality gap, not a data-leak. These tests pin both: the
-// isolation that protects PHI, and the over-restriction to be fixed in Track B.
+// The crucial security property is unchanged and asserted throughout: a user
+// never sees another licensee's data.
 //
 // Assertions use a fresh anon-key client (NOT src/supabase.js's module client).
 // Fixtures and cross-checks use the RLS-bypassing adminClient.
@@ -70,12 +70,18 @@ describe('companies RLS', () => {
     expect(data).toEqual([]);
   });
 
-  it('GAP: an assigned editor cannot SELECT their own company (sees empty)', async () => {
+  it('an assigned editor can SELECT their own company', async () => {
     const f = track(await provisionLicenseeWithCompany({ role: 'editor' }));
     const { data, error } = await f.client.from('companies').select('id').eq('id', f.companyId);
     expect(error).toBeNull();
-    // Per docs this SHOULD return the assigned row; it returns empty.
-    expect(data).toEqual([]);
+    expect(data).toEqual([{ id: f.companyId }]);
+  });
+
+  it('an assigned read_only member can SELECT their own company', async () => {
+    const f = track(await provisionLicenseeWithCompany({ role: 'read_only' }));
+    const { data, error } = await f.client.from('companies').select('id').eq('id', f.companyId);
+    expect(error).toBeNull();
+    expect(data).toEqual([{ id: f.companyId }]);
   });
 
   it("a licensee cannot SELECT another licensee's company", async () => {
@@ -86,15 +92,35 @@ describe('companies RLS', () => {
     expect(data).toEqual([]); // isolation holds — never sees B's company
   });
 
-  it('GAP: an editor UPDATE affects 0 rows (no error)', async () => {
+  it('an assigned editor can UPDATE their own company', async () => {
     const f = track(await provisionLicenseeWithCompany({ role: 'editor' }));
     const { data, error } = await f.client
       .from('companies')
-      .update({ name: 'Hacked' })
+      .update({ name: 'Renamed by editor' })
       .eq('id', f.companyId)
       .select();
     expect(error).toBeNull();
-    expect(data).toEqual([]); // policy subquery can't see the assignment → 0 rows
+    expect(data).toHaveLength(1);
+    expect(data[0].name).toBe('Renamed by editor');
+
+    // Confirm it persisted, via the admin client.
+    const { data: row } = await adminClient.from('companies').select('name').eq('id', f.companyId).single();
+    expect(row.name).toBe('Renamed by editor');
+  });
+
+  it("an editor UPDATE against another licensee's company affects 0 rows", async () => {
+    const a = track(await provisionLicenseeWithCompany({ role: 'editor' }));
+    const b = track(await provisionLicenseeWithCompany({ role: 'editor', companyName: 'B Co' }));
+    const { data, error } = await a.client
+      .from('companies')
+      .update({ name: 'Hacked' })
+      .eq('id', b.companyId)
+      .select();
+    expect(error).toBeNull();
+    expect(data).toEqual([]); // isolation holds — cannot touch B's company
+
+    const { data: row } = await adminClient.from('companies').select('name').eq('id', b.companyId).single();
+    expect(row.name).not.toBe('Hacked');
   });
 
   it('a read_only UPDATE affects 0 rows and leaves the row unchanged', async () => {
@@ -162,11 +188,15 @@ describe('profiles RLS', () => {
 });
 
 describe('licensees RLS', () => {
-  it('a regular user cannot SELECT licensees (super-admin only)', async () => {
-    const f = track(await provisionLicenseeWithCompany({ role: 'editor' }));
-    const { data, error } = await f.client.from('licensees').select('id');
+  it("a regular user sees only their own licensee row, never another's", async () => {
+    // The "licensees: restricted view" policy (2026-07-02) scopes SELECT to:
+    // super-admin, self (lower(name) = lower(own email)), or shared-company admin.
+    const a = track(await provisionLicenseeWithCompany({ role: 'editor' }));
+    const b = track(await provisionLicenseeWithCompany({ role: 'editor' }));
+    const { data, error } = await a.client.from('licensees').select('id');
     expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expect(data.map((r) => r.id)).toEqual([a.licenseeId]); // own row only
+    expect(data.some((r) => r.id === b.licenseeId)).toBe(false);
   });
 
   it('a super-admin can SELECT licensees', async () => {
