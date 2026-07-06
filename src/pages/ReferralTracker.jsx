@@ -11,6 +11,7 @@ import {
   REPEATABLE_CONTACT_KINDS, OUTCOMES,
 } from "../lib/referralShape.js";
 import { COMMON_MEDICATIONS, MEDICATION_FREQUENCIES } from "../data/medications.js";
+import posthog from "../lib/posthog.js";
 
 const M = { fontFamily: "'DM Mono',monospace" };
 
@@ -274,6 +275,23 @@ function ReferralForm({ role, companyId, existing, onSaved }) {
       return;
     }
     const referralId = result.data.id;
+    if (existing) {
+      posthog.capture('referral_updated', {
+        stage: draft.stage,
+        priority: draft.priority,
+        source_type: draft.source_type,
+        stage_changed: existing.stage !== draft.stage,
+        outcome_set: !!draft.outcome && !existing.outcome,
+      });
+    } else {
+      posthog.capture('referral_created', {
+        stage: draft.stage,
+        priority: draft.priority,
+        source_type: draft.source_type,
+        service_level: draft.service_level,
+        pay_source: draft.pay_source,
+      });
+    }
     if (draft.ssn && draft.ssn.trim()) await setSSN(referralId, draft.ssn);
     for (const c of draft.contactsDraft) {
       if (isSaveable(c)) await addContact(referralId, c);

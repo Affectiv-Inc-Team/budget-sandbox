@@ -138,7 +138,10 @@ export default function App() {
       setSession(session);
       if (session) {
         getProfile().then(setProfile);
-        if (event === 'SIGNED_IN') {
+        // INITIAL_SESSION covers returning visitors (page refresh with a live
+        // Supabase session) — supabase-js emits it instead of SIGNED_IN on
+        // restore. identify() with an unchanged distinct_id is a no-op.
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
           posthog.identify(session.user.id, { email: session.user.email });
         }
       } else {
