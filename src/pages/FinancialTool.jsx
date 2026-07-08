@@ -2489,7 +2489,7 @@ function calcSLCo({ annualRevGrossRaw, annualLaborRaw, totalHomes, totalClients,
 // ════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ════════════════════════════════════════════════════════════════════
-export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName }) {
+export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName, memberScopes }) {
   const [config, setConfig] = useState(() => migrateConfig(initialConfig));
   const [saveStatus, setSaveStatus] = useState("idle");
   const [activeKey, setActiveKey] = useState("WHOLE_COMPANY"); // "WHOLE_COMPANY" | service line id
@@ -2513,6 +2513,15 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
       posthog.capture('service_line_viewed', { service_line_type: activeSLType });
     }
   }, [activeKey, activeSLType, userRole]);
+
+  // Reset to Whole Company if a service-line scope hides the line currently
+  // open — e.g. a scoped teammate's invite scope changed, or their line was
+  // reassigned/archived out from under them.
+  useEffect(() => {
+    if (activeKey === "WHOLE_COMPANY" || !company) return;
+    const myScope = memberScopes?.[company.id]?.serviceLineScope ?? null;
+    if (myScope && activeKey !== myScope) setActiveKey("WHOLE_COMPANY");
+  }, [activeKey, company, memberScopes]);
 
   // ── Update helpers ──
   const updateCompany = (coId, mutator) => setConfig(prev => ({
@@ -2935,7 +2944,12 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
   }
 
   // ── Service line strip data ──
-  const visibleSLs = company.serviceLines.filter(sl => !sl.archived);
+  // Tier 4+ invites are scoped to one service line (Phase 1 invitations); this
+  // is client-side presentation filtering only — service lines live inside
+  // companies.config JSONB, so RLS can't slice them server-side. Whole Company
+  // stays visible regardless of scope; its contents are already tier-gated.
+  const myScope = memberScopes?.[company.id]?.serviceLineScope ?? null;
+  const visibleSLs = company.serviceLines.filter(sl => !sl.archived && (!myScope || sl.id === myScope));
   const subTabs = (isWholeCompany
     ? applyTabOrder(getSubTabsFor("WHOLE_COMPANY"), company.shared.wholeCompanySubTabOrder)
     : applyTabOrder(getSubTabsFor(activeSLType), activeSL?.subTabOrder)

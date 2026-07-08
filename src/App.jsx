@@ -199,6 +199,17 @@ export default function App() {
       : isSuperAdmin ? <AdminPanel onExit={() => window.location.assign('/app')} />
       : <Navigate to="/app" replace />;
 
+  // session starts `undefined` (still loading, e.g. restoring from a hard
+  // reload/direct link) before resolving to null|Session. Treating that
+  // loading tick as "no session" — as this route used to — sent a fresh
+  // /team load to /login and then, once the real session arrived a moment
+  // later, /login's own redirect bounced it straight through to /app: a
+  // direct link or refresh on /team never actually landed on /team.
+  const teamElement =
+    session === undefined ? null
+      : !session ? <Navigate to="/login" replace />
+      : <TeamPanel userRole={effectiveRole} />;
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage isAuthenticated={isAuthenticated} />} />
@@ -207,7 +218,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
-      <Route path="/team" element={session ? <TeamPanel userRole={effectiveRole} /> : <Navigate to="/login" replace />} />
+      <Route path="/team" element={teamElement} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
