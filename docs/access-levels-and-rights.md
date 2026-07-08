@@ -62,15 +62,21 @@ The matrix below covers the four visibility dimensions that matter most: company
 ### Rule 1 — Company dollars
 **Tiers 1–3** (Owner, CEO, Finance) see all dollar amounts everywhere. KPI tiles, P&L rollups, service-line revenue, total labor costs — all in raw dollars.
 
-**Tiers 4–8** see those same metrics expressed as **percentages or ratios**:
+**Tier 4** (Regional Director) sees those metrics expressed as **percentages or ratios** rather than dollars:
 - Revenue tiles render as "% of company total" rather than "$X annual"
 - EBITDA tile renders as "%" (EBITDA margin) rather than "$"
 - Net Income tile renders as "% net margin" rather than "$"
 - P&L rows render as "% of revenue" rather than absolute amounts
-- The dollar-mode toggle is hidden from tiers 4–8
-- **5-Year Projection** table (now inside the Labor Efficiency tab): Annual Revenue, Annual Labor, and Annual Gross columns are hidden; only Year and Gross Margin % are shown to tiers 4–8. The entire projection section is hidden for tier 8.
+
+**Tiers 5–8** (Program Manager, HR Manager, Scheduler, House Lead) see **no revenue or margin at all — neither dollars nor percentages**. Revenue and margin are financial-planning concepts outside their operational scope:
+- The Company tab's Net Revenue, EBITDA, EBITDA Mgn, and Net Margin KPI chips are hidden
+- The Company P&L panel is replaced with a short "restricted to Regional Director and above" notice
+- Home Mix Editor: per-home margin ring, the "% margin" caption, and the per-home margin % badge are all hidden; card borders fall back to a neutral color instead of the margin-state color
+- Home detail metric grid: the "Margin" tile is hidden (same gate)
+- **5-Year Projection** table (inside the Labor Efficiency tab) is hidden entirely for tiers 4–8
 - **Budget Builder header**: All three context cards (Total Participants, Net Revenue, Revenue / Participant) are hidden for tiers 4–8
 - **Portfolio tab**: hidden entirely from the navigation for tiers 4–8 (not masked — the tab does not appear)
+- The dollar-mode toggle is hidden from tiers 4–8
 
 ### Rule 2 — Wages
 **Tiers 1–6** can see wages in dollars wherever they appear: the sidebar wage slider, per-coordinator hourly wage in TSC, per-clinician hourly wage in School-Based Services, per-home labor cost in Res Hab Mix Editor, graveyard wage, etc.
