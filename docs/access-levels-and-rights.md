@@ -241,7 +241,8 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Sidebar:** Occupancy visible. Wage controls visible **but rendered as ratios** (e.g., average wage as % of revenue, overtime % of total labor) rather than raw dollar wage sliders. Rate overrides, entity, fees all hidden.
 - **Wages and overtime:** Visible **as percentages only**. No raw dollar wage figures.
 - **Add Service Line:** Button hidden — Schedulers cannot add service lines.
-- **Home Mix Editor:** View-only — can see configuration but cannot modify homes, sliders, or billing settings.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and margin badge hidden; card borders neutral. Home detail "Margin" tile hidden. View-only.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. Company P&L panel replaced with "restricted to Regional Director and above" notice.
 - **Save button:** Hidden — tiers 7–8 are fully read-only; the Save button does not render.
 - **FAQ:** Revenue section reduced to Intense vs High Support only. Billing type, hourly rates, group hours revenue impact, payroll burden, EBITDA, and management fees all hidden. Sees staffing ratio, labor for group hours, "why percentages?" explainer, Budget Builder, and Margin Guide. AI assistant focuses on scheduling and shift coverage efficiency.
 
