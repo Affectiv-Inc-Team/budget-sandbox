@@ -258,7 +258,8 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Sidebar:** Occupancy visible. Everything else hidden.
 - **Wages:** Hidden everywhere.
 - **Add Service Line:** Button hidden.
-- **Home Mix Editor:** View-only — cannot modify homes, sliders, or billing settings.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and margin badge hidden; card borders neutral. Home detail "Margin" tile hidden. View-only.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. Company P&L panel replaced with "restricted to Regional Director and above" notice.
 - **Save button:** Hidden — tier 8 is fully read-only.
 - **FAQ:** Revenue section hidden entirely. "Understanding Your Revenue" has no visible items for tier 8. Sees only: High Support staffing ratio, Budget Builder explanation, and Margin Guide. AI assistant focuses on daily operations, client mix, and occupancy.
 
