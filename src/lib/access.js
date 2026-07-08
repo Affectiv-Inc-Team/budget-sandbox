@@ -109,3 +109,36 @@ export const SSN_UNMASK_FLOOR_TIER     = 3; // FINANCE and up
 
 export function canSeeReferrals(role) { return tier(role) <= REFERRAL_ACCESS_FLOOR_TIER; }
 export function canUnmaskSSN(role)    { return tier(role) <= SSN_UNMASK_FLOOR_TIER; }
+
+// Rule 11 — Invitations
+// Owner (tier 1) can invite any tier, including another Owner. Every other tier
+// can invite only tiers strictly below its own — never a peer, never above.
+// HOUSE_LEAD (tier 8) and unknown roles can invite nobody.
+// Mirrored server-side by can_invite_role() in the invites migration; the SQL
+// is the enforcement point, this drives the UI.
+const ALL_TIERS = [1, 2, 3, 4, 5, 6, 7, 8];
+
+export function invitableTiers(role) {
+  const t = tier(role);
+  if (t === 1) return [...ALL_TIERS];
+  return ALL_TIERS.filter((x) => x > t);
+}
+
+export function invitableRoles(role) {
+  const tiers = new Set(invitableTiers(role));
+  return Object.keys(ROLE_TIERS).filter((r) => tiers.has(ROLE_TIERS[r]));
+}
+
+export function canInviteRole(inviterRole, targetRole) {
+  return invitableTiers(inviterRole).includes(ROLE_TIERS[targetRole]);
+}
+
+// Rule 11a — Company access level granted at invite time, derived from tier.
+// 'admin' manages members (is_company_admin); 'editor' can save config
+// (can_edit_company); 'read_only' matches editMode() 'readonly' so tiers 7–8
+// cannot write even if the client-side gating were bypassed.
+export function accessRoleForTier(t) {
+  if (t <= 3) return 'admin';
+  if (t <= 6) return 'editor';
+  return 'read_only';
+}
