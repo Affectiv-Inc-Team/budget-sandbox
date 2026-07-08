@@ -68,6 +68,59 @@ export async function getProfile() {
   return data ?? null;
 }
 
+// ─── Team invitations ────────────────────────────────────────────────────────
+
+/**
+ * Send an owner-delegated invite via the send-invite edge function.
+ * The tier rule / scope rule / membership check are enforced server-side by
+ * the create_invite RPC (as the caller); the function then emails the invitee.
+ * Returns { ok, inviteId, emailAction, error } — error is a human-readable
+ * message when ok is false.
+ */
+export async function sendInvite({ companyId, email, orgRole, serviceLineScope = null }) {
+  const { data, error } = await supabase.functions.invoke('send-invite', {
+    body: {
+      company_id: companyId,
+      email: email.trim().toLowerCase(),
+      org_role: orgRole,
+      service_line_scope: serviceLineScope,
+    },
+  });
+
+  if (error) {
+    // Non-2xx responses carry the real message in the JSON body.
+    let message = error.message;
+    try {
+      const body = await error.context?.json?.();
+      if (body?.error) message = body.error;
+    } catch { /* keep the generic message */ }
+    posthog.capture('invite_send_failed', { error_message: message });
+    return { ok: false, error: message };
+  }
+
+  return { ok: true, inviteId: data?.invite_id, emailAction: data?.email_action };
+}
+
+/**
+ * The caller's own company memberships: access level + service-line scope.
+ * Returns { [companyId]: { accessRole, serviceLineScope } }.
+ * serviceLineScope null = whole company.
+ */
+export async function getMyCompanyScopes() {
+  const { data, error } = await supabase.rpc('get_my_company_scopes');
+  if (error) {
+    console.error('getMyCompanyScopes error:', error);
+    posthog.captureException(error, { endpoint: 'getMyCompanyScopes', error_code: error.code });
+    return {};
+  }
+  return Object.fromEntries(
+    (data ?? []).map((row) => [
+      row.company_id,
+      { accessRole: row.access_role, serviceLineScope: row.service_line_scope },
+    ]),
+  );
+}
+
 /**
  * Save the full v2 config blob back to Supabase.
  * Upserts each company row individually.
