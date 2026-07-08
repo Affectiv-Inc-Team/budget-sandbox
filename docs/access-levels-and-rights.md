@@ -225,7 +225,8 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Sidebar:** Wage and occupancy visible. Rate overrides, entity type, owner rate, fees hidden.
 - **Wages:** Visible — HR needs wages to manage staff.
 - **Add Service Line:** Button hidden — HR Managers cannot add service lines.
-- **Home Mix Editor:** View-only — can see configuration but cannot modify homes, sliders, or billing settings.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and per-home margin badge hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for all other controls.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. Company P&L panel replaced with "restricted to Regional Director and above" notice.
 - **FAQ:** Same as Program Manager. Billing type and hourly rates also hidden (HR doesn't make billing decisions). Staffing ratios, payroll burden, and group hours visible. AI assistant focuses on HR and staffing efficiency.
 
 ### Tier 7 — Scheduler / Regional Assistant
