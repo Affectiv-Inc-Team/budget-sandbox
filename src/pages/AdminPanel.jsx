@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../supabase.js";
+import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
+import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 
 const wrap    = { minHeight: "100vh", background: "#0b1220", color: "#e2e8f0", fontFamily: "system-ui, sans-serif", padding: 24 };
 const card    = { background: "#111a2e", border: "1px solid #1f2a44", borderRadius: 10, padding: 20, marginBottom: 20 };
@@ -94,6 +96,7 @@ export default function AdminPanel({ onExit }) {
   const [assigns, setAssigns]       = useState([]);
   const [profiles, setProfiles]     = useState([]);
   const [orgRolesByCo, setOrgRolesByCo] = useState({}); // { companyId: { emailLower: statusRow } }
+  const [invites, setInvites]       = useState([]);
   const [loading, setLoading]       = useState(true);
   const [err, setErr]               = useState(null);
   const [notice, setNotice]         = useState(null);
@@ -110,13 +113,14 @@ export default function AdminPanel({ onExit }) {
   const reload = useCallback(async () => {
     setLoading(true);
     setErr(null);
-    const [c, l, lc, p] = await Promise.all([
+    const [c, l, lc, p, inv] = await Promise.all([
       supabase.from("companies").select("id, name, archived, created_at").order("created_at"),
       supabase.from("licensees").select("id, name, created_at").order("created_at"),
       supabase.from("licensee_companies").select("licensee_id, company_id, role, assigned_at"),
       supabase.from("profiles").select("id, email, is_super_admin, role"),
+      supabase.rpc("admin_list_invites"),
     ]);
-    const e = c.error || l.error || lc.error || p.error;
+    const e = c.error || l.error || lc.error || p.error || inv.error;
     if (e) setErr(e.message);
     setCompanies(c.data ?? []);
     setLicensees(l.data ?? []);
@@ -136,6 +140,7 @@ export default function AdminPanel({ onExit }) {
       byCo[coId] = m;
     }
     setOrgRolesByCo(byCo);
+    setInvites(inv.data ?? []);
     setLoading(false);
   }, []);
 
@@ -250,6 +255,13 @@ export default function AdminPanel({ onExit }) {
   async function deleteLicensee(id, name) {
     if (!confirm(`Delete licensee "${name}" and all their company assignments? Their auth account (if any) is NOT deleted, but they lose all access.`)) return;
     const { error } = await supabase.from("licensees").delete().eq("id", id);
+    if (error) return setErr(error.message);
+    reload();
+  }
+
+  async function revokeInvite(id, email) {
+    if (!confirm(`Revoke the invite for ${email}? Their pending access to the company is removed.`)) return;
+    const { error } = await supabase.rpc("revoke_invite", { p_invite_id: id });
     if (error) return setErr(error.message);
     reload();
   }
@@ -549,6 +561,70 @@ export default function AdminPanel({ onExit }) {
             <b style={{ color: "#f1f5f9" }}>Super admin</b> — Intrinsic-level. Sees this panel and every company. Managed at the database level.
           </div>
         </div>
+      </div>
+
+      <div style={card}>
+        <h2 style={h2}>Invitations ({invites.length})</h2>
+        <div style={{ color: "#94a3b8", fontSize: 12, marginBottom: 10 }}>
+          Owner-delegated invites, read-only. Licensees send these from their Team screen;
+          Intrinsic sees every one here and can revoke any that haven't been accepted yet.
+        </div>
+        <table style={table}>
+          <thead>
+            <tr>
+              <th style={th}>Company</th>
+              <th style={th}>Email</th>
+              <th style={th}>Tier</th>
+              <th style={th}>Scope</th>
+              <th style={th}>Invited by</th>
+              <th style={th}>Status</th>
+              <th style={th}>Sent</th>
+              <th style={th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {invites.map(i => {
+              const revocable = ["pending", "sent", "failed"].includes(i.effective_status);
+              const statusColor =
+                i.effective_status === "accepted" ? "#4ade80"
+                : i.effective_status === "revoked" ? "#94a3b8"
+                : i.effective_status === "failed" ? "#fca5a5"
+                : "#fbbf24";
+              return (
+                <tr key={i.id}>
+                  <td style={td}>{i.company_name}</td>
+                  <td style={td}>{i.email}</td>
+                  <td style={td}>
+                    {ROLE_LABELS[i.org_role]
+                      ? `${ROLE_LABELS[i.org_role]} (T${ROLE_TIERS[i.org_role]})`
+                      : i.org_role}
+                  </td>
+                  <td style={{ ...td, fontFamily: "monospace", fontSize: 11, color: "#94a3b8" }}>
+                    {i.service_line_scope ?? "whole company"}
+                  </td>
+                  <td style={td}>{i.invited_by_email}</td>
+                  <td style={{ ...td, color: statusColor }}>{i.effective_status}</td>
+                  <td style={{ ...td, color: "#64748b", fontSize: 12 }}>
+                    {i.email_sent_at ? new Date(i.email_sent_at).toLocaleString() : "—"}
+                  </td>
+                  <td style={td}>
+                    {revocable && (
+                      <button
+                        style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
+                        onClick={() => revokeInvite(i.id, i.email)}
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {!invites.length && (
+              <tr><td style={{ ...td, color: "#64748b" }} colSpan={8}>No invites yet.</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
