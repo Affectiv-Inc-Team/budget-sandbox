@@ -207,7 +207,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
-      <Route path="/team" element={session ? <TeamPanel /> : <Navigate to="/login" replace />} />
+      <Route path="/team" element={session ? <TeamPanel userRole={effectiveRole} /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
