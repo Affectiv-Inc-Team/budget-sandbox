@@ -199,6 +199,7 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 
 ### Tier 5 — Program Manager
 - **Header KPIs:** Hidden — entire KPI chip bar does not render.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. The Company P&L panel is replaced with a short "restricted to Regional Director and above" notice.
 - **Whole Company P&L:** Hidden — does not appear in navigation.
 - **Service line P&L tabs:** Hidden — P&L tabs do not appear.
 - **Portfolio tab:** Hidden — does not appear in navigation.
@@ -206,10 +207,10 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Service line operational tabs:** All visible except as noted above. Focuses operationally on the service lines they run.
 - **Budget Builder:** No header cards. Their own row in $, lines below in %, lines above hidden.
 - **Labor Efficiency tab:** Ratio/% content visible. Dollar tiles and 5-year projection hidden.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and per-home margin badge are hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for all other controls.
 - **Sidebar:** Wage, occupancy, Res Hab rate overrides visible. Entity type, owner rate, fees hidden.
 - **Wages:** Visible.
 - **Add Service Line:** Button hidden — Program Managers cannot add service lines.
-- **Home Mix Editor:** View-only — can see configuration but cannot modify homes, sliders, or billing settings.
 - **FAQ:** Billing type, EBITDA, management fees, and Mix Editor topics hidden. Sees staffing, group hours, revenue rates, rate reduction, and Budget Builder questions. "Why percentages?" explainer shown. AI assistant focuses on staffing and operational efficiency.
 
 ### Tier 6 — HR Manager
