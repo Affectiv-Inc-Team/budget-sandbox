@@ -38,16 +38,16 @@ Lower numbers = higher access. Tier 1 is the most privileged, tier 8 the least.
 
 The matrix below covers the four visibility dimensions that matter most: company-level dollars, percentages, wages, and budget detail. Specific tab and feature rules follow below.
 
-| Tier | Role | Company $ | Percentages | Wages | Budget Builder |
-|---|---|---|---|---|---|
-| 1 | Owner | ✅ Full | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
-| 2 | CEO | ✅ Full | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
-| 3 | Finance | ✅ Scoped | ✅ Scoped | ✅ $ (scoped) | ✅ Full ($, all rows, scoped) |
-| 4 | Regional Director | ❌ Hidden | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
-| 5 | Program Manager | ❌ Hidden | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
-| 6 | HR Manager | ❌ Hidden | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
-| 7 | Scheduler / Regional Assistant | ❌ Hidden | ✅ Full | 🔒 As % only | 🔒 Own row in $; below their tier as % |
-| 8 | House Lead / Team Coordinator | ❌ Hidden | ✅ Full | ❌ Hidden | 🔒 Own row in $ only; rows above hidden |
+| Tier | Role | Company $ | Revenue / Margin | Percentages (non-revenue) | Wages | Budget Builder |
+|---|---|---|---|---|---|---|
+| 1 | Owner | ✅ Full | ✅ Full ($ and %) | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
+| 2 | CEO | ✅ Full | ✅ Full ($ and %) | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
+| 3 | Finance | ✅ Scoped | ✅ Scoped ($ and %) | ✅ Scoped | ✅ $ (scoped) | ✅ Full ($, all rows, scoped) |
+| 4 | Regional Director | ❌ Hidden | 🔒 % only (no $) | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
+| 5 | Program Manager | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
+| 6 | HR Manager | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
+| 7 | Scheduler / Regional Assistant | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | 🔒 As % only | 🔒 Own row in $; below their tier as % |
+| 8 | House Lead / Team Coordinator | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | ❌ Hidden | 🔒 Own row in $ only; rows above hidden |
 
 **Symbol key:**
 - ✅ Visible
