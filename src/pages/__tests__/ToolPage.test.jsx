@@ -236,3 +236,27 @@ describe("ToolPage — onboarding sequence (not yet onboarded)", () => {
     expect(screen.queryByText(/welcome to intrinsic/i)).toBeNull();
   });
 });
+
+describe("ToolPage — member scopes", () => {
+  it("loads config and scopes together and passes memberScopes through", async () => {
+    const config = createEmptyConfig();
+    loadConfig.mockResolvedValue(config);
+    getMyCompanyScopes.mockResolvedValue({
+      co_1: { accessRole: "editor", serviceLineScope: "sl_tsc1" },
+    });
+    await act(async () => { render(<ToolPage userRole="REGIONAL_DIRECTOR" />); });
+    expect(getMyCompanyScopes).toHaveBeenCalled();
+    const tool = screen.getByTestId("financial-tool");
+    expect(JSON.parse(tool.dataset.memberScopes)).toEqual({
+      co_1: { accessRole: "editor", serviceLineScope: "sl_tsc1" },
+    });
+  });
+
+  it("defaults to an empty scopes object when none are returned", async () => {
+    loadConfig.mockResolvedValue(createEmptyConfig());
+    getMyCompanyScopes.mockResolvedValue({});
+    await act(async () => { render(<ToolPage userRole="OWNER" />); });
+    const tool = screen.getByTestId("financial-tool");
+    expect(JSON.parse(tool.dataset.memberScopes)).toEqual({});
+  });
+});
