@@ -38,14 +38,20 @@ export default function LoginPage() {
     setError(null);
     setInfo(null);
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const normalizedEmail = email.trim().toLowerCase();
+    const { error: linkError } = await supabase.functions.invoke("request-setup-link", {
+      body: {
+        email: normalizedEmail,
+        redirectTo: `${window.location.origin}/reset-password`,
+      },
     });
     setLoading(false);
-    if (resetError) {
-      setError(resetError.message);
+    if (linkError) {
+      setError("We couldn't send that link. Please try again or contact your admin.");
+      posthog.captureException(linkError, { endpoint: 'request-setup-link' });
     } else {
       posthog.capture('password_reset_requested');
+      setEmail(normalizedEmail);
       setMode("sent");
     }
   }
