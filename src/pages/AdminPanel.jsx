@@ -323,16 +323,24 @@ export default function AdminPanel({ onExit }) {
           </div>
           <div>
             <div style={label}>
-              Company
-              <Info text="The portfolio company they'll be able to open in the tool." />
+              Companies
+              <Info text="The portfolio companies they'll be able to open in the tool. Hold Ctrl/Cmd (or Shift) to pick multiple — the same access + org role will be applied to each." />
             </div>
-            <select style={{ ...input, marginRight: 0, width: "100%" }}
-              value={qaCo} onChange={e => setQaCo(e.target.value)} required>
-              <option value="">— pick a company —</option>
+            <select
+              multiple
+              size={Math.min(6, Math.max(3, companies.filter(c => !c.archived).length))}
+              style={{ ...input, marginRight: 0, width: "100%", height: "auto", padding: 8 }}
+              value={qaCo}
+              onChange={e => setQaCo(Array.from(e.target.selectedOptions, o => o.value))}
+              required
+            >
               {companies.filter(c => !c.archived).map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+            <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>
+              {qaCo.length === 0 ? "Pick one or more" : `${qaCo.length} selected`} · Ctrl/Cmd-click to multi-select
+            </div>
           </div>
           <div>
             <div style={label}>
