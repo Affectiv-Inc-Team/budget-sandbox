@@ -13,6 +13,7 @@ import { VolumeTrackerTab } from "../serviceLines/volumeTracker.jsx";
 
 import { LOGO } from "../assets/logo.js";
 import posthog, { useFeatureFlag } from "../lib/posthog.js";
+import OnboardingOverlay from "./onboarding/OnboardingOverlay.jsx";
 
 
 /* ══════════════════════════════════════════════════════════
@@ -2489,7 +2490,7 @@ function calcSLCo({ annualRevGrossRaw, annualLaborRaw, totalHomes, totalClients,
 // ════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ════════════════════════════════════════════════════════════════════
-export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName, memberScopes }) {
+export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName, memberScopes, onboarding }) {
   const [config, setConfig] = useState(() => migrateConfig(initialConfig));
   const [saveStatus, setSaveStatus] = useState("idle");
   const [activeKey, setActiveKey] = useState("WHOLE_COMPANY"); // "WHOLE_COMPANY" | service line id
@@ -2921,7 +2922,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
 
   // Save (Track A: hand the v2 blob to onSave verbatim; Track B handles the schema split)
   const handleSave = async () => {
-    if (!onSave) return;
+    if (!onSave) return false;
     setSaveStatus("saving");
     const ok = await onSave(config);
     setSaveStatus(ok ? "saved" : "error");
@@ -2931,6 +2932,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
       service_line_count: company?.serviceLines?.filter(sl => !sl.archived).length ?? 0,
     });
     setTimeout(() => setSaveStatus("idle"), 2500);
+    return ok;
   };
 
   // ── Empty-portfolio fallback ──
@@ -3372,6 +3374,22 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
           </div>
         </div>
       </div>
+
+      {onboarding?.active && (
+        <OnboardingOverlay
+          initialStep={onboarding.initialStep}
+          role={userRole}
+          provenance={onboarding.provenance}
+          multiCompany={config.companies.filter(c => !c.archived).length > 1}
+          visibleSLsCount={visibleSLs.length}
+          co={co}
+          onAddServiceLine={handleAddServiceLine}
+          onSave={handleSave}
+          onStepChange={onboarding.onStepChange}
+          onComplete={onboarding.onComplete}
+          onSkip={onboarding.onSkip}
+        />
+      )}
     </>
   );
 }

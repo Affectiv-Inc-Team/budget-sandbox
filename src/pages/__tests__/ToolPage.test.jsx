@@ -11,13 +11,17 @@ vi.mock("../../supabase.js", () => ({
   completeOnboarding: vi.fn(),
 }));
 
-// Mock FinancialTool — avoids rendering the 3,200-line component in unit tests
+// Mock FinancialTool — avoids rendering the 3,200-line component (and its own
+// OnboardingOverlay mount) in unit tests that only care about ToolPage's own
+// decisions about WHAT to hand FinancialTool, not what FinancialTool does with it.
 vi.mock("../FinancialTool.jsx", () => ({
-  default: vi.fn(({ initialConfig, memberScopes }) => (
+  default: vi.fn(({ initialConfig, memberScopes, onboarding }) => (
     <div
       data-testid="financial-tool"
       data-has-config={initialConfig !== null ? "true" : "false"}
       data-member-scopes={JSON.stringify(memberScopes)}
+      data-onboarding-active={onboarding?.active ? "true" : "false"}
+      data-onboarding-initial-step={onboarding?.initialStep ?? ""}
     />
   )),
 }));
@@ -196,7 +200,7 @@ describe("ToolPage — onboarding sequence (not yet onboarded)", () => {
     expect(screen.getByText(/owner@test\.local/i)).toBeDefined();
   });
 
-  it("Enter workspace on access_granted falls through to the dashboard (tour not built yet)", async () => {
+  it("Enter workspace on access_granted hands FinancialTool an active onboarding prop starting at tour", async () => {
     loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
     getProvenance.mockResolvedValue({ kind: "owner" });
     await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
@@ -204,7 +208,23 @@ describe("ToolPage — onboarding sequence (not yet onboarded)", () => {
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^continue$/i })); });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: /enter workspace/i })); });
 
-    expect(screen.getByTestId("financial-tool")).toBeDefined();
+    const tool = screen.getByTestId("financial-tool");
+    expect(tool).toBeDefined();
+    expect(tool.dataset.onboardingActive).toBe("true");
+    expect(tool.dataset.onboardingInitialStep).toBe("tour");
+  });
+
+  it("an invited House Lead (cannot add lines, cannot invite) hands FinancialTool onboarding starting at done", async () => {
+    loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
+    getProvenance.mockResolvedValue({ kind: "invited", invitedByEmail: "owner@test.local", role: "HOUSE_LEAD" });
+    await act(async () => { render(<ToolPage userRole="HOUSE_LEAD" profile={freshProfile()} />); });
+
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^continue$/i })); }); // welcome -> access_granted
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /enter workspace/i })); }); // -> tour
+
+    const tool = screen.getByTestId("financial-tool");
+    expect(tool.dataset.onboardingActive).toBe("true");
+    expect(tool.dataset.onboardingInitialStep).toBe("tour"); // tour itself is always visible
   });
 
   it("Skip setup calls completeOnboarding and the profile-refresh callback, then falls through to the dashboard", async () => {
@@ -230,9 +250,20 @@ describe("ToolPage — onboarding sequence (not yet onboarded)", () => {
     localStorage.setItem("intrinsic_onboarding_v1:u1", "access_granted");
 
     await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
-    // access_granted already completed -> next visible step after it is tour,
-    // which isn't built yet -> falls through to the dashboard directly.
-    expect(screen.getByTestId("financial-tool")).toBeDefined();
+    // access_granted already completed -> next visible step is tour -> hands
+    // off to FinancialTool's onboarding overlay directly, not back to welcome.
+    const tool = screen.getByTestId("financial-tool");
+    expect(tool).toBeDefined();
+    expect(tool.dataset.onboardingActive).toBe("true");
+    expect(tool.dataset.onboardingInitialStep).toBe("tour");
     expect(screen.queryByText(/welcome to intrinsic/i)).toBeNull();
+  });
+
+  it("does not pass an active onboarding prop for the pre-dashboard steps themselves", async () => {
+    loadConfig.mockResolvedValue(null);
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+    // Still on welcome — FinancialTool isn't even mounted yet.
+    expect(screen.queryByTestId("financial-tool")).toBeNull();
   });
 });

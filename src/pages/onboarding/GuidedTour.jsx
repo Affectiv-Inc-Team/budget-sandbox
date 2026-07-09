@@ -122,7 +122,16 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
     transition: "all 0.25s cubic-bezier(.2,.8,.2,1)",
   };
 
-  const tipTop = rect.bottom + 14;
+  // Clamp both axes to the viewport — the sidebar target spans nearly the
+  // full page height, so rect.bottom + 14 alone can place the tooltip below
+  // the fold with no vertical clamp (caught by a real browser during e2e;
+  // jsdom's zero-valued rects never surfaced it). ~130px estimated tooltip
+  // height keeps this from clamping against the tooltip's own unmeasured size.
+  const TOOLTIP_HEIGHT_ESTIMATE = 130;
+  const tipTop = Math.min(
+    Math.max(8, rect.bottom + 14),
+    window.innerHeight - TOOLTIP_HEIGHT_ESTIMATE,
+  );
   const tipLeft = Math.min(Math.max(8, rect.left), window.innerWidth - 260);
   const tipStyle = {
     position: "fixed",

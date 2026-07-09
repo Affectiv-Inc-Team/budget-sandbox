@@ -15,7 +15,7 @@
 //     firstLineJustCreated,    // transient: true only right after first_line runs
 //   }
 
-import { canAddServiceLine, invitableTiers, ROLE_TIERS, ROLE_LABELS } from './access.js';
+import { canAddServiceLine, canEditServiceLines, invitableTiers, ROLE_TIERS, ROLE_LABELS } from './access.js';
 
 export const STEPS = Object.freeze([
   'welcome',
@@ -87,8 +87,12 @@ export function firstPendingStep(ctx, lastCompletedStep) {
 // thing being taught.
 
 function saveStopFor(role) {
-  const t = ROLE_TIERS[role] ?? 99;
-  if (t <= 6) {
+  // Must match FinancialTool's actual save-button gate exactly
+  // ({onSave && canEditServiceLines(userRole) && <button data-tour="save-button">})
+  // — that's canEditServiceLines (tier <=4), NOT editMode's "operational" band
+  // (tier <=6). Tiers 5-6 are operational (can edit rosters) but still have no
+  // Save button of their own, so they need the retargeted copy too.
+  if (canEditServiceLines(role)) {
     return {
       id: 'save',
       target: 'save-button',
@@ -103,14 +107,6 @@ function saveStopFor(role) {
     body: `At ${ROLE_LABELS[role] ?? 'your'} tier you're read-only — there's no Save button because there's nothing for you to change.`,
   };
 }
-
-// Roles that pass canAddServiceLine, in tier order — derived rather than
-// hand-typed so this copy can't drift from the actual predicate again (it
-// previously omitted Finance and wrongly included Program Manager).
-const CAN_ADD_SL_ROLES = Object.keys(ROLE_TIERS)
-  .filter((r) => canAddServiceLine(r))
-  .map((r) => ROLE_LABELS[r])
-  .join('/');
 
 function sharedStopFor(role) {
   const t = ROLE_TIERS[role] ?? 99;
@@ -133,11 +129,23 @@ function sharedStopFor(role) {
   return { id: 'shared', target: 'sidebar', title: 'Shared inputs', body };
 }
 
+// Derived from canAddServiceLine's own tier<=4 cutoff rather than hand-named,
+// so this can't drift out of sync with the real predicate again.
+const ADD_LINE_TIER_NAMES = Object.keys(ROLE_TIERS)
+  .filter((r) => canAddServiceLine(r))
+  .sort((a, b) => ROLE_TIERS[a] - ROLE_TIERS[b])
+  .map((r) => ROLE_LABELS[r])
+  .join('/');
+
 function stripStopFor(role) {
+  // canAddServiceLine is tier <=4 (Owner/CEO/Finance/Regional Director) — the
+  // prototype's own copy named this wrong (said "...Regional Director/Program
+  // Manager", which both omits Finance and wrongly includes Program Manager,
+  // tier 5). List it dynamically instead of hand-naming tiers again.
   const base = "Each tab is one service line's own model — its own roster, productivity, and P&L.";
   const body = canAddServiceLine(role)
     ? `${base} You can also add new lines here.`
-    : `${base} Adding new lines is ${CAN_ADD_SL_ROLES}-only, so you won't see that option.`;
+    : `${base} Adding new lines is ${ADD_LINE_TIER_NAMES} only, so you won't see that option.`;
   return { id: 'strip', target: 'tab-strip', title: 'Service line strip', body };
 }
 

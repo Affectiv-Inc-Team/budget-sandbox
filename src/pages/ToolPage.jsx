@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { loadConfig, saveConfig, getMyCompanyScopes, getProvenance, completeOnboarding } from "../supabase.js";
-import { firstPendingStep, loadLocalProgress, saveLocalProgress } from "../lib/onboarding.js";
+import { firstPendingStep, loadLocalProgress, saveLocalProgress, clearLocalProgress } from "../lib/onboarding.js";
 import FinancialTool from "./FinancialTool.jsx";
 import OnboardingIntro from "./onboarding/OnboardingIntro.jsx";
 import AwaitingCompany from "./onboarding/AwaitingCompany.jsx";
 
-// Pre-dashboard onboarding steps this component owns directly: welcome,
+// Pre-dashboard onboarding steps this component renders directly: welcome,
 // awaiting_company, access_granted. Everything past access_granted (tour,
-// first_line, line_result, invite_team, done) isn't built yet — once the
-// step machine resolves past access_granted, ToolPage falls through to the
-// plain dashboard. Later PRs intercept those steps as overlays *inside*
-// FinancialTool instead of adding more branches here.
+// first_line, line_result, invite_team, done) is handed to FinancialTool's
+// OnboardingOverlay via the `onboarding` prop instead — it needs the live
+// config/handlers (add a service line, save) that only FinancialTool has.
 const PRE_DASHBOARD_STEPS = new Set(["welcome", "awaiting_company", "access_granted"]);
 
 export default function ToolPage({ userRole, userEmail, onSignOut, profile, onProfileRefresh }) {
@@ -78,8 +77,12 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
     setOnboardingStep(next);
   }
 
-  async function handleSkip() {
+  // Shared by every "I'm done with onboarding" trigger: the pre-dashboard
+  // screens' "Skip setup" link, and OnboardingOverlay's Done screen finishing
+  // normally — both mean the same thing server-side, just reached differently.
+  async function handleOnboardingComplete() {
     setSessionSkipped(true);
+    clearLocalProgress(uid);
     await completeOnboarding();
     onProfileRefresh?.();
   }
@@ -100,7 +103,7 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
     if (!ctx || onboardingStep === undefined) return null; // still resolving provenance/resume
 
     if (onboardingStep === "awaiting_company") {
-      return <AwaitingCompany onCheckAgain={loadCompanyState} onSkip={handleSkip} />;
+      return <AwaitingCompany onCheckAgain={loadCompanyState} onSkip={handleOnboardingComplete} />;
     }
 
     if (PRE_DASHBOARD_STEPS.has(onboardingStep)) {
@@ -111,12 +114,15 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
           provenance={ctx.provenance}
           invitedByEmail={provenance?.invitedByEmail}
           onContinue={advance}
-          onSkip={handleSkip}
+          onSkip={handleOnboardingComplete}
         />
       );
     }
-    // Resolved past access_granted (tour/first_line/…) — not built yet;
-    // fall through to the dashboard below.
+    // Resolved past access_granted: tour/first_line/line_result/invite_team/
+    // done. OnboardingOverlay (inside FinancialTool) owns progression through
+    // these from here — onStepChange just persists for resume-after-reload;
+    // onboardingStep itself won't change again (ctx/provenance don't refetch
+    // after mount), so this prop stays stable for the overlay's whole run.
   }
 
   return (
@@ -127,6 +133,18 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
       userEmail={userEmail}
       onSignOut={onSignOut}
       memberScopes={memberScopes}
+      onboarding={
+        !onboardingDone && ctx && onboardingStep && !PRE_DASHBOARD_STEPS.has(onboardingStep)
+          ? {
+              active: true,
+              initialStep: onboardingStep,
+              provenance: ctx.provenance,
+              onStepChange: (step) => saveLocalProgress(uid, step),
+              onComplete: handleOnboardingComplete,
+              onSkip: handleOnboardingComplete,
+            }
+          : undefined
+      }
     />
   );
 }

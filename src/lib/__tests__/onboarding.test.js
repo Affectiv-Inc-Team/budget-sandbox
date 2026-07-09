@@ -184,17 +184,24 @@ describe("getTourStops", () => {
     expect(stops.map((s) => s.id)).toEqual(["shared", "strip", "save"]);
   });
 
-  it("read-only tiers (7-8) get the save stop anchored to the tab strip, not the save button", () => {
-    for (const role of [SCHED, HL]) {
+  it("tiers without a real Save button (5-8, per canEditServiceLines) get the save stop anchored to the tab strip", () => {
+    for (const role of [PM, HR, SCHED, HL]) {
       const stops = getTourStops({ role, multiCompany: false });
       const save = stops.find((s) => s.id === "save");
       expect(save.target).toBe("tab-strip");
+    }
+  });
+
+  it("read-only tiers (7-8) specifically get read-only-worded save-stop copy", () => {
+    for (const role of [SCHED, HL]) {
+      const stops = getTourStops({ role, multiCompany: false });
+      const save = stops.find((s) => s.id === "save");
       expect(save.body).toMatch(/read-only/i);
     }
   });
 
-  it("tiers 1-6 get the save stop anchored to the real save button", () => {
-    for (const role of [OWNER, CEO, FINANCE, RD, PM, HR]) {
+  it("tiers 1-4 (canEditServiceLines) get the save stop anchored to the real save button", () => {
+    for (const role of [OWNER, CEO, FINANCE, RD]) {
       const stops = getTourStops({ role, multiCompany: false });
       const save = stops.find((s) => s.id === "save");
       expect(save.target).toBe("save-button");
@@ -210,7 +217,7 @@ describe("getTourStops", () => {
 
   it("the strip stop's who-can-add-lines copy matches canAddServiceLine exactly (tiers 1-4, not 5)", () => {
     const body = getTourStops({ role: HR, multiCompany: false }).find((s) => s.id === "strip").body;
-    expect(body).toMatch(/Owner\/CEO\/Finance\/Regional Director-only/);
+    expect(body).toMatch(/Owner\/CEO\/Finance\/Regional Director only/);
     expect(body).not.toMatch(/Program Manager/);
   });
 

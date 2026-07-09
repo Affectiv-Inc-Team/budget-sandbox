@@ -1,11 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import App from "../FinancialTool.jsx";
 import { ROLES } from "../../lib/access.js";
 import { createCompany, createServiceLine } from "../../lib/companyShape.js";
 
 // FinancialTool.jsx does not import supabase.js — no mock needed.
 // It receives everything through props.
+
+// OnboardingOverlay is exercised in its own test file (mounts a live-DOM
+// GuidedTour, needs a Router for useNavigate, etc.) — mocked here so these
+// tests only verify FinancialTool decides correctly WHETHER to mount it and
+// WHAT it passes through, not the overlay's own internal behavior.
+vi.mock("../onboarding/OnboardingOverlay.jsx", () => ({
+  default: vi.fn((props) => <div data-testid="onboarding-overlay" data-props={JSON.stringify({
+    initialStep: props.initialStep, provenance: props.provenance,
+    multiCompany: props.multiCompany, visibleSLsCount: props.visibleSLsCount,
+  })} />),
+}));
+
+import App from "../FinancialTool.jsx";
+import OnboardingOverlay from "../onboarding/OnboardingOverlay.jsx";
 
 describe("FinancialTool (App) — smoke tests", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -126,5 +139,59 @@ describe("FinancialTool (App) — service-line scope filtering", () => {
     );
     expect(screen.queryByText(tsc.name)).toBeNull();
     expect(screen.getByText(/Whole Company/)).toBeDefined();
+  });
+});
+
+describe("FinancialTool (App) — onboarding overlay mounting", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("does not mount OnboardingOverlay when the onboarding prop is omitted", () => {
+    render(<App initialConfig={null} userRole={ROLES.OWNER} />);
+    expect(screen.queryByTestId("onboarding-overlay")).toBeNull();
+  });
+
+  it("does not mount it when onboarding.active is false", () => {
+    render(<App initialConfig={null} userRole={ROLES.OWNER} onboarding={{ active: false }} />);
+    expect(screen.queryByTestId("onboarding-overlay")).toBeNull();
+  });
+
+  it("mounts it with the right props when onboarding.active is true", () => {
+    const onStepChange = vi.fn();
+    render(
+      <App
+        initialConfig={null}
+        userRole={ROLES.OWNER}
+        onboarding={{ active: true, initialStep: "tour", provenance: "owner", onStepChange, onComplete: vi.fn(), onSkip: vi.fn() }}
+      />,
+    );
+    const overlay = screen.getByTestId("onboarding-overlay");
+    const props = JSON.parse(overlay.dataset.props);
+    expect(props.initialStep).toBe("tour");
+    expect(props.provenance).toBe("owner");
+    expect(props.multiCompany).toBe(false);
+    expect(props.visibleSLsCount).toBe(0); // migrateConfig(null) seeds a company with zero lines
+
+    // onAddServiceLine/onSave are FinancialTool's own live handlers, not
+    // passed through verbatim — confirm they were forwarded as functions.
+    const call = OnboardingOverlay.mock.calls.at(-1)[0];
+    expect(typeof call.onAddServiceLine).toBe("function");
+    expect(typeof call.onSave).toBe("function");
+    expect(call.onStepChange).toBe(onStepChange);
+  });
+
+  it("reflects multiCompany and visibleSLsCount from the real config", () => {
+    const tsc = createServiceLine("TSC", { name: "TSC" });
+    const companyA = createCompany("A", { serviceLines: [tsc] });
+    const companyB = createCompany("B", { serviceLines: [] });
+    const config = {
+      version: 2, selectedCompanyId: companyA.id, selectedServiceLineId: null,
+      companies: [companyA, companyB],
+    };
+    render(
+      <App initialConfig={config} userRole={ROLES.OWNER} onboarding={{ active: true, initialStep: "tour" }} />,
+    );
+    const props = JSON.parse(screen.getByTestId("onboarding-overlay").dataset.props);
+    expect(props.multiCompany).toBe(true);
+    expect(props.visibleSLsCount).toBe(1);
   });
 });
