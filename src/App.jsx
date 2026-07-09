@@ -181,6 +181,7 @@ export default function App() {
           <AuthedApp
             effectiveRole={effectiveRole}
             derivedRole={derivedRole}
+            userEmail={profile?.email ?? session.user?.email}
             module={module}
             setModule={setModule}
             devRole={devRole}
