@@ -34,12 +34,17 @@ async function findUserId(email) {
 // Creates the auth user + profile role + licensee + membership directly
 // (bypassing the invite flow) — used for seeded users whose access predates
 // this test run (Owner, Finance, House Lead all start as existing members).
+// This spec tests invite/scope mechanics, not onboarding, so onboarding is
+// stamped complete here too — otherwise loginAs() would hit the onboarding
+// welcome screen instead of the dashboard it expects.
 async function seedMember(email, role, accessRole = 'admin') {
   const { data: created, error } = await admin.auth.admin.createUser({
     email, password: PASSWORD, email_confirm: true,
   });
   if (error) throw new Error(`seedMember createUser(${email}) failed: ${error.message}`);
-  const { error: roleErr } = await admin.from('profiles').update({ role }).eq('id', created.user.id);
+  const { error: roleErr } = await admin.from('profiles')
+    .update({ role, onboarding_completed_at: new Date().toISOString() })
+    .eq('id', created.user.id);
   if (roleErr) throw new Error(`seedMember set role failed: ${roleErr.message}`);
   const { data: lic, error: licErr } = await admin
     .from('licensees').insert({ name: email }).select('id').single();
@@ -152,6 +157,9 @@ test.describe('Owner-delegated invitations', () => {
     expect(userId).toBeTruthy();
     const { error } = await admin.auth.admin.updateUserById(userId, { password: PASSWORD, email_confirm: true });
     if (error) throw new Error(`updateUserById failed: ${error.message}`);
+    // This spec tests scope filtering, not onboarding — skip the welcome
+    // screen loginAs() below would otherwise hit.
+    await admin.from('profiles').update({ onboarding_completed_at: new Date().toISOString() }).eq('id', userId);
 
     await loginAs(page, REGIONAL_EMAIL, PASSWORD);
     await expect(page.getByRole('button', { name: /🏢 Whole Company/i })).toBeVisible();
@@ -195,19 +203,25 @@ test.describe('Owner-delegated invitations', () => {
       .in('licensee_id', (await admin.from('licensees').select('id').eq('name', REVOKEE_EMAIL)).data.map((l) => l.id));
     expect(membership).toHaveLength(0);
 
-    // Their account still works and lands in the tool — just with no trace
-    // of the real company (a fresh scratch company instead).
+    // Their account still works, but with no company: ToolPage now shows the
+    // real AwaitingCompany screen for this (post-onboarding, no company)
+    // case — no Sign Out button there, so this doesn't use loginAs(), same
+    // as the empty-state check this replaced before AwaitingCompany existed.
+    // Stamp onboarding complete: this spec tests invite/scope mechanics, not
+    // onboarding, and an unstamped revokee would otherwise hit the onboarding
+    // welcome screen instead of this (also Sign-Out-less) status screen.
     const revokeeId = await findUserId(REVOKEE_EMAIL);
     const { error } = await admin.auth.admin.updateUserById(revokeeId, { password: PASSWORD, email_confirm: true });
     if (error) throw new Error(`updateUserById failed: ${error.message}`);
+    await admin.from('profiles').update({ onboarding_completed_at: new Date().toISOString() }).eq('id', revokeeId);
 
     await page.goto('/app'); // AdminPanel has no Sign Out button
     await page.getByRole('button', { name: /sign out/i }).click();
     await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 15000 });
 
-    await loginAs(page, REVOKEE_EMAIL, PASSWORD);
-    await expect(page.getByRole('button', { name: /^TSC/ })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Res Hab Daily/i })).toHaveCount(0);
-    await expect(page.getByText('Sawtooth E2E')).toHaveCount(0);
+    await page.getByLabel(/email/i).fill(REVOKEE_EMAIL);
+    await page.getByLabel(/password/i).fill(PASSWORD);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await expect(page.getByText(/workspace is being set up/i)).toBeVisible({ timeout: 15000 });
   });
 });

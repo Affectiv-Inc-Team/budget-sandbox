@@ -2933,12 +2933,18 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
     setTimeout(() => setSaveStatus("idle"), 2500);
   };
 
-  // ── Empty-portfolio fallback (shouldn't happen under Model 1 but graceful if it does) ──
+  // ── Empty-portfolio fallback ──
+  // ToolPage now intercepts the real "no company" case with AwaitingCompany
+  // before FinancialTool ever mounts, so reaching this branch means something
+  // unexpected happened between that check and this render (a race, or
+  // FinancialTool mounted directly in a context that skips ToolPage, e.g.
+  // a test). Keep the same meaning, worded as an internal fallback rather
+  // than the primary UX for this case.
   if (!company) {
     return (
       <div style={{ padding:60, textAlign:"center", fontFamily:"'Sora',sans-serif" }}>
-        <h2 style={{ color:"#0A3D47", fontSize:18, marginBottom:8 }}>No companies assigned</h2>
-        <p style={{ color:"#64748b", fontSize:13 }}>You haven't been assigned access to any companies yet.<br/>Contact your Intrinsic administrator.</p>
+        <h2 style={{ color:"#0A3D47", fontSize:18, marginBottom:8 }}>No company loaded</h2>
+        <p style={{ color:"#64748b", fontSize:13 }}>Something went wrong loading your workspace.<br/>Try refreshing, or contact your Intrinsic administrator if this continues.</p>
       </div>
     );
   }
