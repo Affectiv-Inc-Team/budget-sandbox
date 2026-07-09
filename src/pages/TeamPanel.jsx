@@ -50,7 +50,7 @@ export default function TeamPanel() {
       setMe(profile);
 
       // Find companies where this user is an admin (via licensee row matching email)
-      const { data: lic } = await supabase.from("licensees").select("id").eq("name", profile.email);
+      const { data: lic } = await supabase.from("licensees").select("id").ilike("name", profile.email);
       const licId = lic?.[0]?.id;
       // Team management is per-agency: only show companies where the current
       // user is an admin member via licensee_companies. Super-admin status is
