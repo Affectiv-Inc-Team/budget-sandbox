@@ -3013,6 +3013,29 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "✓ Saved" : saveStatus === "error" ? "✗ Error" : "Save"}
                 </button>
               )}
+              {(userEmail || userRole) && (
+                <div
+                  title={`Signed in as ${userEmail || 'unknown'}\nRole: ${ROLE_LABELS[userRole] || userRole || '—'}`}
+                  style={{
+                    display:"flex", flexDirection:"column", alignItems:"flex-end",
+                    padding:"4px 10px", borderRadius:8, border:"1px solid #c8d4e4",
+                    background:"#f6f8fc", lineHeight:1.2, maxWidth:220,
+                  }}
+                >
+                  {userEmail && (
+                    <span style={{
+                      fontSize:11, fontWeight:700, color:"#2a3f5f",
+                      fontFamily:"'Sora',sans-serif",
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:200,
+                    }}>{userEmail}</span>
+                  )}
+                  <span style={{
+                    fontSize:9, fontWeight:700, color:"#5a7498",
+                    textTransform:"uppercase", letterSpacing:1,
+                    fontFamily:"'DM Mono',monospace",
+                  }}>{ROLE_LABELS[userRole] || userRole || 'No role'}</span>
+                </div>
+              )}
               {onSignOut && (
                 <button onClick={onSignOut} style={{
                   padding:"7px 14px", borderRadius:8, cursor:"pointer",
