@@ -2489,7 +2489,7 @@ function calcSLCo({ annualRevGrossRaw, annualLaborRaw, totalHomes, totalClients,
 // ════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ════════════════════════════════════════════════════════════════════
-export default function App({ initialConfig, onSave, userRole, onSignOut, companyName: legacyCompanyName }) {
+export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName }) {
   const [config, setConfig] = useState(() => migrateConfig(initialConfig));
   const [saveStatus, setSaveStatus] = useState("idle");
   const [activeKey, setActiveKey] = useState("WHOLE_COMPANY"); // "WHOLE_COMPANY" | service line id
