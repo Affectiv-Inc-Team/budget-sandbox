@@ -5,6 +5,7 @@ const FALLBACK_REDIRECT = 'https://budget.intrinsic.agency/reset-password'
 const ALLOWED_REDIRECT_HOSTS = new Set([
   'budget.intrinsic.agency',
   'budget-playpen.lovable.app',
+  'id-preview--7db2dc1b-e5a4-491b-8649-4765fdf3cf96.lovable.app',
   'localhost',
 ])
 
