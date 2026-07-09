@@ -24,7 +24,7 @@ function deriveRole(profile) {
 // Authenticated app shell — preserved verbatim from the prior App() return:
 // the tool/referrals switch, the fixed "Referral Tracker →" button, and the
 // IS_DEV role selector. Only the surrounding routing has changed.
-function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, setDevRole, onSignOut, isSuperAdmin }) {
+function AuthedApp({ effectiveRole, derivedRole, userEmail, module, setModule, devRole, setDevRole, onSignOut, isSuperAdmin }) {
   const navigate = useNavigate();
   const showReferrals = canSeeReferrals(effectiveRole) && module === "referrals";
 
@@ -37,7 +37,7 @@ function AuthedApp({ effectiveRole, derivedRole, module, setModule, devRole, set
           onSwitchModule={() => { posthog.capture('module_switched', { to: 'tool' }); setModule("tool"); }}
         />
       ) : (
-        <ToolPage userRole={effectiveRole} onSignOut={onSignOut} />
+        <ToolPage userRole={effectiveRole} userEmail={userEmail} onSignOut={onSignOut} />
       )}
 
       {canSeeReferrals(effectiveRole) && module === "tool" && (
