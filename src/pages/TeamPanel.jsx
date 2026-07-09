@@ -52,11 +52,11 @@ export default function TeamPanel() {
       // Find companies where this user is an admin (via licensee row matching email)
       const { data: lic } = await supabase.from("licensees").select("id").eq("name", profile.email);
       const licId = lic?.[0]?.id;
+      // Team management is per-agency: only show companies where the current
+      // user is an admin member via licensee_companies. Super-admin status is
+      // an Intrinsic-level flag and belongs to the Admin panel, not here.
       let companyRows = [];
-      if (profile?.is_super_admin) {
-        const { data } = await supabase.from("companies").select("id, name").eq("archived", false).order("name");
-        companyRows = data ?? [];
-      } else if (licId) {
+      if (licId) {
         const { data } = await supabase.from("licensee_companies")
           .select("company_id, role, companies(id, name, archived)")
           .eq("licensee_id", licId).eq("role", "admin");
