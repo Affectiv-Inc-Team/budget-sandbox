@@ -112,21 +112,24 @@ Deno.serve(async (req) => {
     (row) => typeof row.name === 'string' && row.name.trim().toLowerCase() === email,
   )
 
-  if (isProvisionedLicensee) {
-    const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
-    })
-
-    if (!inviteError) {
-      console.log('Sent pending-user invite link', { email, redirectTo })
-      return jsonResponse({ ok: true })
-    }
-
-    console.warn('Invite link failed; trying recovery fallback', {
-      email,
-      error: inviteError.message,
-    })
+  if (!isProvisionedLicensee) {
+    console.warn('Setup link requested for unassigned email', { email, redirectTo })
+    return jsonResponse({ ok: false, reason: 'not_provisioned' })
   }
+
+  const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+  })
+
+  if (!inviteError) {
+    console.log('Sent pending-user invite link', { email, redirectTo })
+    return jsonResponse({ ok: true })
+  }
+
+  console.warn('Invite link failed; trying recovery fallback', {
+    email,
+    error: inviteError.message,
+  })
 
   const { error: recoveryError } = await sendRecoveryLink(supabaseUrl, anonKey, email, redirectTo)
   if (recoveryError) {
