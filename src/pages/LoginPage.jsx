@@ -39,7 +39,7 @@ export default function LoginPage() {
     setInfo(null);
 
     const normalizedEmail = email.trim().toLowerCase();
-    const { error: linkError } = await supabase.functions.invoke("request-setup-link", {
+    const { data: linkData, error: linkError } = await supabase.functions.invoke("request-setup-link", {
       body: {
         email: normalizedEmail,
         redirectTo: `${window.location.origin}/reset-password`,
@@ -49,6 +49,9 @@ export default function LoginPage() {
     if (linkError) {
       setError("We couldn't send that link. Please try again or contact your admin.");
       posthog.captureException(linkError, { endpoint: 'request-setup-link' });
+    } else if (linkData?.ok === false && linkData?.reason === "not_provisioned") {
+      setError("That email hasn't been added to a company yet. Ask your Intrinsic admin to add the exact email, then try again.");
+      posthog.capture('password_reset_unprovisioned');
     } else {
       posthog.capture('password_reset_requested');
       setEmail(normalizedEmail);
