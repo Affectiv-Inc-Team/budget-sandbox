@@ -100,7 +100,7 @@ export default function AdminPanel({ onExit }) {
 
   // Quick-add (combined) form
   const [qaEmail, setQaEmail]   = useState("");
-  const [qaCo, setQaCo]         = useState("");
+  const [qaCo, setQaCo]         = useState([]); // array of company ids (multi-assign)
   const [qaAccess, setQaAccess] = useState("editor");
   const [qaOrg, setQaOrg]       = useState("");
 
@@ -151,7 +151,8 @@ export default function AdminPanel({ onExit }) {
     e.preventDefault();
     setErr(null); setNotice(null);
     const email = qaEmail.trim().toLowerCase();
-    if (!email || !qaCo) return;
+    const coIds = Array.isArray(qaCo) ? qaCo.filter(Boolean) : (qaCo ? [qaCo] : []);
+    if (!email || coIds.length === 0) return;
 
     // 1. Ensure licensee exists
     let lic = licByEmail[email];
@@ -162,23 +163,27 @@ export default function AdminPanel({ onExit }) {
       lic = data;
     }
 
-    // 2. Assign to company with access role
+    // 2. Assign to every selected company with access role (bulk upsert)
+    const rows = coIds.map(cid => ({ licensee_id: lic.id, company_id: cid, role: qaAccess }));
     const { error: aErr } = await supabase.from("licensee_companies")
-      .upsert({ licensee_id: lic.id, company_id: qaCo, role: qaAccess },
-              { onConflict: "licensee_id,company_id" });
+      .upsert(rows, { onConflict: "licensee_id,company_id" });
     if (aErr) return setErr(`Assign: ${aErr.message}`);
 
-    // 3. Set org role (optional)
+    // 3. Set org role (optional) on each company — org role is per-company
     if (qaOrg) {
-      const { error: oErr } = await supabase.rpc("set_member_org_role", {
-        p_company_id: qaCo, p_target_email: email, p_role: qaOrg,
-      });
-      if (oErr) return setErr(`Org role: ${oErr.message}`);
+      for (const cid of coIds) {
+        const { error: oErr } = await supabase.rpc("set_member_org_role", {
+          p_company_id: cid, p_target_email: email, p_role: qaOrg,
+        });
+        if (oErr) return setErr(`Org role (${cid}): ${oErr.message}`);
+      }
     }
 
-    const coName = companies.find(c => c.id === qaCo)?.name ?? qaCo;
-    setNotice(`✓ ${email} added to ${coName} as ${qaAccess}${qaOrg ? ` / ${qaOrg}` : ""}. They can now request a setup link at sign-in.`);
-    setQaEmail(""); setQaOrg("");
+    const coNames = coIds
+      .map(cid => companies.find(c => c.id === cid)?.name ?? cid)
+      .join(", ");
+    setNotice(`✓ ${email} added to ${coNames} as ${qaAccess}${qaOrg ? ` / ${qaOrg}` : ""}. They can now request a setup link at sign-in.`);
+    setQaEmail(""); setQaOrg(""); setQaCo([]);
     reload();
   }
 
@@ -318,16 +323,24 @@ export default function AdminPanel({ onExit }) {
           </div>
           <div>
             <div style={label}>
-              Company
-              <Info text="The portfolio company they'll be able to open in the tool." />
+              Companies
+              <Info text="The portfolio companies they'll be able to open in the tool. Hold Ctrl/Cmd (or Shift) to pick multiple — the same access + org role will be applied to each." />
             </div>
-            <select style={{ ...input, marginRight: 0, width: "100%" }}
-              value={qaCo} onChange={e => setQaCo(e.target.value)} required>
-              <option value="">— pick a company —</option>
+            <select
+              multiple
+              size={Math.min(6, Math.max(3, companies.filter(c => !c.archived).length))}
+              style={{ ...input, marginRight: 0, width: "100%", height: "auto", padding: 8 }}
+              value={qaCo}
+              onChange={e => setQaCo(Array.from(e.target.selectedOptions, o => o.value))}
+              required
+            >
               {companies.filter(c => !c.archived).map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+            <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>
+              {qaCo.length === 0 ? "Pick one or more" : `${qaCo.length} selected`} · Ctrl/Cmd-click to multi-select
+            </div>
           </div>
           <div>
             <div style={label}>
