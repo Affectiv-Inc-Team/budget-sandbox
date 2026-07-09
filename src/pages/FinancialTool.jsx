@@ -1241,7 +1241,7 @@ function Sidebar({ entityType, setEntityType, ownerRate, setOwnerRate, mgmtFeePc
   const showTaxStruct = canSeeControl(userRole, 'entityType');
 
   return (
-    <div style={{ borderRight:"1px solid #d0dae8", padding:"16px 14px", display:"flex", flexDirection:"column", gap:18, background:"#f4f2ec", overflowY:"auto" }}>
+    <div data-tour="sidebar" style={{ borderRight:"1px solid #d0dae8", padding:"16px 14px", display:"flex", flexDirection:"column", gap:18, background:"#f4f2ec", overflowY:"auto" }}>
       {showFees && (
         <div>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: feesOpen ? 12 : 0 }}>
@@ -2983,7 +2983,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
 
               {/* Company picker — Model 1: read-only list of assigned companies, no add */}
               {config.companies.filter(c => !c.archived).length > 1 && (
-                <div style={{ borderLeft:"1px solid #c8d4e4", paddingLeft:14, display:"flex", flexDirection:"column", gap:4 }}>
+                <div data-tour="company-switcher" style={{ borderLeft:"1px solid #c8d4e4", paddingLeft:14, display:"flex", flexDirection:"column", gap:4 }}>
                   <span style={{ fontSize:8, color:"#94a3b8", letterSpacing:2, textTransform:"uppercase", ...M, fontFamily:"'DM Mono',monospace" }}>Company</span>
                   <select value={config.selectedCompanyId || ""}
                     onChange={(e) => setConfig(prev => ({ ...prev, selectedCompanyId: e.target.value }))}
@@ -3022,7 +3022,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                 </div>
               ))}
               {onSave && canEditServiceLines(userRole) && (
-                <button onClick={handleSave} disabled={saveStatus === "saving"} style={{
+                <button data-tour="save-button" onClick={handleSave} disabled={saveStatus === "saving"} style={{
                   padding:"7px 18px", borderRadius:8, border:"none", cursor:"pointer",
                   fontWeight:700, fontSize:11, fontFamily:"'Sora',sans-serif",
                   letterSpacing:0.5, transition:"background 0.2s, box-shadow 0.2s, transform 0.1s",
@@ -3068,7 +3068,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
           </div>
 
           {/* ── Service line tab strip ── */}
-          <div style={{ display:"flex", marginTop:12, alignItems:"flex-end", gap:0 }}>
+          <div data-tour="tab-strip" style={{ display:"flex", marginTop:12, alignItems:"flex-end", gap:0 }}>
             {/* Double-wrapper: outer constrains width, inner scrolls */}
             <div style={{ flex:1, minWidth:0, overflow:"hidden" }}>
               <div style={{ display:"flex", gap:2, alignItems:"flex-end", overflowX:"auto", scrollbarWidth:"none" }}>
