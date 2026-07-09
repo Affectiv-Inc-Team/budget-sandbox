@@ -100,7 +100,7 @@ export default function AdminPanel({ onExit }) {
 
   // Quick-add (combined) form
   const [qaEmail, setQaEmail]   = useState("");
-  const [qaCo, setQaCo]         = useState("");
+  const [qaCo, setQaCo]         = useState([]); // array of company ids (multi-assign)
   const [qaAccess, setQaAccess] = useState("editor");
   const [qaOrg, setQaOrg]       = useState("");
 
