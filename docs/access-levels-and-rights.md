@@ -38,16 +38,16 @@ Lower numbers = higher access. Tier 1 is the most privileged, tier 8 the least.
 
 The matrix below covers the four visibility dimensions that matter most: company-level dollars, percentages, wages, and budget detail. Specific tab and feature rules follow below.
 
-| Tier | Role | Company $ | Percentages | Wages | Budget Builder |
-|---|---|---|---|---|---|
-| 1 | Owner | ✅ Full | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
-| 2 | CEO | ✅ Full | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
-| 3 | Finance | ✅ Scoped | ✅ Scoped | ✅ $ (scoped) | ✅ Full ($, all rows, scoped) |
-| 4 | Regional Director | ❌ Hidden | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
-| 5 | Program Manager | ❌ Hidden | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
-| 6 | HR Manager | ❌ Hidden | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
-| 7 | Scheduler / Regional Assistant | ❌ Hidden | ✅ Full | 🔒 As % only | 🔒 Own row in $; below their tier as % |
-| 8 | House Lead / Team Coordinator | ❌ Hidden | ✅ Full | ❌ Hidden | 🔒 Own row in $ only; rows above hidden |
+| Tier | Role | Company $ | Revenue / Margin | Percentages (non-revenue) | Wages | Budget Builder |
+|---|---|---|---|---|---|---|
+| 1 | Owner | ✅ Full | ✅ Full ($ and %) | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
+| 2 | CEO | ✅ Full | ✅ Full ($ and %) | ✅ Full | ✅ Full $ | ✅ Full ($, all rows) |
+| 3 | Finance | ✅ Scoped | ✅ Scoped ($ and %) | ✅ Scoped | ✅ $ (scoped) | ✅ Full ($, all rows, scoped) |
+| 4 | Regional Director | ❌ Hidden | 🔒 % only (no $) | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
+| 5 | Program Manager | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
+| 6 | HR Manager | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | ✅ Visible $ | 🔒 Own row in $; below their tier as % |
+| 7 | Scheduler / Regional Assistant | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | 🔒 As % only | 🔒 Own row in $; below their tier as % |
+| 8 | House Lead / Team Coordinator | ❌ Hidden | ❌ Hidden ($ and %) | ✅ Full | ❌ Hidden | 🔒 Own row in $ only; rows above hidden |
 
 **Symbol key:**
 - ✅ Visible
@@ -62,15 +62,21 @@ The matrix below covers the four visibility dimensions that matter most: company
 ### Rule 1 — Company dollars
 **Tiers 1–3** (Owner, CEO, Finance) see all dollar amounts everywhere. KPI tiles, P&L rollups, service-line revenue, total labor costs — all in raw dollars.
 
-**Tiers 4–8** see those same metrics expressed as **percentages or ratios**:
+**Tier 4** (Regional Director) sees those metrics expressed as **percentages or ratios** rather than dollars:
 - Revenue tiles render as "% of company total" rather than "$X annual"
 - EBITDA tile renders as "%" (EBITDA margin) rather than "$"
 - Net Income tile renders as "% net margin" rather than "$"
 - P&L rows render as "% of revenue" rather than absolute amounts
-- The dollar-mode toggle is hidden from tiers 4–8
-- **5-Year Projection** table (now inside the Labor Efficiency tab): Annual Revenue, Annual Labor, and Annual Gross columns are hidden; only Year and Gross Margin % are shown to tiers 4–8. The entire projection section is hidden for tier 8.
+
+**Tiers 5–8** (Program Manager, HR Manager, Scheduler, House Lead) see **no revenue or margin at all — neither dollars nor percentages**. Revenue and margin are financial-planning concepts outside their operational scope:
+- The Company tab's Net Revenue, EBITDA, EBITDA Mgn, and Net Margin KPI chips are hidden
+- The Company P&L panel is replaced with a short "restricted to Regional Director and above" notice
+- Home Mix Editor: per-home margin ring, the "% margin" caption, and the per-home margin % badge are all hidden; card borders fall back to a neutral color instead of the margin-state color
+- Home detail metric grid: the "Margin" tile is hidden (same gate)
+- **5-Year Projection** table (inside the Labor Efficiency tab) is hidden entirely for tiers 4–8
 - **Budget Builder header**: All three context cards (Total Participants, Net Revenue, Revenue / Participant) are hidden for tiers 4–8
 - **Portfolio tab**: hidden entirely from the navigation for tiers 4–8 (not masked — the tab does not appear)
+- The dollar-mode toggle is hidden from tiers 4–8
 
 ### Rule 2 — Wages
 **Tiers 1–6** can see wages in dollars wherever they appear: the sidebar wage slider, per-coordinator hourly wage in TSC, per-clinician hourly wage in School-Based Services, per-home labor cost in Res Hab Mix Editor, graveyard wage, etc.
@@ -193,6 +199,7 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 
 ### Tier 5 — Program Manager
 - **Header KPIs:** Hidden — entire KPI chip bar does not render.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. The Company P&L panel is replaced with a short "restricted to Regional Director and above" notice.
 - **Whole Company P&L:** Hidden — does not appear in navigation.
 - **Service line P&L tabs:** Hidden — P&L tabs do not appear.
 - **Portfolio tab:** Hidden — does not appear in navigation.
@@ -200,10 +207,10 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Service line operational tabs:** All visible except as noted above. Focuses operationally on the service lines they run.
 - **Budget Builder:** No header cards. Their own row in $, lines below in %, lines above hidden.
 - **Labor Efficiency tab:** Ratio/% content visible. Dollar tiles and 5-year projection hidden.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and per-home margin badge are hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for all other controls.
 - **Sidebar:** Wage, occupancy, Res Hab rate overrides visible. Entity type, owner rate, fees hidden.
 - **Wages:** Visible.
 - **Add Service Line:** Button hidden — Program Managers cannot add service lines.
-- **Home Mix Editor:** View-only — can see configuration but cannot modify homes, sliders, or billing settings.
 - **FAQ:** Billing type, EBITDA, management fees, and Mix Editor topics hidden. Sees staffing, group hours, revenue rates, rate reduction, and Budget Builder questions. "Why percentages?" explainer shown. AI assistant focuses on staffing and operational efficiency.
 
 ### Tier 6 — HR Manager
@@ -218,7 +225,8 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Sidebar:** Wage and occupancy visible. Rate overrides, entity type, owner rate, fees hidden.
 - **Wages:** Visible — HR needs wages to manage staff.
 - **Add Service Line:** Button hidden — HR Managers cannot add service lines.
-- **Home Mix Editor:** View-only — can see configuration but cannot modify homes, sliders, or billing settings.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and per-home margin badge hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for all other controls.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. Company P&L panel replaced with "restricted to Regional Director and above" notice.
 - **FAQ:** Same as Program Manager. Billing type and hourly rates also hidden (HR doesn't make billing decisions). Staffing ratios, payroll burden, and group hours visible. AI assistant focuses on HR and staffing efficiency.
 
 ### Tier 7 — Scheduler / Regional Assistant
@@ -233,7 +241,8 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Sidebar:** Occupancy visible. Wage controls visible **but rendered as ratios** (e.g., average wage as % of revenue, overtime % of total labor) rather than raw dollar wage sliders. Rate overrides, entity, fees all hidden.
 - **Wages and overtime:** Visible **as percentages only**. No raw dollar wage figures.
 - **Add Service Line:** Button hidden — Schedulers cannot add service lines.
-- **Home Mix Editor:** View-only — can see configuration but cannot modify homes, sliders, or billing settings.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and margin badge hidden; card borders neutral. Home detail "Margin" tile hidden. View-only.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. Company P&L panel replaced with "restricted to Regional Director and above" notice.
 - **Save button:** Hidden — tiers 7–8 are fully read-only; the Save button does not render.
 - **FAQ:** Revenue section reduced to Intense vs High Support only. Billing type, hourly rates, group hours revenue impact, payroll burden, EBITDA, and management fees all hidden. Sees staffing ratio, labor for group hours, "why percentages?" explainer, Budget Builder, and Margin Guide. AI assistant focuses on scheduling and shift coverage efficiency.
 
@@ -249,7 +258,8 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Sidebar:** Occupancy visible. Everything else hidden.
 - **Wages:** Hidden everywhere.
 - **Add Service Line:** Button hidden.
-- **Home Mix Editor:** View-only — cannot modify homes, sliders, or billing settings.
+- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and margin badge hidden; card borders neutral. Home detail "Margin" tile hidden. View-only.
+- **Company tab:** Net Revenue, EBITDA, EBITDA Mgn, and Net Margin chips hidden. Company P&L panel replaced with "restricted to Regional Director and above" notice.
 - **Save button:** Hidden — tier 8 is fully read-only.
 - **FAQ:** Revenue section hidden entirely. "Understanding Your Revenue" has no visible items for tier 8. Sees only: High Support staffing ratio, Budget Builder explanation, and Margin Guide. AI assistant focuses on daily operations, client mix, and occupancy.
 

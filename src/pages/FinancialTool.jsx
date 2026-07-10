@@ -8,7 +8,7 @@ import { TSCCurrentServicesTab, TSCSandboxTab, TSCPLTab, TSCRateScheduleTab, cal
 import { ChildrensDDACurrentServicesTab, ChildrensDDASandboxTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService, SchoolBasedCurrentServicesTab, SchoolBasedSandboxTab } from "../serviceLines/school_based.jsx";
-import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeMargin, canSeeRevenue, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS } from "../lib/access.js";
+import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeMargin, canSeeRevenue, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 import { VolumeTrackerTab } from "../serviceLines/volumeTracker.jsx";
 
 import { LOGO } from "../assets/logo.js";
@@ -2489,7 +2489,7 @@ function calcSLCo({ annualRevGrossRaw, annualLaborRaw, totalHomes, totalClients,
 // ════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ════════════════════════════════════════════════════════════════════
-export default function App({ initialConfig, onSave, userRole, onSignOut, companyName: legacyCompanyName }) {
+export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName }) {
   const [config, setConfig] = useState(() => migrateConfig(initialConfig));
   const [saveStatus, setSaveStatus] = useState("idle");
   const [activeKey, setActiveKey] = useState("WHOLE_COMPANY"); // "WHOLE_COMPANY" | service line id
@@ -3012,6 +3012,29 @@ export default function App({ initialConfig, onSave, userRole, onSignOut, compan
                 }}>
                   {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "✓ Saved" : saveStatus === "error" ? "✗ Error" : "Save"}
                 </button>
+              )}
+              {(userEmail || userRole) && (
+                <div
+                  title={`Signed in as ${userEmail || 'unknown'}\nRole: ${ROLE_LABELS[userRole] || userRole || '—'}`}
+                  style={{
+                    display:"flex", flexDirection:"column", alignItems:"flex-end",
+                    padding:"4px 10px", borderRadius:8, border:"1px solid #c8d4e4",
+                    background:"#f6f8fc", lineHeight:1.2, maxWidth:220,
+                  }}
+                >
+                  {userEmail && (
+                    <span style={{
+                      fontSize:11, fontWeight:700, color:"#2a3f5f",
+                      fontFamily:"'Sora',sans-serif",
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:200,
+                    }}>{userEmail}</span>
+                  )}
+                  <span style={{
+                    fontSize:9, fontWeight:700, color:"#5a7498",
+                    textTransform:"uppercase", letterSpacing:1,
+                    fontFamily:"'DM Mono',monospace",
+                  }}>{ROLE_LABELS[userRole] || userRole || 'No role'}</span>
+                </div>
               )}
               {onSignOut && (
                 <button onClick={onSignOut} style={{
