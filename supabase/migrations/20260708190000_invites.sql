@@ -76,8 +76,11 @@ AS $$
 $$;
 
 -- Owner invites any tier (incl. another Owner); everyone else strictly below
--- their own. coalesce(): profile_role_tier() is NULL for callers with no
--- profile row — treat as "cannot invite", never as "check skipped".
+-- their own. coalesce(): profile_role_tier() returns NULL only when the caller
+-- has no profile row at all (an unrecognized/NULL role value on an existing
+-- profile falls through to tier 2, not NULL — see profile_role_tier() in
+-- 20260615201552_...sql). Either way, missing tier data must read as "cannot
+-- invite", never as "check skipped".
 CREATE OR REPLACE FUNCTION public.can_invite_role(p_target_role text)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
@@ -111,13 +114,16 @@ declare
   v_email        text;
   v_target_tier  int;
   v_access_role  text;
+  v_inviter_access_role text;
   v_licensee_id  uuid;
   v_profile_id   uuid;
   v_inviter_email text;
   v_invite_id    uuid;
+  v_current_org_role text;
+  v_other_membership boolean;
 begin
   v_email := lower(trim(p_email));
-  if v_email is null or v_email = '' or position('@' in v_email) < 2 then
+  if v_email is null or v_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then
     raise exception 'a valid email is required' using errcode = 'invalid_parameter_value';
   end if;
 
@@ -167,6 +173,26 @@ begin
                         when v_target_tier <= 6 then 'editor'
                         else 'read_only' end;
 
+  -- Cap by the inviter's OWN access at this company. Org tier and per-company
+  -- access_role are independent axes (a global-tier Owner can still be a mere
+  -- 'editor' guest at some other company) — without this, that guest could
+  -- invite someone with more access to the company than the guest has.
+  -- Super admins have no licensee_companies row and are never capped.
+  if not public.is_super_admin() then
+    select lc.role into v_inviter_access_role
+      from public.licensee_companies lc
+      join public.licensees l on l.id = lc.licensee_id
+      join public.profiles p on lower(p.email) = lower(l.name)
+     where p.id = auth.uid() and lc.company_id = p_company_id
+     limit 1;
+
+    if v_inviter_access_role = 'read_only' then
+      v_access_role := 'read_only';
+    elsif v_inviter_access_role = 'editor' and v_access_role = 'admin' then
+      v_access_role := 'editor';
+    end if;
+  end if;
+
   select email into v_inviter_email from public.profiles where id = auth.uid();
 
   -- Licensee + membership (+scope)
@@ -180,9 +206,32 @@ begin
   on conflict (licensee_id, company_id)
     do update set role = excluded.role, service_line_scope = excluded.service_line_scope;
 
-  -- Org role: live profile if the account exists, else pending for handle_new_user()
-  select id into v_profile_id from public.profiles where lower(email) = v_email limit 1;
+  -- Org role: live profile if the account exists, else pending for handle_new_user().
+  -- profiles.role is a GLOBAL attribute (gates access across every company the
+  -- target belongs to, not just this one). Re-inviting an existing multi-company
+  -- member with the SAME tier they already hold is a harmless no-op (the common
+  -- "add this Regional Director to another company" flow) — but ACTUALLY
+  -- CHANGING the tier of someone already established at a DIFFERENT company must
+  -- not happen silently from over here. Only a super admin may do that; anyone
+  -- else invites at the target's existing tier or asks a super admin to change it.
+  select id, role into v_profile_id, v_current_org_role
+    from public.profiles where lower(email) = v_email limit 1;
   if v_profile_id is not null then
+    if p_org_role is distinct from v_current_org_role and not public.is_super_admin() then
+      select exists (
+        select 1
+          from public.licensee_companies lc2
+          join public.licensees l2 on l2.id = lc2.licensee_id
+         where lower(l2.name) = v_email
+           and lc2.company_id <> p_company_id
+      ) into v_other_membership;
+
+      if v_other_membership then
+        raise exception 'target already has a different role at another company — a super admin must change it'
+          using errcode = 'insufficient_privilege';
+      end if;
+    end if;
+
     update public.profiles set role = p_org_role where id = v_profile_id;
     update public.licensees set pending_org_role = null where id = v_licensee_id;
   else
@@ -300,7 +349,7 @@ AS $$
 declare
   v_invite record;
   v_licensee_id uuid;
-  v_accepted boolean;
+  v_last_sign_in timestamptz;
 begin
   select * into v_invite from public.invites where id = p_invite_id;
   if v_invite is null then
@@ -317,11 +366,15 @@ begin
     raise exception 'invite is already revoked' using errcode = 'invalid_parameter_value';
   end if;
 
-  -- Derived acceptance: once the invitee has signed in, this is member
-  -- management, not invite management — use the explicit remove-member path.
-  select (u.last_sign_in_at is not null) into v_accepted
+  -- Derived acceptance, scoped to THIS invite: last_sign_in_at is a global
+  -- signal (an email that already has an account elsewhere, or already
+  -- belongs to another company, is typically signed in long before this
+  -- invite ever existed). Only treat it as "accepted this invite" if the
+  -- sign-in happened AFTER this invite was created — otherwise every invite
+  -- to an already-active user would be unrevokable from the moment it's sent.
+  select u.last_sign_in_at into v_last_sign_in
     from auth.users u where lower(u.email) = v_invite.email limit 1;
-  if coalesce(v_accepted, false) then
+  if v_last_sign_in is not null and v_last_sign_in > v_invite.created_at then
     raise exception 'invite already accepted — remove the member instead'
       using errcode = 'invalid_parameter_value';
   end if;
