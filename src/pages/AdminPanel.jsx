@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../supabase.js";
 import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
-import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 
 const wrap    = { minHeight: "100vh", background: "#0b1220", color: "#e2e8f0", fontFamily: "system-ui, sans-serif", padding: 24 };
 const card    = { background: "#111a2e", border: "1px solid #1f2a44", borderRadius: 10, padding: 20, marginBottom: 20 };
@@ -97,6 +96,7 @@ export default function AdminPanel({ onExit }) {
   const [profiles, setProfiles]     = useState([]);
   const [orgRolesByCo, setOrgRolesByCo] = useState({}); // { companyId: { emailLower: statusRow } }
   const [invites, setInvites]       = useState([]);
+  const [revokingIds, setRevokingIds] = useState(() => new Set());
   const [loading, setLoading]       = useState(true);
   const [err, setErr]               = useState(null);
   const [notice, setNotice]         = useState(null);
@@ -114,7 +114,7 @@ export default function AdminPanel({ onExit }) {
     setLoading(true);
     setErr(null);
     const [c, l, lc, p, inv] = await Promise.all([
-      supabase.from("companies").select("id, name, archived, created_at").order("created_at"),
+      supabase.from("companies").select("id, name, archived, created_at, config->serviceLines").order("created_at"),
       supabase.from("licensees").select("id, name, created_at").order("created_at"),
       supabase.from("licensee_companies").select("licensee_id, company_id, role, assigned_at"),
       supabase.from("profiles").select("id, email, is_super_admin, role"),
@@ -260,10 +260,17 @@ export default function AdminPanel({ onExit }) {
   }
 
   async function revokeInvite(id, email) {
+    if (revokingIds.has(id)) return; // already in flight — ignore a fast double-click
     if (!confirm(`Revoke the invite for ${email}? Their pending access to the company is removed.`)) return;
+    setRevokingIds(prev => new Set(prev).add(id));
     const { error } = await supabase.rpc("revoke_invite", { p_invite_id: id });
-    if (error) return setErr(error.message);
-    reload();
+    if (error) setErr(error.message);
+    setRevokingIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    if (!error) reload();
   }
 
   // Group assignments by company for the "who has access" view
@@ -285,6 +292,17 @@ export default function AdminPanel({ onExit }) {
     const assigned = new Set(assigns.map(a => a.licensee_id));
     return licensees.filter(l => !assigned.has(l.id));
   }, [licensees, assigns]);
+
+  // Service line names by company, for resolving invite scope ids to labels
+  const slNameByCo = useMemo(() => {
+    const m = {};
+    for (const co of companies) {
+      const byId = {};
+      for (const sl of co.serviceLines ?? []) byId[sl.id] = sl.name;
+      m[co.id] = byId;
+    }
+    return m;
+  }, [companies]);
 
   return (
     <div style={wrap}>
@@ -600,7 +618,9 @@ export default function AdminPanel({ onExit }) {
                       : i.org_role}
                   </td>
                   <td style={{ ...td, fontFamily: "monospace", fontSize: 11, color: "#94a3b8" }}>
-                    {i.service_line_scope ?? "whole company"}
+                    {i.service_line_scope
+                      ? (slNameByCo[i.company_id]?.[i.service_line_scope] ?? i.service_line_scope)
+                      : "whole company"}
                   </td>
                   <td style={td}>{i.invited_by_email}</td>
                   <td style={{ ...td, color: statusColor }}>{i.effective_status}</td>
@@ -611,9 +631,10 @@ export default function AdminPanel({ onExit }) {
                     {revocable && (
                       <button
                         style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
+                        disabled={revokingIds.has(i.id)}
                         onClick={() => revokeInvite(i.id, i.email)}
                       >
-                        Revoke
+                        {revokingIds.has(i.id) ? "Revoking…" : "Revoke"}
                       </button>
                     )}
                   </td>
