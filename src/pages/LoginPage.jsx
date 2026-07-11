@@ -1,9 +1,20 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "../supabase.js";
 import { LOGO } from "../assets/logo.js";
 import posthog from "../lib/posthog.js";
 
+// Only allow same-origin relative paths for post-login navigation, so the
+// `?next=` parameter can't be turned into an open redirect to another origin.
+function safeNext(raw) {
+  if (!raw) return null;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 export default function LoginPage() {
+  const [searchParams] = useSearchParams();
+  const nextPath = safeNext(searchParams.get("next"));
   const [mode, setMode] = useState("signin"); // "signin" | "reset" | "sent"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
