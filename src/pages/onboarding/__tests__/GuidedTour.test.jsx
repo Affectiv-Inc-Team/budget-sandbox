@@ -65,6 +65,47 @@ describe("GuidedTour — stop content and navigation", () => {
   });
 });
 
+describe("GuidedTour — keyboard accessibility", () => {
+  it("focuses the Next button when a stop becomes visible", async () => {
+    render(
+      <>
+        <Targets />
+        <GuidedTour role="OWNER" multiCompany={false} onFinish={vi.fn()} onSkip={vi.fn()} />
+      </>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /next/i })).toHaveFocus());
+  });
+
+  it("Escape calls onSkip, same as clicking Skip tour", async () => {
+    const onSkip = vi.fn();
+    render(
+      <>
+        <Targets />
+        <GuidedTour role="OWNER" multiCompany={false} onFinish={vi.fn()} onSkip={onSkip} />
+      </>,
+    );
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeDefined());
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(onSkip).toHaveBeenCalledOnce();
+  });
+
+  it("Tab from Next wraps to Skip tour, and Shift+Tab from Skip tour wraps to Next", async () => {
+    render(
+      <>
+        <Targets />
+        <GuidedTour role="OWNER" multiCompany={false} onFinish={vi.fn()} onSkip={vi.fn()} />
+      </>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /next/i })).toHaveFocus());
+
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Tab" });
+    expect(screen.getByText(/skip tour/i)).toHaveFocus();
+
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Tab", shiftKey: true });
+    expect(screen.getByRole("button", { name: /next/i })).toHaveFocus();
+  });
+});
+
 describe("GuidedTour — missing-target handling", () => {
   it("skips the company-switcher stop when there's only one company (target absent) and starts on shared", async () => {
     render(

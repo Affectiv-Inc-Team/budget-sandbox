@@ -10,6 +10,8 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState(null);
   const rafRef = useRef(null);
+  const skipRef = useRef(null);
+  const nextRef = useRef(null);
 
   const stop = stops[index] ?? null;
 
@@ -29,6 +31,11 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
         onFinish?.();
         return;
       }
+      // Clear rect in the same batch as advancing index — otherwise the next
+      // render shows the NEW stop's title/body positioned at the OLD stop's
+      // rect for one paint, since this effect (which resolves the new rect)
+      // only runs after that render commits.
+      setRect(null);
       setIndex((i) => i + 1);
       return;
     }
@@ -67,7 +74,36 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
       onFinish?.();
       return;
     }
+    // See the comment above the auto-skip effect: clear rect in the same
+    // batch as index so a render never pairs the new stop's copy with the
+    // previous stop's position.
+    setRect(null);
     setIndex((i) => i + 1);
+  }
+
+  // Move focus into the tour whenever a stop becomes visible, so keyboard
+  // users land on a real control instead of whatever the underlying
+  // (still-interactive) dashboard happened to have focused.
+  useEffect(() => {
+    if (stop && rect) nextRef.current?.focus();
+  }, [stop, rect]);
+
+  // Escape skips the tour (same as the Skip tour button); Tab/Shift+Tab wrap
+  // between the two buttons so focus can't escape into the dashboard behind
+  // the spotlight while the tour is up — a minimal trap for a 2-control dialog.
+  function handleKeyDown(e) {
+    if (e.key === "Escape") {
+      onSkip?.();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    if (e.shiftKey && document.activeElement === skipRef.current) {
+      e.preventDefault();
+      nextRef.current?.focus();
+    } else if (!e.shiftKey && document.activeElement === nextRef.current) {
+      e.preventDefault();
+      skipRef.current?.focus();
+    }
   }
 
   if (!stop || !rect) return null; // no stops, or still resolving this stop's target
@@ -106,7 +142,7 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
   return (
     <>
       <div style={holeStyle} />
-      <div style={tipStyle} role="dialog" aria-label="Guided tour">
+      <div style={tipStyle} role="dialog" aria-label="Guided tour" onKeyDown={handleKeyDown}>
         <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9.5, color: "#C9921A", letterSpacing: 1, marginBottom: 4 }}>
           {index + 1} / {stops.length} · {stop.title}
         </div>
@@ -125,6 +161,7 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <button
+              ref={skipRef}
               type="button"
               onClick={onSkip}
               style={{ background: "none", border: "none", padding: 0, fontSize: 11, color: "#94a3b8", cursor: "pointer" }}
@@ -132,6 +169,7 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
               Skip tour
             </button>
             <button
+              ref={nextRef}
               type="button"
               onClick={handleNext}
               style={{ fontSize: 11, fontWeight: 700, border: "none", background: "#0E6B78", color: "#fff", padding: "5px 11px", borderRadius: 6, cursor: "pointer" }}
