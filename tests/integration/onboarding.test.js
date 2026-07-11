@@ -66,8 +66,16 @@ describe('onboarding_completed_at column', () => {
 
     const roleAttempt = await client.from('profiles').update({ role: 'OWNER' }).eq('id', userId);
     const adminAttempt = await client.from('profiles').update({ is_super_admin: true }).eq('id', userId);
-    // Column-level grants make these either an explicit error or a silent no-op.
-    void roleAttempt; void adminAttempt;
+    // Column-level grants make these either an explicit permission error or a
+    // silent no-op (0 rows affected) — never a generic/unexpected failure —
+    // and never actually change the row (asserted below).
+    for (const attempt of [roleAttempt, adminAttempt]) {
+      if (attempt.error) {
+        expect(attempt.error.code).toMatch(/^(42501|PGRST)/); // permission denied / PostgREST-shaped
+      } else {
+        expect(attempt.data ?? attempt.count ?? 0).toBeFalsy(); // no rows actually updated
+      }
+    }
 
     const { data } = await adminClient
       .from('profiles').select('role, is_super_admin').eq('id', userId).single();
