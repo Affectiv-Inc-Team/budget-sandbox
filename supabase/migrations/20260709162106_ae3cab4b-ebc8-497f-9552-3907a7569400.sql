@@ -35,8 +35,14 @@ REVOKE EXECUTE ON FUNCTION public.profile_role_tier() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.profile_role_tier() TO authenticated;
 
 -- Email queue helpers: service_role only (called from edge functions / cron)
-REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.email_queue_dispatch() TO service_role;
+-- NOTE: email_queue_dispatch() exists in production (applied directly via the
+-- Lovable Management API alongside the pg_cron job in email_infra.sql's
+-- post-migration steps) but its CREATE FUNCTION was never committed to a
+-- migration. The REVOKE/GRANT below is commented out so `supabase db reset`
+-- doesn't fail on a function that doesn't exist locally. Nothing in src/ or
+-- tests/ calls this RPC directly. Re-enable once a migration defining it lands.
+-- REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM PUBLIC, anon, authenticated;
+-- GRANT EXECUTE ON FUNCTION public.email_queue_dispatch() TO service_role;
 
 REVOKE EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) TO service_role;
@@ -57,7 +63,10 @@ REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authentic
 REVOKE EXECUTE ON FUNCTION public.referrals_audit() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.set_referral_child_company() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.referrals_log_stage_change() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM PUBLIC, anon, authenticated;
+-- NOTE: email_queue_wake() exists in production but was never committed as a
+-- migration (see email_queue_dispatch note above) — commented out so
+-- `supabase db reset` doesn't fail on a function that doesn't exist locally.
+-- REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.referrals_touch_timestamps() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.set_updated_at() FROM PUBLIC, anon, authenticated;
 
