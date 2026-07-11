@@ -11,6 +11,7 @@ import LandingPage from "./pages/LandingPage.jsx";
 import FeaturesPage from "./pages/FeaturesPage.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import TeamPanel from "./pages/TeamPanel.jsx";
+import OAuthConsentPage from "./pages/OAuthConsentPage.jsx";
 import { useNavigate } from "react-router-dom";
 
 const IS_DEV = import.meta.env.DEV;
@@ -219,15 +220,25 @@ export default function App() {
       : !profile ? null
       : <TeamPanel userRole={effectiveRole} />;
 
+  // When an OAuth consent flow (or any other protected page) sends the user
+  // through /login?next=..., honor that on successful sign-in instead of
+  // always dumping them at /app.
+  const loginNext = (() => {
+    const raw = new URLSearchParams(location.search).get("next");
+    if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/app";
+    return raw;
+  })();
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage isAuthenticated={isAuthenticated} />} />
       <Route path="/features" element={<FeaturesPage isAuthenticated={isAuthenticated} />} />
-      <Route path="/login" element={session ? <Navigate to="/app" replace /> : <LoginPage />} />
+      <Route path="/login" element={session ? <Navigate to={loginNext} replace /> : <LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
       <Route path="/team" element={teamElement} />
+      <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
