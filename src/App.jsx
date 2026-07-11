@@ -208,6 +208,7 @@ export default function App() {
   const teamElement =
     session === undefined ? null
       : !session ? <Navigate to="/login" replace />
+      : !profile ? null
       : <TeamPanel userRole={effectiveRole} />;
 
   return (
