@@ -57,6 +57,10 @@ export function permissionText(userRole) {
 // key on last_sign_in_at — inviteUserByEmail creates the auth account at
 // invite time, so has_account alone can't distinguish them.
 export function memberStatus(row) {
+  // Not currently reachable via this screen — revoke_invite deletes the
+  // licensee_companies row synchronously, so a revoked member's row never
+  // makes it into get_company_member_status's result. Kept as a guard in
+  // case that invariant ever changes (e.g. revoke stops deleting eagerly).
   if (row.invite_status === "revoked") return { label: "Revoked", color: "#fca5a5" };
   if (row.last_sign_in_at) return { label: "● Active", color: "#4ade80" };
   if (row.invite_status === "failed") return { label: "⚠ Invite failed", color: "#fca5a5" };
@@ -135,6 +139,14 @@ export default function TeamPanel({ userRole }) {
   }, []);
 
   useEffect(() => { loadMembers(selectedCo); }, [selectedCo, loadMembers]);
+
+  // Clear the invite form and any banners from the previous company — a
+  // stale scope id or error/notice from company A shouldn't carry over to a
+  // submit against company B.
+  useEffect(() => {
+    setInviteEmail(""); setInviteRole(""); setInviteScope("");
+    setErr(null); setNotice(null);
+  }, [selectedCo]);
 
   const company = useMemo(
     () => companies.find((c) => c.id === selectedCo) ?? null,
@@ -338,8 +350,15 @@ export default function TeamPanel({ userRole }) {
               const effectiveRole = m.org_role ?? m.pending_org_role ?? "";
               const rolePending = !m.org_role && m.pending_org_role;
               const status = memberStatus(m);
-              const canManageRow = iAmAdmin;
               const roleKnown = !!ROLE_LABELS[effectiveRole];
+              // Mirrors the server's tier rule (set_member_org_role / delete
+              // RLS): Owner manages anyone; everyone else only rows whose
+              // CURRENT tier is strictly below their own. A row with no tier
+              // set yet is always manageable (server treats "unset" as
+              // below everyone).
+              const canManageRow = iAmAdmin && (
+                ROLE_TIERS[userRole] === 1 || !roleKnown || ROLE_TIERS[effectiveRole] > ROLE_TIERS[userRole]
+              );
               return (
                 <tr key={m.email}>
                   <td style={td}>

@@ -294,6 +294,23 @@ describe("TeamPanel roster", () => {
     expect(screen.queryByRole("button", { name: /remove/i })).toBeNull();
   });
 
+  it("an admin who is not Owner cannot manage a row at or above their own tier, but can manage one below it", async () => {
+    setupHappyPath({
+      members: [
+        memberRow({ email: "senior@test.local", org_role: "CEO" }),     // T2, above FINANCE (T3)
+        memberRow({ email: "junior@test.local", org_role: "SCHEDULER" }), // T7, below FINANCE (T3)
+      ],
+      scopes: { co_1: { accessRole: "admin", serviceLineScope: null } },
+    });
+    await renderPanel("FINANCE"); // T3, admin access, but not Owner
+
+    expect(screen.queryByLabelText("Tier for senior@test.local")).toBeNull();
+    expect(within(screen.getByText("senior@test.local").closest("tr")).queryByRole("button", { name: /remove/i })).toBeNull();
+
+    expect(screen.getByLabelText("Tier for junior@test.local")).toBeDefined();
+    expect(within(screen.getByText("junior@test.local").closest("tr")).getByRole("button", { name: /remove/i })).toBeDefined();
+  });
+
   it("admins can change a member's tier through set_member_org_role", async () => {
     setupHappyPath();
     await renderPanel("OWNER");
