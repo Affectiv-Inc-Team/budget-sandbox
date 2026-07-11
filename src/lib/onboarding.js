@@ -104,6 +104,14 @@ function saveStopFor(role) {
   };
 }
 
+// Roles that pass canAddServiceLine, in tier order — derived rather than
+// hand-typed so this copy can't drift from the actual predicate again (it
+// previously omitted Finance and wrongly included Program Manager).
+const CAN_ADD_SL_ROLES = Object.keys(ROLE_TIERS)
+  .filter((r) => canAddServiceLine(r))
+  .map((r) => ROLE_LABELS[r])
+  .join('/');
+
 function sharedStopFor(role) {
   const t = ROLE_TIERS[role] ?? 99;
   const label = ROLE_LABELS[role] ?? 'your';
@@ -112,8 +120,15 @@ function sharedStopFor(role) {
     body = 'Wage, occupancy, and overhead here apply company-wide — every service line\'s P&L pulls from these numbers. You see all of it in dollars.';
   } else if (t <= 6) {
     body = `You still see wage and occupancy here as ${label} — but company-wide fee controls are Owner/CEO/Finance-only, so those rows are gone at your tier.`;
+  } else if (t === 7) {
+    // Matches canSeeControl('occupancy') (floor tier 7) and wageDisplayMode
+    // (tier 7 -> 'percent') in access.js — Scheduler still sees this panel,
+    // just with wage as a percent instead of a dollar figure.
+    body = `As ${label}, wage shows as a percentage here instead of a dollar figure, and you still see occupancy — but fee controls are gone.`;
   } else {
-    body = `At ${label} tier this panel is mostly gone — most controls aren't visible, and there isn't much left to show.`;
+    // Tier 8 (House Lead): wageDisplayMode returns 'hidden' and the
+    // occupancy control's floor tier (7) excludes this tier too.
+    body = `At ${label} tier this panel is mostly gone — wage is hidden entirely, and there isn't much left to show.`;
   }
   return { id: 'shared', target: 'sidebar', title: 'Shared inputs', body };
 }
@@ -122,7 +137,7 @@ function stripStopFor(role) {
   const base = "Each tab is one service line's own model — its own roster, productivity, and P&L.";
   const body = canAddServiceLine(role)
     ? `${base} You can also add new lines here.`
-    : `${base} Adding new lines is Owner/CEO/Regional Director/Program Manager only, so you won't see that option.`;
+    : `${base} Adding new lines is ${CAN_ADD_SL_ROLES}-only, so you won't see that option.`;
   return { id: 'strip', target: 'tab-strip', title: 'Service line strip', body };
 }
 

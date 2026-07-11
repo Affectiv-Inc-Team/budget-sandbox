@@ -207,6 +207,20 @@ describe("getTourStops", () => {
     expect(canAdd.body).toMatch(/add new lines/i);
     expect(cannotAdd.body).not.toMatch(/add new lines/i);
   });
+
+  it("the strip stop's who-can-add-lines copy matches canAddServiceLine exactly (tiers 1-4, not 5)", () => {
+    const body = getTourStops({ role: HR, multiCompany: false }).find((s) => s.id === "strip").body;
+    expect(body).toMatch(/Owner\/CEO\/Finance\/Regional Director-only/);
+    expect(body).not.toMatch(/Program Manager/);
+  });
+
+  it("the shared stop differentiates Scheduler (percent, still sees occupancy) from House Lead (hidden)", () => {
+    const schedBody = getTourStops({ role: SCHED, multiCompany: false }).find((s) => s.id === "shared").body;
+    const hlBody = getTourStops({ role: HL, multiCompany: false }).find((s) => s.id === "shared").body;
+    expect(schedBody).not.toBe(hlBody);
+    expect(schedBody).toMatch(/percentage/i);
+    expect(hlBody).toMatch(/hidden/i);
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────
