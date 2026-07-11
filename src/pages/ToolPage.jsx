@@ -37,11 +37,12 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
 
   useEffect(() => { loadCompanyState(); }, []);
 
+  const configLoaded = initialConfig !== undefined;
   useEffect(() => {
-    if (onboardingDone || initialConfig === undefined) return;
+    if (onboardingDone || !configLoaded) return;
     getProvenance(userRole).then(setProvenance);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboardingDone, initialConfig === undefined]);
+  }, [onboardingDone, configLoaded]);
 
   const ctx = useMemo(() => {
     if (initialConfig === undefined || provenance === undefined) return null;
@@ -67,7 +68,13 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
   function advance() {
     if (!ctx) return;
     const next = firstPendingStep(ctx, onboardingStep);
-    saveLocalProgress(uid, next);
+    // firstPendingStep's second arg is the LAST COMPLETED step (see its own
+    // signature/tests in lib/onboarding.js) — persist onboardingStep (what
+    // was just finished), not `next` (what's about to be entered). Saving
+    // `next` stamped a step as already-completed before it actually was,
+    // so a refresh mid-flow (e.g. an Owner still waiting on a company) could
+    // skip straight past it.
+    saveLocalProgress(uid, onboardingStep);
     setOnboardingStep(next);
   }
 

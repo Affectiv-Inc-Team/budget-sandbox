@@ -148,6 +148,26 @@ describe("ToolPage — onboarding sequence (not yet onboarded)", () => {
     expect(screen.getByText(/skip setup/i)).toBeDefined();
   });
 
+  it("a refresh right after advancing past welcome resumes at awaiting_company, not past it", async () => {
+    // Regression: advance() used to persist the NEXT step instead of the one
+    // just completed, so a refresh here would incorrectly skip awaiting_company.
+    loadConfig.mockResolvedValue(null);
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    const { unmount } = await act(async () =>
+      render(<ToolPage userRole="OWNER" profile={freshProfile()} />)
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    });
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    unmount();
+
+    // Simulate a hard refresh: fresh mount, same localStorage progress.
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    expect(screen.queryByTestId("financial-tool")).toBeNull();
+  });
+
   it("an Owner whose company already has service lines skips straight to welcome", async () => {
     loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
     getProvenance.mockResolvedValue({ kind: "owner" });

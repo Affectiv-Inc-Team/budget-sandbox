@@ -159,7 +159,9 @@ test.describe('Owner-delegated invitations', () => {
     if (error) throw new Error(`updateUserById failed: ${error.message}`);
     // This spec tests scope filtering, not onboarding — skip the welcome
     // screen loginAs() below would otherwise hit.
-    await admin.from('profiles').update({ onboarding_completed_at: new Date().toISOString() }).eq('id', userId);
+    const { error: onboardErr } = await admin.from('profiles')
+      .update({ onboarding_completed_at: new Date().toISOString() }).eq('id', userId);
+    if (onboardErr) throw new Error(`stamp onboarding_completed_at failed: ${onboardErr.message}`);
 
     await loginAs(page, REGIONAL_EMAIL, PASSWORD);
     await expect(page.getByRole('button', { name: /🏢 Whole Company/i })).toBeVisible();
@@ -213,7 +215,9 @@ test.describe('Owner-delegated invitations', () => {
     const revokeeId = await findUserId(REVOKEE_EMAIL);
     const { error } = await admin.auth.admin.updateUserById(revokeeId, { password: PASSWORD, email_confirm: true });
     if (error) throw new Error(`updateUserById failed: ${error.message}`);
-    await admin.from('profiles').update({ onboarding_completed_at: new Date().toISOString() }).eq('id', revokeeId);
+    const { error: onboardErr } = await admin.from('profiles')
+      .update({ onboarding_completed_at: new Date().toISOString() }).eq('id', revokeeId);
+    if (onboardErr) throw new Error(`stamp onboarding_completed_at failed: ${onboardErr.message}`);
 
     await page.goto('/app'); // AdminPanel has no Sign Out button
     await page.getByRole('button', { name: /sign out/i }).click();
