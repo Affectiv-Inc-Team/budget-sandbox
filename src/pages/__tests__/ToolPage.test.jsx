@@ -1,50 +1,298 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
-import { createEmptyConfig } from "../../lib/companyShape.js";
+import { render, screen, act, fireEvent } from "@testing-library/react";
+import { createEmptyConfig, createCompany, createServiceLine } from "../../lib/companyShape.js";
 
-// Mock supabase — ToolPage calls loadConfig on mount
+// Mock supabase — ToolPage calls these on mount / during onboarding.
 vi.mock("../../supabase.js", () => ({
   loadConfig: vi.fn(),
   saveConfig: vi.fn(),
+  getMyCompanyScopes: vi.fn(),
+  getProvenance: vi.fn(),
+  completeOnboarding: vi.fn(),
 }));
 
-// Mock FinancialTool — avoids rendering the 3,200-line component in unit tests
+// Mock FinancialTool — avoids rendering the 3,200-line component (and its own
+// OnboardingOverlay mount) in unit tests that only care about ToolPage's own
+// decisions about WHAT to hand FinancialTool, not what FinancialTool does with it.
 vi.mock("../FinancialTool.jsx", () => ({
-  default: vi.fn(({ initialConfig }) => (
+  default: vi.fn(({ initialConfig, memberScopes, onboarding }) => (
     <div
       data-testid="financial-tool"
       data-has-config={initialConfig !== null ? "true" : "false"}
+      data-member-scopes={JSON.stringify(memberScopes)}
+      data-onboarding-active={onboarding?.active ? "true" : "false"}
+      data-onboarding-initial-step={onboarding?.initialStep ?? ""}
     />
   )),
 }));
 
 import ToolPage from "../ToolPage.jsx";
-import { loadConfig } from "../../supabase.js";
+import { loadConfig, getMyCompanyScopes, getProvenance, completeOnboarding } from "../../supabase.js";
 
-beforeEach(() => vi.clearAllMocks());
+function onboardedProfile(overrides = {}) {
+  return { id: "u1", onboarding_completed_at: "2026-01-01T00:00:00Z", ...overrides };
+}
+function freshProfile(overrides = {}) {
+  return { id: "u1", onboarding_completed_at: null, ...overrides };
+}
 
-describe("ToolPage — config loading states", () => {
+function configWithOneCompany({ serviceLines = [] } = {}) {
+  const company = createCompany("Test Co", { serviceLines });
+  return {
+    version: 2,
+    selectedCompanyId: company.id,
+    selectedServiceLineId: null,
+    companies: [company],
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  getMyCompanyScopes.mockResolvedValue({});
+  getProvenance.mockResolvedValue({ kind: "owner" });
+  completeOnboarding.mockResolvedValue(true);
+  // Node 22+'s own experimental global `localStorage` can shadow jsdom's
+  // working implementation in this runner (see src/lib/__tests__/onboarding.test.js)
+  // — stub a plain in-memory Storage so resume/progress tests are deterministic.
+  const store = new Map();
+  vi.stubGlobal("localStorage", {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: (k) => store.delete(k),
+    clear: () => store.clear(),
+  });
+});
+
+describe("ToolPage — config loading states (already onboarded)", () => {
   it("renders nothing while loadConfig is pending", async () => {
     loadConfig.mockReturnValue(new Promise(() => {})); // never resolves
-    const { container } = render(<ToolPage userRole="CEO" />);
+    const { container } = render(<ToolPage userRole="CEO" profile={onboardedProfile()} />);
     await act(async () => {});
     expect(screen.queryByTestId("financial-tool")).toBeNull();
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders FinancialTool with the resolved config", async () => {
-    const config = createEmptyConfig();
-    loadConfig.mockResolvedValue(config);
-    await act(async () => { render(<ToolPage userRole="CEO" />); });
-    expect(screen.getByTestId("financial-tool")).toBeDefined();
-    expect(screen.getByTestId("financial-tool").dataset.hasConfig).toBe("true");
+  it("renders nothing while profile is still loading (undefined)", async () => {
+    loadConfig.mockResolvedValue(createEmptyConfig());
+    const { container } = render(<ToolPage userRole="CEO" profile={undefined} />);
+    await act(async () => {});
+    expect(container.firstChild).toBeNull();
   });
 
-  it("renders FinancialTool with null config when loadConfig resolves null", async () => {
+  it("renders FinancialTool with the resolved config once onboarding is already complete", async () => {
+    const config = createEmptyConfig();
+    loadConfig.mockResolvedValue(config);
+    await act(async () => { render(<ToolPage userRole="CEO" profile={onboardedProfile()} />); });
+    expect(screen.getByTestId("financial-tool")).toBeDefined();
+    expect(screen.getByTestId("financial-tool").dataset.hasConfig).toBe("true");
+    // Already onboarded — no provenance lookup needed at all.
+    expect(getProvenance).not.toHaveBeenCalled();
+  });
+});
+
+describe("ToolPage — member scopes", () => {
+  it("loads config and scopes together and passes memberScopes through", async () => {
+    const config = createEmptyConfig();
+    loadConfig.mockResolvedValue(config);
+    getMyCompanyScopes.mockResolvedValue({
+      co_1: { accessRole: "editor", serviceLineScope: "sl_tsc1" },
+    });
+    await act(async () => { render(<ToolPage userRole="REGIONAL_DIRECTOR" profile={onboardedProfile()} />); });
+    expect(getMyCompanyScopes).toHaveBeenCalled();
+    const tool = screen.getByTestId("financial-tool");
+    expect(JSON.parse(tool.dataset.memberScopes)).toEqual({
+      co_1: { accessRole: "editor", serviceLineScope: "sl_tsc1" },
+    });
+  });
+
+  it("defaults to an empty scopes object when none are returned", async () => {
+    loadConfig.mockResolvedValue(createEmptyConfig());
+    getMyCompanyScopes.mockResolvedValue({});
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={onboardedProfile()} />); });
+    const tool = screen.getByTestId("financial-tool");
+    expect(JSON.parse(tool.dataset.memberScopes)).toEqual({});
+  });
+});
+
+describe("ToolPage — onboarding: standalone AwaitingCompany (post-onboarding, no company)", () => {
+  it("shows AwaitingCompany without a Skip link when onboarding is already done but there's no company", async () => {
     loadConfig.mockResolvedValue(null);
-    await act(async () => { render(<ToolPage userRole="CEO" />); });
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={onboardedProfile()} />); });
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    expect(screen.queryByText(/skip setup/i)).toBeNull();
+    expect(screen.queryByTestId("financial-tool")).toBeNull();
+    // Onboarding is done — this isn't part of the step sequence, no provenance needed.
+    expect(getProvenance).not.toHaveBeenCalled();
+  });
+
+  it("Check again re-runs loadConfig and re-renders once a company appears", async () => {
+    loadConfig.mockResolvedValueOnce(null);
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={onboardedProfile()} />); });
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+
+    loadConfig.mockResolvedValueOnce(createEmptyConfig());
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /check again/i }));
+    });
+    expect(screen.getByTestId("financial-tool")).toBeDefined();
+  });
+});
+
+describe("ToolPage — onboarding sequence (not yet onboarded)", () => {
+  it("an Owner with zero companies sees welcome, then the awaiting_company step (with a Skip link) after Continue", async () => {
+    loadConfig.mockResolvedValue(null);
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+    expect(screen.getByText(/welcome to intrinsic/i)).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    });
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    expect(screen.getByText(/skip setup/i)).toBeDefined();
+  });
+
+  it("a refresh right after advancing past welcome resumes at awaiting_company, not past it", async () => {
+    // Regression: advance() used to persist the NEXT step instead of the one
+    // just completed, so a refresh here would incorrectly skip awaiting_company.
+    loadConfig.mockResolvedValue(null);
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    const { unmount } = await act(async () =>
+      render(<ToolPage userRole="OWNER" profile={freshProfile()} />)
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    });
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    unmount();
+
+    // Simulate a hard refresh: fresh mount, same localStorage progress.
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    expect(screen.queryByTestId("financial-tool")).toBeNull();
+  });
+
+  it("an Owner whose company already has service lines skips straight to welcome", async () => {
+    loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+    expect(screen.getByText(/welcome to intrinsic/i)).toBeDefined();
+    expect(screen.queryByText(/workspace is being set up/i)).toBeNull();
+  });
+
+  it("an invited teammate never sees awaiting_company even with zero companies", async () => {
+    loadConfig.mockResolvedValue(null);
+    getProvenance.mockResolvedValue({ kind: "invited", invitedByEmail: "owner@test.local", role: "PROGRAM_MANAGER" });
+    await act(async () => { render(<ToolPage userRole="PROGRAM_MANAGER" profile={freshProfile()} />); });
+    expect(screen.getByText(/welcome to intrinsic/i)).toBeDefined();
+    expect(screen.queryByText(/workspace is being set up/i)).toBeNull();
+  });
+
+  it("Continue on welcome advances to access_granted, showing the inviter for a teammate", async () => {
+    loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
+    getProvenance.mockResolvedValue({ kind: "invited", invitedByEmail: "owner@test.local", role: "CEO" });
+    await act(async () => { render(<ToolPage userRole="CEO" profile={freshProfile()} />); });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    });
+    expect(screen.getByText(/you're in/i)).toBeDefined();
+    expect(screen.getByText(/owner@test\.local/i)).toBeDefined();
+  });
+
+  it("Enter workspace on access_granted hands FinancialTool an active onboarding prop starting at tour", async () => {
+    loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^continue$/i })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /enter workspace/i })); });
+
     const tool = screen.getByTestId("financial-tool");
     expect(tool).toBeDefined();
-    expect(tool.dataset.hasConfig).toBe("false");
+    expect(tool.dataset.onboardingActive).toBe("true");
+    expect(tool.dataset.onboardingInitialStep).toBe("tour");
+  });
+
+  it("an invited House Lead (cannot add lines, cannot invite) hands FinancialTool onboarding starting at done", async () => {
+    loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
+    getProvenance.mockResolvedValue({ kind: "invited", invitedByEmail: "owner@test.local", role: "HOUSE_LEAD" });
+    await act(async () => { render(<ToolPage userRole="HOUSE_LEAD" profile={freshProfile()} />); });
+
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^continue$/i })); }); // welcome -> access_granted
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /enter workspace/i })); }); // -> tour
+
+    const tool = screen.getByTestId("financial-tool");
+    expect(tool.dataset.onboardingActive).toBe("true");
+    expect(tool.dataset.onboardingInitialStep).toBe("tour"); // tour itself is always visible
+  });
+
+  it("Skip setup calls completeOnboarding and the profile-refresh callback, then falls through to the dashboard", async () => {
+    loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    const onProfileRefresh = vi.fn();
+    await act(async () => {
+      render(<ToolPage userRole="OWNER" profile={freshProfile()} onProfileRefresh={onProfileRefresh} />);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /skip setup/i }));
+    });
+
+    expect(completeOnboarding).toHaveBeenCalled();
+    expect(onProfileRefresh).toHaveBeenCalled();
+    expect(screen.getByTestId("financial-tool")).toBeDefined();
+  });
+
+  it("a failed completeOnboarding does not clear local resume progress or mark the session done", async () => {
+    // Regression: handleOnboardingComplete used to clear local progress and
+    // mark the session skipped BEFORE awaiting completeOnboarding(), so a
+    // failed server write (it swallows its own errors and resolves false)
+    // silently wiped the resume pointer too — next session, onboarding
+    // restarted fully from Welcome instead of resuming.
+    loadConfig.mockResolvedValue(null); // zero companies -> Owner sees awaiting_company + Skip link
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    completeOnboarding.mockResolvedValue(false); // server write failed
+    const onProfileRefresh = vi.fn();
+
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} onProfileRefresh={onProfileRefresh} />); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^continue$/i })); });
+    expect(screen.getByText(/skip setup/i)).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /skip setup/i }));
+    });
+
+    expect(completeOnboarding).toHaveBeenCalled();
+    expect(onProfileRefresh).toHaveBeenCalled(); // still called regardless of outcome
+    // Session was NOT marked done and local progress was NOT cleared — still
+    // showing the onboarding UI (not the dashboard), and the resume pointer
+    // set by the earlier Continue click survives.
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    expect(screen.queryByTestId("financial-tool")).toBeNull();
+    expect(localStorage.getItem("intrinsic_onboarding_v1:u1")).toBe("welcome");
+  });
+
+  it("resumes from localStorage rather than restarting at welcome", async () => {
+    loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    localStorage.setItem("intrinsic_onboarding_v1:u1", "access_granted");
+
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+    // access_granted already completed -> next visible step is tour -> hands
+    // off to FinancialTool's onboarding overlay directly, not back to welcome.
+    const tool = screen.getByTestId("financial-tool");
+    expect(tool).toBeDefined();
+    expect(tool.dataset.onboardingActive).toBe("true");
+    expect(tool.dataset.onboardingInitialStep).toBe("tour");
+    expect(screen.queryByText(/welcome to intrinsic/i)).toBeNull();
+  });
+
+  it("does not pass an active onboarding prop for the pre-dashboard steps themselves", async () => {
+    loadConfig.mockResolvedValue(null);
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} />); });
+    // Still on welcome — FinancialTool isn't even mounted yet.
+    expect(screen.queryByTestId("financial-tool")).toBeNull();
   });
 });

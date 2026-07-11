@@ -22,6 +22,9 @@ vi.mock("../pages/LoginPage.jsx", () => ({
 vi.mock("../pages/ToolPage.jsx", () => ({
   default: () => <div data-testid="tool-page">Tool</div>,
 }));
+vi.mock("../pages/TeamPanel.jsx", () => ({
+  default: ({ userRole }) => <div data-testid="team-page">{userRole}</div>,
+}));
 vi.mock("../pages/LandingPage.jsx", () => ({
   default: () => <div data-testid="landing-page">Landing</div>,
 }));
@@ -30,7 +33,7 @@ vi.mock("../pages/FeaturesPage.jsx", () => ({
 }));
 
 import App from "../App.jsx";
-import { supabase } from "../supabase.js";
+import { supabase, getProfile } from "../supabase.js";
 
 // Render App at a specific route inside a MemoryRouter.
 function renderAt(path) {
@@ -102,6 +105,28 @@ describe("App — routing", () => {
     await act(async () => { renderAt("/login"); });
     expect(screen.getByTestId("tool-page")).toBeDefined();
     expect(screen.queryByTestId("login-page")).toBeNull();
+  });
+
+  it("renders nothing at /team while profile is still loading (session already resolved)", async () => {
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "user-1" } } },
+    });
+    getProfile.mockReturnValue(new Promise(() => {})); // never resolves
+    const { container } = renderAt("/team");
+    await act(async () => {});
+    // No TeamPanel yet — rendering it now would briefly show the deriveRole()
+    // CEO fallback before the real (possibly lower) tier arrives.
+    expect(screen.queryByTestId("team-page")).toBeNull();
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("renders the team page at /team once both session and profile resolve", async () => {
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "user-1" } } },
+    });
+    getProfile.mockResolvedValue({ id: "user-1", role: "SCHEDULER", is_super_admin: false });
+    await act(async () => { renderAt("/team"); });
+    expect(screen.getByTestId("team-page")).toHaveTextContent("SCHEDULER");
   });
 
   it("calls subscription.unsubscribe on unmount", async () => {

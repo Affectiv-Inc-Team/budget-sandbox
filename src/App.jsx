@@ -24,7 +24,7 @@ function deriveRole(profile) {
 // Authenticated app shell — preserved verbatim from the prior App() return:
 // the tool/referrals switch, the fixed "Referral Tracker →" button, and the
 // IS_DEV role selector. Only the surrounding routing has changed.
-function AuthedApp({ effectiveRole, derivedRole, userEmail, module, setModule, devRole, setDevRole, onSignOut, isSuperAdmin }) {
+function AuthedApp({ effectiveRole, derivedRole, userEmail, module, setModule, devRole, setDevRole, onSignOut, isSuperAdmin, profile, onProfileRefresh }) {
   const navigate = useNavigate();
   const showReferrals = canSeeReferrals(effectiveRole) && module === "referrals";
 
@@ -37,7 +37,7 @@ function AuthedApp({ effectiveRole, derivedRole, userEmail, module, setModule, d
           onSwitchModule={() => { posthog.capture('module_switched', { to: 'tool' }); setModule("tool"); }}
         />
       ) : (
-        <ToolPage userRole={effectiveRole} userEmail={userEmail} onSignOut={onSignOut} />
+        <ToolPage userRole={effectiveRole} userEmail={userEmail} onSignOut={onSignOut} profile={profile} onProfileRefresh={onProfileRefresh} />
       )}
 
       {canSeeReferrals(effectiveRole) && module === "tool" && (
@@ -124,20 +124,26 @@ function AuthedApp({ effectiveRole, derivedRole, userEmail, module, setModule, d
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = loading
-  const [profile, setProfile] = useState(null);
+  // undefined = still loading; null = signed out (no profile to have).
+  // Onboarding needs to tell "still loading" apart from "loaded, no flag set"
+  // so ToolPage doesn't flash onboarding UI for an already-onboarded user
+  // while getProfile() is still in flight.
+  const [profile, setProfile] = useState(undefined);
   const [devRole, setDevRole] = useState(null);       // null = use derived role
   const [module, setModule] = useState("tool");        // 'tool' | 'referrals'
+
+  const refreshProfile = () => getProfile().then(setProfile);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) getProfile().then(setProfile);
+      if (session) refreshProfile();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (session) {
-        getProfile().then(setProfile);
+        refreshProfile();
         // INITIAL_SESSION covers returning visitors (page refresh with a live
         // Supabase session) — supabase-js emits it instead of SIGNED_IN on
         // restore. identify() with an unchanged distinct_id is a no-op.
@@ -188,6 +194,8 @@ export default function App() {
             setDevRole={setDevRole}
             onSignOut={handleSignOut}
             isSuperAdmin={isSuperAdmin}
+            profile={profile}
+            onProfileRefresh={refreshProfile}
           />
         )
       : <Navigate to="/login" replace />;
@@ -199,6 +207,18 @@ export default function App() {
       : isSuperAdmin ? <AdminPanel onExit={() => window.location.assign('/app')} />
       : <Navigate to="/app" replace />;
 
+  // session starts `undefined` (still loading, e.g. restoring from a hard
+  // reload/direct link) before resolving to null|Session. Treating that
+  // loading tick as "no session" — as this route used to — sent a fresh
+  // /team load to /login and then, once the real session arrived a moment
+  // later, /login's own redirect bounced it straight through to /app: a
+  // direct link or refresh on /team never actually landed on /team.
+  const teamElement =
+    session === undefined ? null
+      : !session ? <Navigate to="/login" replace />
+      : !profile ? null
+      : <TeamPanel userRole={effectiveRole} />;
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage isAuthenticated={isAuthenticated} />} />
@@ -207,7 +227,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/app" element={appElement} />
       <Route path="/admin" element={adminElement} />
-      <Route path="/team" element={session ? <TeamPanel /> : <Navigate to="/login" replace />} />
+      <Route path="/team" element={teamElement} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

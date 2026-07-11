@@ -27,9 +27,13 @@ export default async function globalSetup() {
 
   // Super-admin so the user can load/save the unassigned seed company (the
   // Phase 3 RLS gap blocks regular licensees from reading any company).
+  // Also mark onboarding complete: this fixture is reused across many specs
+  // that assume the dashboard renders immediately after login (e.g.
+  // auth.spec.js, financial-tool.spec.js) — it represents a pre-existing
+  // account, not a first-time login, so onboarding shouldn't intercept it.
   const { error: adminErr } = await admin
     .from('profiles')
-    .update({ is_super_admin: true })
+    .update({ is_super_admin: true, onboarding_completed_at: new Date().toISOString() })
     .eq('id', created.user.id);
   if (adminErr) throw new Error(`E2E makeSuperAdmin failed: ${adminErr.message}`);
 

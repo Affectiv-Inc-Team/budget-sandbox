@@ -62,10 +62,143 @@ export async function getProfile() {
   if (!session) return null;
   const { data } = await supabase
     .from('profiles')
-    .select('id, email, is_super_admin, role')
+    .select('id, email, is_super_admin, role, onboarding_completed_at')
     .eq('id', session.user.id)
     .single();
   return data ?? null;
+}
+
+// ─── Onboarding ─────────────────────────────────────────────────────────────
+
+/**
+ * Mark the current user's onboarding as complete (own-row write; RLS-scoped).
+ * Returns true on success.
+ */
+export async function completeOnboarding() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  const { error } = await supabase
+    .from('profiles')
+    .update({ onboarding_completed_at: new Date().toISOString() })
+    .eq('id', session.user.id);
+  if (error) {
+    console.error('completeOnboarding error:', error);
+    posthog.captureException(error, { endpoint: 'completeOnboarding', error_code: error.code });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * How the current user came to have access — the signal onboarding uses to
+ * tell an Owner bootstrapping a brand-new company from a teammate invited
+ * into one that already exists.
+ *
+ * Primary signal: an `invites` row for the caller's own email (self-read RLS
+ * — see the invites migration). Its presence means someone invited this
+ * person into an existing company; Owners are SuperAdmin-provisioned and are
+ * never the subject of an invites row.
+ *
+ * Fallback (query error, or a pre-Phase-1 account with no invites row):
+ * derived role !== OWNER. Bootstrap onboarding steps are additionally gated
+ * on live state (company count, service-line count), so a misclassification
+ * here is benign — worst case is a step that re-validates itself away.
+ *
+ * Returns { kind: 'owner' } or { kind: 'invited', invitedByEmail, role, serviceLineScope }.
+ */
+export async function getProvenance(derivedRole) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.email) return { kind: 'owner' };
+
+  const { data, error } = await supabase
+    .from('invites')
+    .select('invited_by_email, org_role, service_line_scope, created_at')
+    .eq('email', session.user.email.toLowerCase())
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error('getProvenance error:', error);
+    posthog.captureException(error, { endpoint: 'getProvenance', error_code: error.code });
+    return derivedRole !== 'OWNER'
+      ? { kind: 'invited', invitedByEmail: null, role: derivedRole, serviceLineScope: null }
+      : { kind: 'owner' };
+  }
+
+  const invite = data?.[0];
+  if (invite) {
+    return {
+      kind: 'invited',
+      invitedByEmail: invite.invited_by_email,
+      role: invite.org_role,
+      serviceLineScope: invite.service_line_scope,
+    };
+  }
+
+  return derivedRole !== 'OWNER'
+    ? { kind: 'invited', invitedByEmail: null, role: derivedRole, serviceLineScope: null }
+    : { kind: 'owner' };
+}
+
+// ─── Team invitations ────────────────────────────────────────────────────────
+
+/**
+ * Send an owner-delegated invite via the send-invite edge function.
+ * The tier rule / scope rule / membership check are enforced server-side by
+ * the create_invite RPC (as the caller); the function then emails the invitee.
+ * Returns { ok, inviteId, emailAction, error } — error is a human-readable
+ * message when ok is false.
+ */
+export async function sendInvite({ companyId, email, orgRole, serviceLineScope = null }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data, error } = await supabase.functions.invoke('send-invite', {
+    body: {
+      company_id: companyId,
+      email: normalizedEmail,
+      org_role: orgRole,
+      service_line_scope: serviceLineScope,
+    },
+  });
+
+  if (error) {
+    // Non-2xx responses carry the real message in the JSON body.
+    let message = error.message;
+    try {
+      const body = await error.context?.json?.();
+      if (body?.error) message = body.error;
+    } catch { /* keep the generic message */ }
+    // GoTrue error text can embed the invitee's email (e.g. "unable to send
+    // invite to x@y.com") — this project has no PostHog BAA, so no PII may
+    // reach it. Redact before capturing; the full message still goes to the
+    // caller for on-screen display.
+    const emailPattern = new RegExp(normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    posthog.capture('invite_send_failed', {
+      error_message: message.replace(emailPattern, '[redacted-email]'),
+    });
+    return { ok: false, error: message };
+  }
+
+  return { ok: true, inviteId: data?.invite_id, emailAction: data?.email_action };
+}
+
+/**
+ * The caller's own company memberships: access level + service-line scope.
+ * Returns { [companyId]: { accessRole, serviceLineScope } }.
+ * serviceLineScope null = whole company.
+ */
+export async function getMyCompanyScopes() {
+  const { data, error } = await supabase.rpc('get_my_company_scopes');
+  if (error) {
+    console.error('getMyCompanyScopes error:', error);
+    posthog.captureException(error, { endpoint: 'getMyCompanyScopes', error_code: error.code });
+    return {};
+  }
+  return Object.fromEntries(
+    (data ?? []).map((row) => [
+      row.company_id,
+      { accessRole: row.access_role, serviceLineScope: row.service_line_scope },
+    ]),
+  );
 }
 
 /**

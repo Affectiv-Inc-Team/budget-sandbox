@@ -13,6 +13,7 @@ import { VolumeTrackerTab } from "../serviceLines/volumeTracker.jsx";
 
 import { LOGO } from "../assets/logo.js";
 import posthog, { useFeatureFlag } from "../lib/posthog.js";
+import OnboardingOverlay from "./onboarding/OnboardingOverlay.jsx";
 
 
 /* ══════════════════════════════════════════════════════════
@@ -1241,7 +1242,7 @@ function Sidebar({ entityType, setEntityType, ownerRate, setOwnerRate, mgmtFeePc
   const showTaxStruct = canSeeControl(userRole, 'entityType');
 
   return (
-    <div style={{ borderRight:"1px solid #d0dae8", padding:"16px 14px", display:"flex", flexDirection:"column", gap:18, background:"#f4f2ec", overflowY:"auto" }}>
+    <div data-tour="sidebar" style={{ borderRight:"1px solid #d0dae8", padding:"16px 14px", display:"flex", flexDirection:"column", gap:18, background:"#f4f2ec", overflowY:"auto" }}>
       {showFees && (
         <div>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: feesOpen ? 12 : 0 }}>
@@ -2489,7 +2490,7 @@ function calcSLCo({ annualRevGrossRaw, annualLaborRaw, totalHomes, totalClients,
 // ════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ════════════════════════════════════════════════════════════════════
-export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName }) {
+export default function App({ initialConfig, onSave, userRole, userEmail, onSignOut, companyName: legacyCompanyName, memberScopes, onboarding }) {
   const [config, setConfig] = useState(() => migrateConfig(initialConfig));
   const [saveStatus, setSaveStatus] = useState("idle");
   const [activeKey, setActiveKey] = useState("WHOLE_COMPANY"); // "WHOLE_COMPANY" | service line id
@@ -2513,6 +2514,15 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
       posthog.capture('service_line_viewed', { service_line_type: activeSLType });
     }
   }, [activeKey, activeSLType, userRole]);
+
+  // Reset to Whole Company if a service-line scope hides the line currently
+  // open — e.g. a scoped teammate's invite scope changed, or their line was
+  // reassigned/archived out from under them.
+  useEffect(() => {
+    if (activeKey === "WHOLE_COMPANY" || !company) return;
+    const myScope = memberScopes?.[company.id]?.serviceLineScope ?? null;
+    if (myScope && activeKey !== myScope) setActiveKey("WHOLE_COMPANY");
+  }, [activeKey, company, memberScopes]);
 
   // ── Update helpers ──
   const updateCompany = (coId, mutator) => setConfig(prev => ({
@@ -2912,7 +2922,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
 
   // Save (Track A: hand the v2 blob to onSave verbatim; Track B handles the schema split)
   const handleSave = async () => {
-    if (!onSave) return;
+    if (!onSave) return false;
     setSaveStatus("saving");
     const ok = await onSave(config);
     setSaveStatus(ok ? "saved" : "error");
@@ -2922,20 +2932,32 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
       service_line_count: company?.serviceLines?.filter(sl => !sl.archived).length ?? 0,
     });
     setTimeout(() => setSaveStatus("idle"), 2500);
+    return ok;
   };
 
-  // ── Empty-portfolio fallback (shouldn't happen under Model 1 but graceful if it does) ──
+  // ── Empty-portfolio fallback ──
+  // ToolPage now intercepts the real "no company" case with AwaitingCompany
+  // before FinancialTool ever mounts, so reaching this branch means something
+  // unexpected happened between that check and this render (a race, or
+  // FinancialTool mounted directly in a context that skips ToolPage, e.g.
+  // a test). Keep the same meaning, worded as an internal fallback rather
+  // than the primary UX for this case.
   if (!company) {
     return (
       <div style={{ padding:60, textAlign:"center", fontFamily:"'Sora',sans-serif" }}>
-        <h2 style={{ color:"#0A3D47", fontSize:18, marginBottom:8 }}>No companies assigned</h2>
-        <p style={{ color:"#64748b", fontSize:13 }}>You haven't been assigned access to any companies yet.<br/>Contact your Intrinsic administrator.</p>
+        <h2 style={{ color:"#0A3D47", fontSize:18, marginBottom:8 }}>No company loaded</h2>
+        <p style={{ color:"#64748b", fontSize:13 }}>Something went wrong loading your workspace.<br/>Try refreshing, or contact your Intrinsic administrator if this continues.</p>
       </div>
     );
   }
 
   // ── Service line strip data ──
-  const visibleSLs = company.serviceLines.filter(sl => !sl.archived);
+  // Tier 4+ invites are scoped to one service line (Phase 1 invitations); this
+  // is client-side presentation filtering only — service lines live inside
+  // companies.config JSONB, so RLS can't slice them server-side. Whole Company
+  // stays visible regardless of scope; its contents are already tier-gated.
+  const myScope = memberScopes?.[company.id]?.serviceLineScope ?? null;
+  const visibleSLs = company.serviceLines.filter(sl => !sl.archived && (!myScope || sl.id === myScope));
   const subTabs = (isWholeCompany
     ? applyTabOrder(getSubTabsFor("WHOLE_COMPANY"), company.shared.wholeCompanySubTabOrder)
     : applyTabOrder(getSubTabsFor(activeSLType), activeSL?.subTabOrder)
@@ -2963,7 +2985,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
 
               {/* Company picker — Model 1: read-only list of assigned companies, no add */}
               {config.companies.filter(c => !c.archived).length > 1 && (
-                <div style={{ borderLeft:"1px solid #c8d4e4", paddingLeft:14, display:"flex", flexDirection:"column", gap:4 }}>
+                <div data-tour="company-switcher" style={{ borderLeft:"1px solid #c8d4e4", paddingLeft:14, display:"flex", flexDirection:"column", gap:4 }}>
                   <span style={{ fontSize:8, color:"#94a3b8", letterSpacing:2, textTransform:"uppercase", ...M, fontFamily:"'DM Mono',monospace" }}>Company</span>
                   <select value={config.selectedCompanyId || ""}
                     onChange={(e) => setConfig(prev => ({ ...prev, selectedCompanyId: e.target.value }))}
@@ -3002,7 +3024,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                 </div>
               ))}
               {onSave && canEditServiceLines(userRole) && (
-                <button onClick={handleSave} disabled={saveStatus === "saving"} style={{
+                <button data-tour="save-button" onClick={handleSave} disabled={saveStatus === "saving"} style={{
                   padding:"7px 18px", borderRadius:8, border:"none", cursor:"pointer",
                   fontWeight:700, fontSize:11, fontFamily:"'Sora',sans-serif",
                   letterSpacing:0.5, transition:"background 0.2s, box-shadow 0.2s, transform 0.1s",
@@ -3048,7 +3070,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
           </div>
 
           {/* ── Service line tab strip ── */}
-          <div style={{ display:"flex", marginTop:12, alignItems:"flex-end", gap:0 }}>
+          <div data-tour="tab-strip" style={{ display:"flex", marginTop:12, alignItems:"flex-end", gap:0 }}>
             {/* Double-wrapper: outer constrains width, inner scrolls */}
             <div style={{ flex:1, minWidth:0, overflow:"hidden" }}>
               <div style={{ display:"flex", gap:2, alignItems:"flex-end", overflowX:"auto", scrollbarWidth:"none" }}>
@@ -3352,6 +3374,22 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
           </div>
         </div>
       </div>
+
+      {onboarding?.active && (
+        <OnboardingOverlay
+          initialStep={onboarding.initialStep}
+          role={userRole}
+          provenance={onboarding.provenance}
+          multiCompany={config.companies.filter(c => !c.archived).length > 1}
+          visibleSLsCount={visibleSLs.length}
+          co={co}
+          onAddServiceLine={handleAddServiceLine}
+          onSave={handleSave}
+          onStepChange={onboarding.onStepChange}
+          onComplete={onboarding.onComplete}
+          onSkip={onboarding.onSkip}
+        />
+      )}
     </>
   );
 }
