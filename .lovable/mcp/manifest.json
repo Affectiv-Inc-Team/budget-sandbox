@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://qtstzkyycjldlwgiqsgh.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "intrinsic-mcp",
+      "version": "0.1.0",
+      "title": "Intrinsic"
+    },
+    "tools": [
+      {
+        "name": "list_companies",
+        "title": "List companies",
+        "description": "List the portfolio companies the signed-in Intrinsic user has access to (via licensee_companies).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_company_config",
+        "title": "Get company config",
+        "description": "Fetch the full v2 financial-model config JSON for one company by id. Access is enforced by RLS.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Company id, e.g. co_xxxxxxxx"
+            }
+          },
+          "required": [
+            "company_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_referrals",
+        "title": "List referrals",
+        "description": "List referrals for a company. Does NOT include SSN. Access is enforced by RLS on the referrals table.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Company id to scope the referrals to."
+            },
+            "stage": {
+              "description": "Optional pipeline stage filter (e.g. 'inquiry', 'accepted', 'enrolled').",
+              "type": "string"
+            },
+            "limit": {
+              "description": "Max rows to return. Defaults to 50, capped at 200.",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "company_id"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
