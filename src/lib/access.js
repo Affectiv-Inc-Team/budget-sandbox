@@ -137,6 +137,11 @@ export function canInviteRole(inviterRole, targetRole) {
 // 'admin' manages members (is_company_admin); 'editor' can save config
 // (can_edit_company); 'read_only' matches editMode() 'readonly' so tiers 7–8
 // cannot write even if the client-side gating were bypassed.
+//
+// Unlike every sibling function above, this takes a TIER NUMBER (1-8), not a
+// role string — there's no internal tier(role) lookup. Passing a role string
+// by mistake coerces to NaN, which fails (silently) to 'read_only' rather
+// than throwing, since NaN <= 3 and NaN <= 6 are both false.
 export function accessRoleForTier(t) {
   if (t <= 3) return 'admin';
   if (t <= 6) return 'editor';
