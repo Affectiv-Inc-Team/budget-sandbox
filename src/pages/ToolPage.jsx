@@ -80,10 +80,19 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
   // Shared by every "I'm done with onboarding" trigger: the pre-dashboard
   // screens' "Skip setup" link, and OnboardingOverlay's Done screen finishing
   // normally — both mean the same thing server-side, just reached differently.
+  //
+  // Only clear local resume state once the server write actually succeeds —
+  // completeOnboarding() swallows its own errors and resolves false rather
+  // than throwing, so clearing first (as this used to) wiped the resume
+  // pointer on a failed write too: next session, with the server flag still
+  // unset and no resume pointer, onboarding restarted fully from Welcome
+  // instead of resuming where it left off.
   async function handleOnboardingComplete() {
-    setSessionSkipped(true);
-    clearLocalProgress(uid);
-    await completeOnboarding();
+    const ok = await completeOnboarding();
+    if (ok) {
+      setSessionSkipped(true);
+      clearLocalProgress(uid);
+    }
     onProfileRefresh?.();
   }
 

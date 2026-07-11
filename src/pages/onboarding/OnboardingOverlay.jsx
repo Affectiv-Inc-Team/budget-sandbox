@@ -8,10 +8,21 @@ import FirstLineResult from "./FirstLineResult.jsx";
 import InviteTeamStep from "./InviteTeamStep.jsx";
 import OnboardingDone from "./OnboardingDone.jsx";
 
+// Maps a service line TYPE to the `id` FinancialTool's calc function stamps
+// on the matching co.slBreakdown entry (see the slBreakdown array literal in
+// FinancialTool.jsx) — the two aren't the same string, so this can't be
+// derived automatically. Was missing SCHOOL_BASED despite that type already
+// being 'active' (see serviceLines/types.js) and already producing a
+// slBreakdown entry ('school') — line_result silently showed $0/$0 for a
+// School-Based first line as a result. VOC_SERVICES and CHILDRENS_DDA are
+// also 'active' but don't produce a slBreakdown entry AT ALL yet (a gap in
+// FinancialTool.jsx's calc function, not here) — adding them to this map
+// alone wouldn't fix their first-line celebration screen.
 const SL_BREAKDOWN_ID = {
   RES_HAB_DAILY: "daily",
   RES_HAB_HOURLY: "hourly",
   TSC: "tsc",
+  SCHOOL_BASED: "school",
 };
 
 // In-dashboard onboarding steps (tour, first_line, line_result, invite_team,

@@ -244,6 +244,35 @@ describe("ToolPage — onboarding sequence (not yet onboarded)", () => {
     expect(screen.getByTestId("financial-tool")).toBeDefined();
   });
 
+  it("a failed completeOnboarding does not clear local resume progress or mark the session done", async () => {
+    // Regression: handleOnboardingComplete used to clear local progress and
+    // mark the session skipped BEFORE awaiting completeOnboarding(), so a
+    // failed server write (it swallows its own errors and resolves false)
+    // silently wiped the resume pointer too — next session, onboarding
+    // restarted fully from Welcome instead of resuming.
+    loadConfig.mockResolvedValue(null); // zero companies -> Owner sees awaiting_company + Skip link
+    getProvenance.mockResolvedValue({ kind: "owner" });
+    completeOnboarding.mockResolvedValue(false); // server write failed
+    const onProfileRefresh = vi.fn();
+
+    await act(async () => { render(<ToolPage userRole="OWNER" profile={freshProfile()} onProfileRefresh={onProfileRefresh} />); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^continue$/i })); });
+    expect(screen.getByText(/skip setup/i)).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /skip setup/i }));
+    });
+
+    expect(completeOnboarding).toHaveBeenCalled();
+    expect(onProfileRefresh).toHaveBeenCalled(); // still called regardless of outcome
+    // Session was NOT marked done and local progress was NOT cleared — still
+    // showing the onboarding UI (not the dashboard), and the resume pointer
+    // set by the earlier Continue click survives.
+    expect(screen.getByText(/workspace is being set up/i)).toBeDefined();
+    expect(screen.queryByTestId("financial-tool")).toBeNull();
+    expect(localStorage.getItem("intrinsic_onboarding_v1:u1")).toBe("welcome");
+  });
+
   it("resumes from localStorage rather than restarting at welcome", async () => {
     loadConfig.mockResolvedValue(configWithOneCompany({ serviceLines: [createServiceLine("TSC")] }));
     getProvenance.mockResolvedValue({ kind: "owner" });

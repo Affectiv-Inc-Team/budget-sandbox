@@ -52,6 +52,27 @@ describe("OnboardingOverlay — first_line -> line_result -> invite_team -> done
     expect(baseProps.onStepChange).toHaveBeenCalledWith("line_result");
   });
 
+  it("line_result shows the real payoff for a School-Based first line (regression: SL_BREAKDOWN_ID used to omit it)", async () => {
+    render(
+      <MemoryRouter>
+        <OnboardingOverlay
+          {...baseProps}
+          co={{ slBreakdown: [{ id: "school", rev: 120000, labor: 60000 }], netMargin: 0.25 }}
+          initialStep="first_line"
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /School-Based Services.*Ready/is }));
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    expect(baseProps.onAddServiceLine).toHaveBeenCalledWith("SCHOOL_BASED");
+    await waitFor(() => expect(screen.getByText(/is live/i)).toBeDefined());
+    // Without the SCHOOL_BASED -> "school" mapping, this would fall back to
+    // the honest-zero placeholder ($0) instead of the real breakdown figures.
+    expect(screen.getByText("$120,000")).toBeDefined();
+    expect(screen.getByText("$60,000")).toBeDefined();
+  });
+
   it("line_result Continue saves, then advances to invite_team when the tier can invite", async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     render(<MemoryRouter><OnboardingOverlay {...baseProps} onSave={onSave} initialStep="line_result" /></MemoryRouter>);
