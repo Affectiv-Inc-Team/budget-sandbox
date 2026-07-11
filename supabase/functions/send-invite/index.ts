@@ -101,8 +101,11 @@ Deno.serve(async (req) => {
   })
 
   if (inviteErr) {
+    // Prefer the structured GoTrue error code; the regex is a last-resort
+    // fallback so a wording change alone can't silently break the resend path.
     const alreadyRegistered =
       inviteErr.code === 'email_exists' ||
+      inviteErr.code === 'user_already_exists' ||
       /already.*(registered|exists)/i.test(inviteErr.message ?? '')
 
     if (alreadyRegistered) {
@@ -118,15 +121,19 @@ Deno.serve(async (req) => {
   }
 
   // 3. Record the outcome on the invite row (service role bypasses RLS).
-  const { error: statusErr } = await adminClient
-    .from('invites')
-    .update(
-      emailError
-        ? { status: 'failed' }
-        : { status: 'sent', email_sent_at: new Date().toISOString() },
-    )
-    .eq('id', inviteId)
-  if (statusErr) console.error('invite status update failed:', statusErr.message)
+  if (!inviteId) {
+    console.error('create_invite returned no id despite no rpcError — skipping status update')
+  } else {
+    const { error: statusErr } = await adminClient
+      .from('invites')
+      .update(
+        emailError
+          ? { status: 'failed' }
+          : { status: 'sent', email_sent_at: new Date().toISOString() },
+      )
+      .eq('id', inviteId)
+    if (statusErr) console.error('invite status update failed:', statusErr.message)
+  }
 
   if (emailError) {
     console.error('invite email failed:', emailError)

@@ -85,6 +85,28 @@ describe('sendInvite', () => {
     expect(result.ok).toBe(false);
     expect(result.error).toBe('Failed to send a request to the Edge Function');
   });
+
+  it('redacts the invitee email from the PostHog capture but keeps it in the returned error', async () => {
+    const posthog = (await import('../lib/posthog.js')).default;
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: {
+          json: async () => ({
+            error: 'invite recorded but the email failed to send: unable to deliver to casey.l@sawtooth.org',
+          }),
+        },
+      },
+    });
+
+    const result = await sendInvite({ companyId: 'co_1', email: 'Casey.L@Sawtooth.org', orgRole: 'CEO' });
+
+    expect(result.error).toContain('casey.l@sawtooth.org'); // caller still sees the full message
+    const [, payload] = posthog.capture.mock.calls.at(-1);
+    expect(payload.error_message).not.toContain('casey.l@sawtooth.org');
+    expect(payload.error_message).toContain('[redacted-email]');
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────

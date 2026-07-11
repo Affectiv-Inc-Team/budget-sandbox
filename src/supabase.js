@@ -78,10 +78,11 @@ export async function getProfile() {
  * message when ok is false.
  */
 export async function sendInvite({ companyId, email, orgRole, serviceLineScope = null }) {
+  const normalizedEmail = email.trim().toLowerCase();
   const { data, error } = await supabase.functions.invoke('send-invite', {
     body: {
       company_id: companyId,
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       org_role: orgRole,
       service_line_scope: serviceLineScope,
     },
@@ -94,7 +95,14 @@ export async function sendInvite({ companyId, email, orgRole, serviceLineScope =
       const body = await error.context?.json?.();
       if (body?.error) message = body.error;
     } catch { /* keep the generic message */ }
-    posthog.capture('invite_send_failed', { error_message: message });
+    // GoTrue error text can embed the invitee's email (e.g. "unable to send
+    // invite to x@y.com") — this project has no PostHog BAA, so no PII may
+    // reach it. Redact before capturing; the full message still goes to the
+    // caller for on-screen display.
+    const emailPattern = new RegExp(normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    posthog.capture('invite_send_failed', {
+      error_message: message.replace(emailPattern, '[redacted-email]'),
+    });
     return { ok: false, error: message };
   }
 
