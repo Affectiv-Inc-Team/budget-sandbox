@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ROLES,
+  ROLE_TIERS,
   canSeeCompanyDollars,
   wageDisplayMode,
   canSeePercentages,
@@ -12,6 +13,10 @@ import {
   canAddServiceLine,
   canSeeReferrals,
   canUnmaskSSN,
+  invitableTiers,
+  invitableRoles,
+  canInviteRole,
+  accessRoleForTier,
 } from "../access.js";
 
 const { OWNER, CEO, FINANCE, REGIONAL_DIRECTOR: RD, PROGRAM_MANAGER: PM, HR_MANAGER: HR, SCHEDULER: SCHED, HOUSE_LEAD: HL } = ROLES;
@@ -285,5 +290,116 @@ describe("canUnmaskSSN", () => {
     expect(canUnmaskSSN(HR)).toBe(false);
     expect(canUnmaskSSN(SCHED)).toBe(false);
     expect(canUnmaskSSN(HL)).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// invitableTiers — Owner invites any tier; others only strictly below
+// ──────────────────────────────────────────────────────────────────────
+
+describe("invitableTiers", () => {
+  it("OWNER can invite every tier, including another OWNER", () => {
+    expect(invitableTiers(OWNER)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it("non-Owner tiers invite only tiers strictly below their own", () => {
+    expect(invitableTiers(CEO)).toEqual([3, 4, 5, 6, 7, 8]);
+    expect(invitableTiers(FINANCE)).toEqual([4, 5, 6, 7, 8]);
+    expect(invitableTiers(RD)).toEqual([5, 6, 7, 8]);
+    expect(invitableTiers(PM)).toEqual([6, 7, 8]);
+    expect(invitableTiers(HR)).toEqual([7, 8]);
+    expect(invitableTiers(SCHED)).toEqual([8]);
+  });
+
+  it("HOUSE_LEAD can invite nobody — no tier below it", () => {
+    expect(invitableTiers(HL)).toEqual([]);
+  });
+
+  it("unknown / undefined role can invite nobody", () => {
+    expect(invitableTiers("UNKNOWN")).toEqual([]);
+    expect(invitableTiers(undefined)).toEqual([]);
+    expect(invitableTiers(null)).toEqual([]);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// invitableRoles — role-key view of invitableTiers
+// ──────────────────────────────────────────────────────────────────────
+
+describe("invitableRoles", () => {
+  it("OWNER gets all 8 roles", () => {
+    expect(invitableRoles(OWNER)).toEqual(Object.keys(ROLE_TIERS));
+  });
+
+  it("CEO gets FINANCE down — no OWNER, no CEO", () => {
+    const roles = invitableRoles(CEO);
+    expect(roles).not.toContain(OWNER);
+    expect(roles).not.toContain(CEO);
+    expect(roles).toEqual([FINANCE, RD, PM, HR, SCHED, HL]);
+  });
+
+  it("HR_MANAGER gets only SCHEDULER and HOUSE_LEAD", () => {
+    expect(invitableRoles(HR)).toEqual([SCHED, HL]);
+  });
+
+  it("HOUSE_LEAD and unknown roles get an empty list", () => {
+    expect(invitableRoles(HL)).toEqual([]);
+    expect(invitableRoles(undefined)).toEqual([]);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// canInviteRole — pairwise checks
+// ──────────────────────────────────────────────────────────────────────
+
+describe("canInviteRole", () => {
+  it("OWNER can invite another OWNER (the one same-tier exception)", () => {
+    expect(canInviteRole(OWNER, OWNER)).toBe(true);
+  });
+
+  it("no other tier can invite its own tier or above", () => {
+    expect(canInviteRole(CEO, OWNER)).toBe(false);
+    expect(canInviteRole(CEO, CEO)).toBe(false);
+    expect(canInviteRole(FINANCE, CEO)).toBe(false);
+    expect(canInviteRole(PM, RD)).toBe(false);
+    expect(canInviteRole(HL, HL)).toBe(false);
+  });
+
+  it("every tier above HOUSE_LEAD can invite strictly below itself", () => {
+    expect(canInviteRole(CEO, FINANCE)).toBe(true);
+    expect(canInviteRole(FINANCE, RD)).toBe(true);
+    expect(canInviteRole(HR, SCHED)).toBe(true);
+    expect(canInviteRole(SCHED, HL)).toBe(true);
+  });
+
+  it("unknown inviter or target can never invite / be invited", () => {
+    expect(canInviteRole("UNKNOWN", HL)).toBe(false);
+    expect(canInviteRole(OWNER, "UNKNOWN")).toBe(false);
+    expect(canInviteRole(undefined, undefined)).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// accessRoleForTier — company access level derived from tier at invite time
+// ──────────────────────────────────────────────────────────────────────
+
+describe("accessRoleForTier", () => {
+  it("tiers 1–3 map to admin", () => {
+    expect(accessRoleForTier(1)).toBe("admin");
+    expect(accessRoleForTier(2)).toBe("admin");
+    expect(accessRoleForTier(3)).toBe("admin");
+  });
+
+  it("tiers 4–6 map to editor", () => {
+    expect(accessRoleForTier(4)).toBe("editor");
+    expect(accessRoleForTier(5)).toBe("editor");
+    expect(accessRoleForTier(6)).toBe("editor");
+  });
+
+  it("tiers 7–8 map to read_only, matching editMode readonly", () => {
+    expect(accessRoleForTier(7)).toBe("read_only");
+    expect(accessRoleForTier(8)).toBe("read_only");
+    expect(editMode(SCHED)).toBe("readonly");
+    expect(editMode(HL)).toBe("readonly");
   });
 });
