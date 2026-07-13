@@ -124,6 +124,21 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
   // flashing onboarding UI at an already-onboarded user on every load.
   if (initialConfig === undefined || profile === undefined) return null;
 
+  // Diagnostic: surfaces the exact reason onboarding was or wasn't shown.
+  // One log per render, no extra PII.
+  // eslint-disable-next-line no-console
+  console.info('[onboarding decision]', {
+    email: profile?.email,
+    onboardingDone,
+    onboarding_completed_at: profile?.onboarding_completed_at ?? null,
+    sessionSkipped,
+    onboardingStep,
+    provenance: provenance?.kind,
+    companyCount: initialConfig?.companies?.length ?? 0,
+    role: userRole,
+  });
+
+
   // Onboarding already finished, but there's currently no company (e.g. an
   // invite was revoked after initial setup) — a plain guard, not a step in
   // the onboarding sequence.
