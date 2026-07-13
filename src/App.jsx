@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { supabase, getProfile } from "./supabase.js";
 import { ROLES, ROLE_LABELS, canSeeReferrals } from "./lib/access.js";
+import { clearLocalProgress } from "./lib/onboarding.js";
+
 import LoginPage from "./pages/LoginPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import ToolPage from "./pages/ToolPage.jsx";
