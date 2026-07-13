@@ -119,6 +119,29 @@ function AuthedApp({ effectiveRole, derivedRole, userEmail, module, setModule, d
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={async () => {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) return;
+              const { error } = await supabase
+                .from("profiles")
+                .update({ onboarding_completed_at: null })
+                .eq("id", session.user.id);
+              if (error) { console.error("[onboarding] reset failed", error); return; }
+              clearLocalProgress(session.user.id);
+              window.location.reload();
+            }}
+            title="Clear onboarding_completed_at and restart the guided tour"
+            style={{
+              background: '#334155', color: '#f1f5f9',
+              border: '1px solid #475569', borderRadius: 4,
+              padding: '3px 8px', fontSize: 11, cursor: 'pointer',
+            }}
+          >
+            Restart tour
+          </button>
+
         </div>
       )}
     </>
