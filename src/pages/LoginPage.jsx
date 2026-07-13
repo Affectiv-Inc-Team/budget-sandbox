@@ -28,6 +28,12 @@ export default function LoginPage() {
     setError(null);
     setInfo(null);
 
+    // Clear any prior session in this browser before authenticating a new user.
+    // Prevents cases where an already-signed-in account (e.g. an inviter) keeps
+    // its session tokens in localStorage and the app renders as the wrong user
+    // after a new sign-in — which was skipping onboarding for invitees.
+    try { await supabase.auth.signOut({ scope: "local" }); } catch { /* no-op */ }
+
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
       setError(authError.message);
