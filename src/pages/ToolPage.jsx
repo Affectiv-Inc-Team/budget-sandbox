@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { loadConfig, saveConfig, getMyCompanyScopes, getProvenance, completeOnboarding } from "../supabase.js";
+import { supabase, loadConfig, saveConfig, getMyCompanyScopes, getProvenance, completeOnboarding } from "../supabase.js";
 import { firstPendingStep, loadLocalProgress, saveLocalProgress, clearLocalProgress } from "../lib/onboarding.js";
+
 import FinancialTool from "./FinancialTool.jsx";
 import OnboardingIntro from "./onboarding/OnboardingIntro.jsx";
 import AwaitingCompany from "./onboarding/AwaitingCompany.jsx";
