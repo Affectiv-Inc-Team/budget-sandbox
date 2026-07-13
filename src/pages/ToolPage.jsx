@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { loadConfig, saveConfig, getMyCompanyScopes, getProvenance, completeOnboarding } from "../supabase.js";
+import { supabase, loadConfig, saveConfig, getMyCompanyScopes, getProvenance, completeOnboarding } from "../supabase.js";
 import { firstPendingStep, loadLocalProgress, saveLocalProgress, clearLocalProgress } from "../lib/onboarding.js";
+
 import FinancialTool from "./FinancialTool.jsx";
 import OnboardingIntro from "./onboarding/OnboardingIntro.jsx";
 import AwaitingCompany from "./onboarding/AwaitingCompany.jsx";
@@ -35,6 +36,28 @@ export default function ToolPage({ userRole, userEmail, onSignOut, profile, onPr
   }
 
   useEffect(() => { loadCompanyState(); }, []);
+
+  // Dev-only escape hatch: `window.__restartOnboarding()` in the browser
+  // console clears the server flag + local resume pointer and reloads, so
+  // the whole onboarding sequence runs again from Welcome. Not exposed in
+  // production builds.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    window.__restartOnboarding = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { console.warn("[onboarding] no session"); return; }
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed_at: null })
+        .eq("id", session.user.id);
+      if (error) { console.error("[onboarding] reset failed", error); return; }
+      clearLocalProgress(session.user.id);
+      console.info("[onboarding] reset — reloading");
+      window.location.reload();
+    };
+    return () => { delete window.__restartOnboarding; };
+  }, []);
+
 
   const configLoaded = initialConfig !== undefined;
   useEffect(() => {
