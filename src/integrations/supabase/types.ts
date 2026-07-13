@@ -164,6 +164,53 @@ export type Database = {
         }
         Relationships: []
       }
+      invites: {
+        Row: {
+          company_id: string
+          created_at: string
+          email: string
+          email_sent_at: string | null
+          id: string
+          invited_by: string | null
+          org_role: string
+          service_line_scope: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          email: string
+          email_sent_at?: string | null
+          id?: string
+          invited_by?: string | null
+          org_role: string
+          service_line_scope?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          email?: string
+          email_sent_at?: string | null
+          id?: string
+          invited_by?: string | null
+          org_role?: string
+          service_line_scope?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       licensee_companies: {
         Row: {
           assigned_at: string
@@ -636,11 +683,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      access_role_for_tier: { Args: { p_tier: number }; Returns: string }
       add_company_member: {
         Args: { p_company_id: string; p_email: string; p_role: string }
         Returns: undefined
       }
       can_edit_company: { Args: { p_company_id: string }; Returns: boolean }
+      create_invite: {
+        Args: {
+          p_company_id: string
+          p_email: string
+          p_org_role: string
+          p_service_line_scope: string
+        }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -701,6 +758,7 @@ export type Database = {
         Args: { p_referral_id: string; p_ssn: string }
         Returns: undefined
       }
+      role_tier: { Args: { p_role: string }; Returns: number }
       set_member_org_role: {
         Args: { p_company_id: string; p_role: string; p_target_email: string }
         Returns: undefined
