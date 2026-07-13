@@ -127,10 +127,13 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
   // the fold with no vertical clamp (caught by a real browser during e2e;
   // jsdom's zero-valued rects never surfaced it). ~130px estimated tooltip
   // height keeps this from clamping against the tooltip's own unmeasured size.
+  // Reserve ~64px at the bottom to sit clear of the fixed action buttons
+  // (Referral Tracker, Team, Admin Panel) which live at bottom:16 with z-index 9999.
   const TOOLTIP_HEIGHT_ESTIMATE = 130;
+  const BOTTOM_RESERVED = 64;
   const tipTop = Math.min(
     Math.max(8, rect.bottom + 14),
-    window.innerHeight - TOOLTIP_HEIGHT_ESTIMATE,
+    window.innerHeight - TOOLTIP_HEIGHT_ESTIMATE - BOTTOM_RESERVED,
   );
   const tipLeft = Math.min(Math.max(8, rect.left), window.innerWidth - 260);
   const tipStyle = {
@@ -142,7 +145,8 @@ export default function GuidedTour({ role, multiCompany, onFinish, onSkip }) {
     borderRadius: 10,
     boxShadow: "0 18px 44px rgba(10,44,53,0.16), 0 4px 12px rgba(10,44,53,0.08)",
     padding: "13px 14px",
-    zIndex: 9999,
+    zIndex: 10001,
+
     transition: "all 0.25s cubic-bezier(.2,.8,.2,1)",
   };
 
