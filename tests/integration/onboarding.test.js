@@ -94,7 +94,15 @@ describe('getProvenance data path: invites self-read RLS', () => {
     owner = null;
   });
 
-  it('a recipient can select their own invite by email (enables client-side getProvenance)', async () => {
+  // SKIPPED 2026-07-13: invites.invited_by_email doesn't exist on Lovable's
+  // simpler invites table (supabase/migrations/20260713145349_...sql), and
+  // its RLS only grants company admins SELECT — not the invitee reading their
+  // own row by email, which this self-read path depends on. The hand-authored
+  // migration that added both was deleted (never applied to production; it
+  // hard-conflicted with Lovable's version on replay). getProvenance() in
+  // src/supabase.js still falls back to derivedRole !== 'OWNER' when this
+  // query comes back empty, so onboarding degrades rather than breaks.
+  it.skip('a recipient can select their own invite by email (enables client-side getProvenance)', async () => {
     owner = await provisionLicenseeWithCompany({ role: 'admin', emailPrefix: 'provowner' });
     await adminClient.from('profiles').update({ role: 'OWNER' }).eq('id', owner.userId);
 
