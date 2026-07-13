@@ -40,6 +40,7 @@ export default function OnboardingOverlay({
   const [step, setStep] = useState(initialStep);
   const [addedType, setAddedType] = useState(null);
   const [saveError, setSaveError] = useState(null);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   function ctx(overrides = {}) {
     return {
@@ -92,8 +93,14 @@ export default function OnboardingOverlay({
     goTo("done");
   }
 
-  function handleDoneFinish() {
-    onComplete?.();
+  async function handleDoneFinish() {
+    if (isCompleting) return;
+    setIsCompleting(true);
+    try {
+      await onComplete?.();
+    } finally {
+      setIsCompleting(false);
+    }
   }
 
   // The tour is a true spotlight — it draws its own dimmed backdrop with a
@@ -142,7 +149,7 @@ export default function OnboardingOverlay({
 
       {step === "invite_team" && <InviteTeamStep onGoToTeam={handleGoToTeam} onContinue={handleInviteContinue} />}
 
-      {step === "done" && <OnboardingDone role={role} provenance={provenance} onFinish={handleDoneFinish} />}
+      {step === "done" && <OnboardingDone role={role} provenance={provenance} onFinish={handleDoneFinish} isCompleting={isCompleting} />}
     </div>
   );
 }
