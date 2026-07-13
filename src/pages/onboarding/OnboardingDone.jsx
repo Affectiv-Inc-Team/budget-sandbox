@@ -3,7 +3,7 @@ import { doneSummary } from "../../lib/onboarding.js";
 // Closes the loop: recap + tier/provenance-aware "what's next". Copy comes
 // from doneSummary() in the state machine so it stays in lockstep with the
 // predicates that decided which steps this account actually saw.
-export default function OnboardingDone({ role, provenance, onFinish }) {
+export default function OnboardingDone({ role, provenance, onFinish, isCompleting = false }) {
   const { checklist, nextSteps } = doneSummary({ role, provenance });
 
   return (
@@ -46,8 +46,8 @@ export default function OnboardingDone({ role, provenance, onFinish }) {
           </ul>
         </div>
 
-        <button className="login-btn" type="button" onClick={onFinish}>
-          Go to my dashboard
+        <button className="login-btn" type="button" onClick={onFinish} disabled={isCompleting}>
+          {isCompleting ? "Opening dashboard…" : "Go to my dashboard"}
         </button>
       </div>
     </div>

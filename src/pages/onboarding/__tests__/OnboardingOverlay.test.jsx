@@ -122,6 +122,17 @@ describe("OnboardingOverlay — first_line -> line_result -> invite_team -> done
     fireEvent.click(screen.getByRole("button", { name: /go to my dashboard/i }));
     expect(baseProps.onComplete).toHaveBeenCalledOnce();
   });
+
+  it("Done screen disables the dashboard button while completion is saving", async () => {
+    const onComplete = vi.fn(() => new Promise(() => {}));
+    render(<MemoryRouter><OnboardingOverlay {...baseProps} onComplete={onComplete} initialStep="done" /></MemoryRouter>);
+
+    fireEvent.click(screen.getByRole("button", { name: /go to my dashboard/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /opening dashboard/i }).disabled).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: /opening dashboard/i }));
+    expect(onComplete).toHaveBeenCalledOnce();
+  });
 });
 
 describe("OnboardingOverlay — tour step", () => {
