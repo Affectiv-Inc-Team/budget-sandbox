@@ -227,6 +227,7 @@ export type Database = {
           email: string | null
           id: string
           is_super_admin: boolean
+          onboarding_completed_at: string | null
           role: string | null
         }
         Insert: {
@@ -234,6 +235,7 @@ export type Database = {
           email?: string | null
           id: string
           is_super_admin?: boolean
+          onboarding_completed_at?: string | null
           role?: string | null
         }
         Update: {
@@ -241,6 +243,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_super_admin?: boolean
+          onboarding_completed_at?: string | null
           role?: string | null
         }
         Relationships: []
