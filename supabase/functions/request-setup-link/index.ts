@@ -12,6 +12,28 @@ const ALLOWED_REDIRECT_HOSTS = new Set([
 type RequestBody = {
   email?: unknown
   redirectTo?: unknown
+  companyId?: unknown
+}
+
+type LogEntry = {
+  email: string
+  company_id: string | null
+  kind: string
+  email_action?: string | null
+  status: string
+  error_message?: string | null
+  triggered_by?: string | null
+  triggered_by_email?: string | null
+}
+
+// Best-effort audit row — never block or fail the send because logging failed.
+async function logAttempt(admin: ReturnType<typeof createClient>, entry: LogEntry) {
+  try {
+    const { error } = await admin.from('invite_email_log').insert(entry)
+    if (error) console.error('invite_email_log insert failed', error.message)
+  } catch (e) {
+    console.error('invite_email_log insert threw', e)
+  }
 }
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -93,9 +115,32 @@ Deno.serve(async (req) => {
   }
 
   const redirectTo = safeRedirect(body.redirectTo)
+  const companyId = typeof body.companyId === 'string' && body.companyId.trim() ? body.companyId.trim() : null
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
+
+  // Who triggered this resend (the signed-in admin, if any).
+  let actorId: string | null = null
+  let actorEmail: string | null = null
+  const authHeader = req.headers.get('Authorization')
+  if (authHeader) {
+    try {
+      const token = authHeader.replace(/^Bearer\s+/i, '')
+      const { data: userData } = await adminClient.auth.getUser(token)
+      actorId = userData?.user?.id ?? null
+      actorEmail = userData?.user?.email ?? null
+    } catch {
+      // Anonymous / self-service request from the login page.
+    }
+  }
+  const base = {
+    email,
+    company_id: companyId,
+    kind: 'resend',
+    triggered_by: actorId,
+    triggered_by_email: actorEmail ?? (actorId ? null : 'self-service'),
+  }
 
   const { data: licenseeRows, error: licenseeError } = await adminClient
     .from('licensees')
@@ -114,6 +159,7 @@ Deno.serve(async (req) => {
 
   if (!isProvisionedLicensee) {
     console.warn('Setup link requested for unassigned email', { email, redirectTo })
+    await logAttempt(adminClient, { ...base, status: 'skipped', error_message: 'not provisioned' })
     return jsonResponse({ ok: false, reason: 'not_provisioned' })
   }
 
@@ -123,6 +169,7 @@ Deno.serve(async (req) => {
 
   if (!inviteError) {
     console.log('Sent pending-user invite link', { email, redirectTo })
+    await logAttempt(adminClient, { ...base, email_action: 'invite', status: 'sent' })
     return jsonResponse({ ok: true })
   }
 
@@ -134,9 +181,13 @@ Deno.serve(async (req) => {
   const { error: recoveryError } = await sendRecoveryLink(supabaseUrl, anonKey, email, redirectTo)
   if (recoveryError) {
     console.error('Recovery link failed', { email, error: recoveryError.message })
+    await logAttempt(adminClient, {
+      ...base, email_action: 'recovery', status: 'failed', error_message: recoveryError.message,
+    })
     return jsonResponse({ error: 'Unable to send setup link' }, 500)
   }
 
   console.log('Requested recovery/setup link', { email, redirectTo, isProvisionedLicensee })
+  await logAttempt(adminClient, { ...base, email_action: 'recovery', status: 'sent' })
   return jsonResponse({ ok: true })
 })

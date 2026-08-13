@@ -135,6 +135,23 @@ Deno.serve(async (req) => {
     if (statusErr) console.error('invite status update failed:', statusErr.message)
   }
 
+  // 3b. Audit row: every invite send attempt, with who triggered it.
+  try {
+    const { data: actor } = await userClient.auth.getUser()
+    await adminClient.from('invite_email_log').insert({
+      email,
+      company_id: companyId,
+      kind: 'invite',
+      email_action: emailAction,
+      status: emailError ? 'failed' : 'sent',
+      error_message: emailError,
+      triggered_by: actor?.user?.id ?? null,
+      triggered_by_email: actor?.user?.email ?? null,
+    })
+  } catch (e) {
+    console.error('invite_email_log insert failed:', e)
+  }
+
   if (emailError) {
     console.error('invite email failed:', emailError)
     return json(502, {

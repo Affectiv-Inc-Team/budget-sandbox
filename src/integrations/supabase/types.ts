@@ -164,6 +164,60 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_email_log: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string
+          email_action: string | null
+          error_message: string | null
+          id: string
+          kind: string
+          status: string
+          triggered_by: string | null
+          triggered_by_email: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email: string
+          email_action?: string | null
+          error_message?: string | null
+          id?: string
+          kind: string
+          status: string
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          email_action?: string | null
+          error_message?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_email_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_email_log_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invites: {
         Row: {
           company_id: string

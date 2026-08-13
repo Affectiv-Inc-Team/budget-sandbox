@@ -188,7 +188,7 @@ export async function sendInvite({ companyId, email, orgRole, serviceLineScope =
  * don't exist yet, recovery link for ones that do.
  * Returns { ok, error }.
  */
-export async function resendSetupLink(email) {
+export async function resendSetupLink(email, companyId = null) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) return { ok: false, error: 'An email address is required.' };
 
@@ -196,8 +196,9 @@ export async function resendSetupLink(email) {
     typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined;
 
   const { data, error } = await supabase.functions.invoke('request-setup-link', {
-    body: { email: normalizedEmail, redirectTo },
+    body: { email: normalizedEmail, redirectTo, companyId: companyId || undefined },
   });
+
 
   if (error) {
     let message = error.message;
@@ -220,6 +221,29 @@ export async function resendSetupLink(email) {
   }
 
   return { ok: true };
+}
+
+/**
+ * Invite/resend email history. RLS limits rows to companies the caller admins
+ * (super admins see everything). Optional filters: companyId, email.
+ * Returns an array of log rows, newest first.
+ */
+export async function fetchInviteEmailHistory({ companyId = null, email = null, limit = 200 } = {}) {
+  let q = supabase
+    .from('invite_email_log')
+    .select('id, email, company_id, kind, email_action, status, error_message, triggered_by_email, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (companyId) q = q.eq('company_id', companyId);
+  if (email) q = q.eq('email', String(email).trim().toLowerCase());
+
+  const { data, error } = await q;
+  if (error) {
+    console.error('fetchInviteEmailHistory error:', error);
+    return { rows: [], error: error.message };
+  }
+  return { rows: data || [], error: null };
 }
 
 /**

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, sendInvite, getMyCompanyScopes, resendSetupLink } from "../supabase.js";
+import InviteEmailHistory from "../components/InviteEmailHistory.jsx";
 import {
   ROLE_TIERS,
   ROLE_LABELS,
@@ -82,6 +83,7 @@ export default function TeamPanel({ userRole }) {
   const [myScopes, setMyScopes]   = useState({});   // companyId -> { accessRole, serviceLineScope }
   const [companies, setCompanies] = useState([]);   // [{id, name, config}]
   const [selectedCo, setSelectedCo] = useState("");
+  const [emailLogKey, setEmailLogKey] = useState(0);
   const [members, setMembers]     = useState([]);   // get_company_member_status rows
   const [loading, setLoading]     = useState(true);
   const [err, setErr]             = useState(null);
@@ -182,6 +184,7 @@ export default function TeamPanel({ userRole }) {
     if (!result.ok) { setErr(result.error); return; }
     setNotice(`Invite sent to ${inviteEmail.trim().toLowerCase()}${result.emailAction === "recovery" ? " (existing account — they received a sign-in link)" : ""}.`);
     setInviteEmail(""); setInviteRole(""); setInviteScope("");
+    setEmailLogKey((k) => k + 1);
     loadMembers(selectedCo);
   }
 
@@ -190,12 +193,13 @@ export default function TeamPanel({ userRole }) {
     if (!addr || resending.has(addr)) return;
     setErr(null); setNotice(null);
     setResending((prev) => new Set(prev).add(addr));
-    const result = await resendSetupLink(addr);
+    const result = await resendSetupLink(addr, selectedCo);
     setResending((prev) => {
       const next = new Set(prev);
       next.delete(addr);
       return next;
     });
+    setEmailLogKey((k) => k + 1);
     if (result.ok) setNotice(`Setup email re-sent to ${addr}.`);
     else setErr(result.error);
   }
@@ -460,6 +464,10 @@ export default function TeamPanel({ userRole }) {
           T7–8 read-only. <b>Scope</b> ties tier 4+ teammates to one service line.
         </div>
       </div>
+
+      {selectedCo && iAmAdmin && (
+        <InviteEmailHistory companyId={selectedCo} refreshKey={emailLogKey} />
+      )}
     </div>
   );
 }

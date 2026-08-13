@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase, resendSetupLink } from "../supabase.js";
 import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
+import InviteEmailHistory from "../components/InviteEmailHistory.jsx";
 
 const wrap    = { minHeight: "100vh", background: "#0b1220", color: "#e2e8f0", fontFamily: "system-ui, sans-serif", padding: 24 };
 const card    = { background: "#111a2e", border: "1px solid #1f2a44", borderRadius: 10, padding: 20, marginBottom: 20 };
@@ -91,6 +92,7 @@ function Step({ n, title, desc }) {
 
 export default function AdminPanel({ onExit }) {
   const [companies, setCompanies]   = useState([]);
+  const [emailLogKey, setEmailLogKey] = useState(0);
   const [licensees, setLicensees]   = useState([]);
   const [assigns, setAssigns]       = useState([]);
   const [profiles, setProfiles]     = useState([]);
@@ -271,6 +273,7 @@ export default function AdminPanel({ onExit }) {
       next.delete(addr);
       return next;
     });
+    setEmailLogKey(k => k + 1);
     if (result.ok) setNotice(`✓ Setup email re-sent to ${addr}.`);
     else setErr(`Resend to ${addr}: ${result.error}`);
   }
@@ -679,6 +682,11 @@ export default function AdminPanel({ onExit }) {
           </tbody>
         </table>
       </div>
+
+      <InviteEmailHistory
+        companyNames={Object.fromEntries(companies.map(c => [c.id, c.name]))}
+        refreshKey={emailLogKey}
+      />
     </div>
   );
 }
