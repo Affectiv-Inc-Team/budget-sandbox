@@ -2090,19 +2090,21 @@ function MarginBar({ value, max=0.7 }) {
   );
 }
 
-function PortfolioComparison({ userRole }) {
+function PortfolioComparison({ userRole, companies = [] }) {
   const [sortCol, setSortCol] = useState("ebitdaMgn");
   const [sortDir, setSortDir] = useState("desc");
   const [filter,  setFilter]  = useState("all");
   const showDollars = canSeeCompanyDollars(userRole);
   const showWage    = wageDisplayMode(userRole) !== 'hidden';
 
+  const rows = useMemo(() => companies.map(summarizeCompany), [companies]);
+
   const handleSort = col => {
     if (col === sortCol) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortCol(col); setSortDir("desc"); }
   };
 
-  const visible = filter === "all" ? DEMO_COMPANIES : DEMO_COMPANIES.filter(c => c.status === filter);
+  const visible = filter === "all" ? rows : rows.filter(c => c.status === filter);
   const sorted  = [...visible].sort((a,b) => {
     const av = a[sortCol] ?? -Infinity;
     const bv = b[sortCol] ?? -Infinity;
@@ -2110,7 +2112,7 @@ function PortfolioComparison({ userRole }) {
     return sortDir === "asc" ? cmp : -cmp;
   });
 
-  const active   = DEMO_COMPANIES.filter(c => c.status === "active");
+  const active   = rows.filter(c => c.status === "active");
   const totRev   = active.reduce((a,c) => a + c.revNet, 0);
   const totEbitda= active.reduce((a,c) => a + c.ebitda, 0);
   const totNet   = active.reduce((a,c) => a + c.netInc, 0);
@@ -2132,7 +2134,7 @@ function PortfolioComparison({ userRole }) {
     </th>
   );
 
-  const rankByMargin = [...DEMO_COMPANIES].filter(c=>c.status==="active").sort((a,b)=>b.ebitdaMgn-a.ebitdaMgn);
+  const rankByMargin = [...rows].filter(c=>c.status==="active").sort((a,b)=>b.ebitdaMgn-a.ebitdaMgn);
   const rankMap = {};
   rankByMargin.forEach((c,i) => { rankMap[c.id] = i+1; });
 
@@ -2144,10 +2146,11 @@ function PortfolioComparison({ userRole }) {
         <div>
           <div style={{ fontFamily:"'Cinzel',serif", fontSize:14, color:"#0E6B78", letterSpacing:2, marginBottom:4 }}>Portfolio Comparison</div>
           <div style={{ fontSize:9, color:"#64748b", textTransform:"uppercase", letterSpacing:1.5, ...M }}>
-            {active.length} active · {DEMO_COMPANIES.length} total companies
-            <span style={{ color:"#0E6B7860", marginLeft:8 }}>· demo data — live version syncs from Supabase</span>
+            {active.length} active · {rows.length} total companies
+            <span style={{ color:"#0E6B7860", marginLeft:8 }}>· your assigned companies — live from your saved models</span>
           </div>
         </div>
+
         <div style={{ display:"flex", gap:7 }}>
           {["all","active","suspended"].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
