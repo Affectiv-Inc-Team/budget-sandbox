@@ -73,11 +73,27 @@ export function memberStatus(row) {
   return { label: "○ Not signed up", color: "#fbbf24" };
 }
 
-export function scopeLabel(scopeId, company) {
-  if (!scopeId) return "Whole Company";
-  const line = (company?.config?.serviceLines ?? []).find((sl) => sl.id === scopeId);
-  return line ? (line.name || line.type) : "(removed)";
+// A scope value is either null (whole company) or a comma-separated list of
+// service line ids — tier 4+ members can be tied to one or several lines.
+export function parseScope(scope) {
+  return String(scope ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
+
+export function scopeLabel(scopeId, company) {
+  const ids = parseScope(scopeId);
+  if (!ids.length) return "Whole Company";
+  const lines = company?.config?.serviceLines ?? [];
+  return ids
+    .map((id) => {
+      const line = lines.find((sl) => sl.id === id);
+      return line ? (line.name || line.type) : "(removed)";
+    })
+    .join(", ");
+}
+
 
 export default function TeamPanel({ userRole }) {
   const navigate = useNavigate();

@@ -665,9 +665,15 @@ export default function AdminPanel({ onExit }) {
                   </td>
                   <td style={{ ...td, fontFamily: "monospace", fontSize: 11, color: "#94a3b8" }}>
                     {i.service_line_scope
-                      ? (slNameByCo[i.company_id]?.[i.service_line_scope] ?? i.service_line_scope)
+                      ? String(i.service_line_scope)
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                          .map((id) => slNameByCo[i.company_id]?.[id] ?? id)
+                          .join(", ")
                       : "whole company"}
                   </td>
+
                   <td style={td}>{i.invited_by_email}</td>
                   <td style={{ ...td, color: statusColor }}>{i.effective_status}</td>
                   <td style={td}>
