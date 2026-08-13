@@ -774,6 +774,7 @@ export type Database = {
         }[]
       }
       can_edit_company: { Args: { p_company_id: string }; Returns: boolean }
+      can_reset_member_password: { Args: { p_email: string }; Returns: boolean }
       create_invite: {
         Args: {
           p_company_id: string

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, sendInvite, getMyCompanyScopes, resendSetupLink, fetchEmailDeliveryStatus } from "../supabase.js";
+import ResetPasswordControl from "../components/ResetPasswordControl.jsx";
 import DeliveryStatus from "../components/DeliveryStatus.jsx";
 import InviteEmailHistory from "../components/InviteEmailHistory.jsx";
 import {
@@ -449,6 +450,7 @@ export default function TeamPanel({ userRole }) {
                         >
                           {resending.has(m.email?.toLowerCase()) ? "Sending…" : "Resend email"}
                         </button>
+                        <ResetPasswordControl email={m.email} companyId={selectedCo} />
                         <button
                           style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
                           onClick={() => removeMember(m.email, m.access_role)}

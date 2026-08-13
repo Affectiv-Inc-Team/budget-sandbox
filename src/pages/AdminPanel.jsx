@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase, resendSetupLink, fetchEmailDeliveryStatus } from "../supabase.js";
+import ResetPasswordControl from "../components/ResetPasswordControl.jsx";
 import DeliveryStatus from "../components/DeliveryStatus.jsx";
 import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 import InviteEmailHistory from "../components/InviteEmailHistory.jsx";
@@ -566,6 +567,7 @@ export default function AdminPanel({ onExit }) {
                               onClick={() => resendInviteEmail(email)}>
                               {resendingEmails.has(email.toLowerCase()) ? "Sending…" : "Resend email"}
                             </button>
+                            <ResetPasswordControl email={email} companyId={c.id} />
                             <button style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
                               onClick={() => unassign(a.licensee_id, a.company_id)}>Remove</button>
                           </td>

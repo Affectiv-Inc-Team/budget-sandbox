@@ -32,7 +32,12 @@ export default function ResetPasswordPage() {
     if (password.length < 8) return setError("Password must be at least 8 characters.");
     if (password !== confirm) return setError("Passwords do not match.");
     setLoading(true);
-    const { error: err } = await supabase.auth.updateUser({ password });
+    // Clear the admin-issued temporary-password flag at the same time so the
+    // forced-reset redirect stops firing once they've chosen their own.
+    const { error: err } = await supabase.auth.updateUser({
+      password,
+      data: { must_change_password: false },
+    });
     setLoading(false);
     if (err) return setError(err.message);
     setDone(true);
