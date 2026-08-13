@@ -188,7 +188,7 @@ export async function sendInvite({ companyId, email, orgRole, serviceLineScope =
  * don't exist yet, recovery link for ones that do.
  * Returns { ok, error }.
  */
-export async function resendSetupLink(email) {
+export async function resendSetupLink(email, companyId = null) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) return { ok: false, error: 'An email address is required.' };
 
@@ -196,8 +196,9 @@ export async function resendSetupLink(email) {
     typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined;
 
   const { data, error } = await supabase.functions.invoke('request-setup-link', {
-    body: { email: normalizedEmail, redirectTo },
+    body: { email: normalizedEmail, redirectTo, companyId: companyId || undefined },
   });
+
 
   if (error) {
     let message = error.message;
