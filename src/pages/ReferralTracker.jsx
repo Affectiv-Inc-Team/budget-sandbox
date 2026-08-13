@@ -201,33 +201,105 @@ function SSNField({ role, referralId, value, onChange }) {
 
 // ─── Referral list ──────────────────────────────────────────────────────────
 
+function ConversionSummary({ items }) {
+  const closed = items.filter(r => isClosedOutcome(r.outcome));
+  const won = closed.filter(r => outcomeMeta(r.outcome)?.won);
+  const lost = closed.filter(r => !outcomeMeta(r.outcome)?.won);
+  const rate = closed.length ? Math.round((won.length / closed.length) * 100) : null;
+  const byOutcome = lost.reduce((acc, r) => ({ ...acc, [r.outcome]: (acc[r.outcome] ?? 0) + 1 }), {});
+  const rows = Object.entries(byOutcome).sort((a, b) => b[1] - a[1]);
+
+  return (
+    <div style={{ background: "#FAF4E8", borderRadius: 10, border: "1px solid #d5c898", padding: "11px 13px" }}>
+      <div style={{ fontSize: 9, color: "#7a6030", textTransform: "uppercase", letterSpacing: 1.3, fontWeight: 700, ...M }}>Conversion</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 5 }}>
+        <span style={{ fontSize: 20, fontWeight: 800, color: rate == null ? "#9a8050" : rate >= 50 ? "#0f9d70" : "#C9921A" }}>
+          {rate == null ? "—" : `${rate}%`}
+        </span>
+        <span style={{ fontSize: 10, color: "#7a6030", ...M }}>{won.length} converted / {closed.length} closed</span>
+      </div>
+      {rows.length > 0 && (
+        <div style={{ marginTop: 8, borderTop: "1px dashed #d5c898", paddingTop: 7 }}>
+          <div style={{ fontSize: 9, color: "#7a6030", marginBottom: 4, ...M }}>Why we didn't get them</div>
+          {rows.map(([val, n]) => (
+            <div key={val} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "2px 0" }}>
+              <span style={{ fontSize: 10.5, color: outcomeMeta(val)?.color ?? "#7a6030" }}>{labelFor("outcome", val)}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: "#3a2800", ...M }}>{n}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReferralList({ items, onSelect, onNew }) {
+  const [view, setView] = useState("open"); // open | closed | all
+
+  const shown = items.filter(r => {
+    const closed = isClosedOutcome(r.outcome);
+    return view === "all" ? true : view === "closed" ? closed : !closed;
+  });
+  const counts = {
+    open: items.filter(r => !isClosedOutcome(r.outcome)).length,
+    closed: items.filter(r => isClosedOutcome(r.outcome)).length,
+    all: items.length,
+  };
+
   return (
     <div style={{ width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
       <button type="button" onClick={onNew}
         style={{ padding: "10px", borderRadius: 8, border: "none", background: "#D4A520", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5, ...M }}>
         + New Referral
       </button>
-      {items.length === 0 && (
+
+      <ConversionSummary items={items} />
+
+      <div style={{ display: "flex", gap: 5 }}>
+        {[["open", "Active"], ["closed", "Closed"], ["all", "All"]].map(([k, lbl]) => (
+          <button key={k} type="button" onClick={() => setView(k)}
+            style={{
+              flex: 1, padding: "6px 0", borderRadius: 7, fontSize: 11, cursor: "pointer", fontWeight: 700, ...M,
+              border: `1px solid ${view === k ? "#D4A520" : "#d5c898"}`,
+              background: view === k ? "#D4A520" : "#fff",
+              color: view === k ? "#fff" : "#7a6030",
+            }}>{lbl} {counts[k]}</button>
+        ))}
+      </div>
+
+      {shown.length === 0 && (
         <div style={{ padding: 16, fontSize: 12, color: "#6b4c10", textAlign: "center" }}>
-          No referrals yet. Capture one with a single detail.
+          {items.length === 0 ? "No referrals yet. Capture one with a single detail." : `No ${view === "closed" ? "closed" : "active"} referrals.`}
         </div>
       )}
-      {items.map(r => {
+      {shown.map(r => {
         const age = daysInStage(r.stage_entered_at);
+        const meta = outcomeMeta(r.outcome);
+        const closed = isClosedOutcome(r.outcome);
         return (
           <button key={r.id} type="button" onClick={() => onSelect(r)}
             style={{
               textAlign: "left", padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-              background: "#FAF4E8", border: "1px solid #d5c898",
-              borderLeft: `3px solid ${r.priority === "crisis" ? "#f87171" : r.priority === "high" ? "#fb923c" : "#D4A520"}`,
+              background: closed ? "#f4f1e8" : "#FAF4E8", border: "1px solid #d5c898",
+              borderLeft: `3px solid ${closed ? (meta?.color ?? "#94a3b8") : r.priority === "crisis" ? "#f87171" : r.priority === "high" ? "#fb923c" : "#D4A520"}`,
+              opacity: closed ? 0.82 : 1,
             }}>
             <div style={{ color: "#3a2800", fontSize: 13, fontWeight: 700 }}>
               {r.display_label || buildDisplayLabel(r)}
             </div>
             <div style={{ color: "#7a6030", fontSize: 10, marginTop: 3, ...M }}>
-              {labelFor("stage", r.stage)}{r.city ? ` · ${r.city}` : ""}{age != null ? ` · ${age}d in stage` : ""}
+              {labelFor("stage", r.stage)}{r.city ? ` · ${r.city}` : ""}{age != null && !closed ? ` · ${age}d in stage` : ""}
             </div>
+            {meta && (
+              <div style={{ marginTop: 5, display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 20, background: `${meta.color}1f`, border: `1px solid ${meta.color}55` }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: meta.color, ...M }}>
+                  {meta.won ? "✓" : "✕"} {meta.label}
+                </span>
+              </div>
+            )}
+            {closed && r.outcome_reason && (
+              <div style={{ fontSize: 9.5, color: "#8a7040", marginTop: 4 }}>{r.outcome_reason}</div>
+            )}
           </button>
         );
       })}
