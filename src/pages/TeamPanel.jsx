@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, sendInvite, getMyCompanyScopes, resendSetupLink } from "../supabase.js";
+import InviteEmailHistory from "../components/InviteEmailHistory.jsx";
 import {
   ROLE_TIERS,
   ROLE_LABELS,
@@ -190,12 +191,13 @@ export default function TeamPanel({ userRole }) {
     if (!addr || resending.has(addr)) return;
     setErr(null); setNotice(null);
     setResending((prev) => new Set(prev).add(addr));
-    const result = await resendSetupLink(addr);
+    const result = await resendSetupLink(addr, selectedCo);
     setResending((prev) => {
       const next = new Set(prev);
       next.delete(addr);
       return next;
     });
+    setEmailLogKey((k) => k + 1);
     if (result.ok) setNotice(`Setup email re-sent to ${addr}.`);
     else setErr(result.error);
   }
