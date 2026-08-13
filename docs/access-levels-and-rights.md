@@ -150,11 +150,13 @@ The top-of-page KPI chip bar (24hr Clients, Hourly Clients, TSC Caseload, EBITDA
 - **Tiers 5–8:** The entire header KPI bar is hidden. No numbers appear at the top of the screen.
 
 ### Rule 8 — Home Mix Editor interactivity
-The Home Mix Editor (add/remove homes, client mix steppers, wage/occupancy sliders, billing toggles, rate overrides) is fully interactive for **tiers 1–4**. For **tiers 5–8** it becomes view-only:
-- Add and Remove home buttons are hidden
+The Home Mix Editor (add/remove homes, client mix steppers, wage/occupancy sliders, billing toggles, rate overrides) is fully interactive for **tiers 1–4**. For **tiers 5–8** it becomes view-only, with one exception:
+- **Add home** is available to **tiers 1–5** — Program Managers can add homes because standing up a new home is an operational action
+- Remove home button is hidden for tiers 5–8
 - Home name input is read-only
 - All sliders, steppers, and toggles are non-interactive (pointer-events disabled, opacity reduced)
 - The read-only state communicates that the configuration is visible but not editable at this permission level
+
 
 ### Rule 9 — Add Service Line button
 The `+ Add Service Line` button is visible only to **tiers 1–4**. Tiers 5–8 cannot add new service lines to a company.
@@ -207,7 +209,7 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Service line operational tabs:** All visible except as noted above. Focuses operationally on the service lines they run.
 - **Budget Builder:** No header cards. Their own row in $, lines below in %, lines above hidden.
 - **Labor Efficiency tab:** Ratio/% content visible. Dollar tiles and 5-year projection hidden.
-- **Home Mix Editor:** Per-home margin ring, "% margin" caption, and per-home margin badge are hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for all other controls.
+- **Home Mix Editor:** Can add homes. Per-home margin ring, "% margin" caption, and per-home margin badge are hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for all other controls (no remove, no steppers/sliders).
 - **Sidebar:** Wage, occupancy, Res Hab rate overrides visible. Entity type, owner rate, fees hidden.
 - **Wages:** Visible.
 - **Add Service Line:** Button hidden — Program Managers cannot add service lines.

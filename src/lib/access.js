@@ -98,6 +98,12 @@ export function canSeeTopNumbers(role) { return tier(role) <= 4; }
 // Rule 8 — Service-line editing (Home Mix Editor interactive controls) allowed for tiers 1–4
 export function canEditServiceLines(role) { return tier(role) <= 4; }
 
+// Rule 8a — Adding a home in the Home Mix Editor is an operational action, so
+// Program Managers (tier 5) can add homes even though the rest of the editor
+// stays view-only for them.
+export function canAddHome(role) { return tier(role) <= 5; }
+
+
 // Rule 9 — Add Service Line button visible to tiers 1–4
 export function canAddServiceLine(role) { return tier(role) <= 4; }
 
