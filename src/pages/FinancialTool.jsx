@@ -2152,7 +2152,7 @@ function PortfolioComparison({ userRole, companies = [] }) {
         </div>
 
         <div style={{ display:"flex", gap:7 }}>
-          {["all","active","suspended"].map(f => (
+          {["all","active","archived"].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               padding:"4px 12px", borderRadius:6, border:"none", cursor:"pointer",
               fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:1.5, ...M,
