@@ -186,7 +186,7 @@ button {
 
 /* ── Login page ─────────────────────────────────────────── */
 .login-root {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   background:
@@ -223,6 +223,8 @@ button {
 }
 
 .login-wordmark {
+  margin: 0;
+  font-weight: 700;
   font-family: var(--font-serif);
   font-size: 22px;
   color: var(--teal);
@@ -348,7 +350,7 @@ button {
 
 /* ── Marketing / landing pages ──────────────────────────── */
 .mk-root {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background:
@@ -399,6 +401,10 @@ button {
   gap: clamp(8px, 2vw, 22px);
 }
 .mk-navlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 2px;
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
@@ -415,6 +421,7 @@ button {
 .mk-btn {
   display: inline-flex;
   align-items: center;
+  min-height: 40px;
   justify-content: center;
   border-radius: var(--radius-md);
   font-family: var(--font-sans);
@@ -526,7 +533,7 @@ button {
 }
 
 /* Grids + cards */
-.mk-grid { display: grid; gap: 18px; }
+.mk-grid { display: grid; gap: 18px; align-items: start; }
 .mk-grid-2 { grid-template-columns: repeat(2, 1fr); }
 .mk-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .mk-card {
@@ -663,6 +670,7 @@ button {
 }
 @media (max-width: 560px) {
   .mk-nav { gap: 10px; }
+  .mk-btn { min-height: 44px; }
   .mk-navlink { font-size: 12px; }
   .mk-btn { padding: 8px 12px; font-size: 12px; }
   .mk-footer-links { margin-left: 0; width: 100%; }
