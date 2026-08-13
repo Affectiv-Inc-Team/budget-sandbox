@@ -214,3 +214,26 @@ When touching this system, update in the same PR:
 - Any grant/RPC changes in a real migration (do **not** rely on Management
   API edits — see `email-queue-functions-migration-spec.md`).
 - This document.
+
+## Invite email history (audit log)
+
+Every invitation and resend attempt is recorded in `public.invite_email_log`:
+
+| Column | Meaning |
+|---|---|
+| `email` | recipient |
+| `company_id` | company the invite/resend was for (null for self-service login-page requests) |
+| `kind` | `invite` (first send via `send-invite`) or `resend` (via `request-setup-link`) |
+| `email_action` | `invite` or `recovery` — which auth email GoTrue actually sent |
+| `status` | `sent`, `failed`, or `skipped` (address not provisioned) |
+| `error_message` | provider/auth error when the send failed |
+| `triggered_by` / `triggered_by_email` | the signed-in admin who clicked; `self-service` when the recipient requested it from the login page |
+| `created_at` | timestamp of the attempt |
+
+Writes happen in the edge functions with the service role and are best-effort —
+a logging failure never blocks the email. Reads are RLS-gated: super admins see
+everything, company admins see rows for their companies' people.
+
+UI: `src/components/InviteEmailHistory.jsx` — rendered at the bottom of the
+Admin panel (all companies) and the Team panel (scoped to the selected company),
+with recipient/sender search, outcome filter, and refresh.
