@@ -211,11 +211,14 @@ export async function resendSetupLink(email, companyId = null) {
   }
 
   if (data && data.ok === false) {
+    const waitSeconds = Number(data.retryAfterSeconds);
     return {
       ok: false,
       error:
         data.reason === 'not_provisioned'
           ? 'That address has no access yet — assign them to a company first.'
+          : data.reason === 'rate_limited'
+            ? `An email was already requested. Wait ${Number.isFinite(waitSeconds) ? waitSeconds : 60} seconds, then try again.`
           : 'Unable to send the setup link.',
     };
   }

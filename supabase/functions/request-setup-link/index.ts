@@ -51,6 +51,11 @@ function normalizeEmail(value: unknown): string | null {
   return email
 }
 
+function retryAfterSeconds(message: string): number | null {
+  const match = message.match(/after\s+(\d+)\s+seconds?/i)
+  return match ? Number(match[1]) : null
+}
+
 function safeRedirect(value: unknown): string {
   if (typeof value !== 'string') return FALLBACK_REDIRECT
 
@@ -180,6 +185,22 @@ Deno.serve(async (req) => {
 
   const { error: recoveryError } = await sendRecoveryLink(supabaseUrl, anonKey, email, redirectTo)
   if (recoveryError) {
+    const waitSeconds = retryAfterSeconds(recoveryError.message)
+    if (waitSeconds !== null) {
+      console.warn('Setup email rate limited', { email, waitSeconds })
+      await logAttempt(adminClient, {
+        ...base,
+        email_action: 'recovery',
+        status: 'skipped',
+        error_message: `rate limited; retry after ${waitSeconds} seconds`,
+      })
+      return jsonResponse({
+        ok: false,
+        reason: 'rate_limited',
+        retryAfterSeconds: waitSeconds,
+      })
+    }
+
     console.error('Recovery link failed', { email, error: recoveryError.message })
     await logAttempt(adminClient, {
       ...base, email_action: 'recovery', status: 'failed', error_message: recoveryError.message,
@@ -189,5 +210,5 @@ Deno.serve(async (req) => {
 
   console.log('Requested recovery/setup link', { email, redirectTo, isProvisionedLicensee })
   await logAttempt(adminClient, { ...base, email_action: 'recovery', status: 'sent' })
-  return jsonResponse({ ok: true })
+  return jsonResponse({ ok: true, emailAction: 'recovery' })
 })
