@@ -1532,12 +1532,13 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
               <div>
                 <SL>Weekly Authorization</SL>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:14 }}>
-                  <Slider label="Individual Hrs / Week" value={sel.indHrsPerWeek} min={0} max={168} step={0.5}
+                  <Slider label="Individual Hrs / Week" value={sel.indHrsPerWeek} min={0} max={168} step={0.25}
                     onChange={v=>onUpdate(sel.id,"indHrsPerWeek",v)} color="#0E6B78"
-                    format={v=>`${v}hr`}/>
-                  <Slider label="Group Hrs / Week" value={sel.groupHrsPerWeek} min={0} max={168} step={0.5}
+                    format={v=>`${v}hr`} typeable inputStep={0.25}/>
+                  <Slider label="Group Hrs / Week" value={sel.groupHrsPerWeek} min={0} max={168} step={0.25}
                     onChange={v=>onUpdate(sel.id,"groupHrsPerWeek",v)} color="#0A5260"
-                    format={v=>`${v}hr`}/>
+                    format={v=>`${v}hr`} typeable inputStep={0.25}/>
+
 
                 </div>
                 {/* Weekly cap display */}
@@ -1545,9 +1546,10 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <div>
                       <div style={{ fontSize:9, color:"#5a7498", textTransform:"uppercase", letterSpacing:1, ...M }}>Total Weekly Cap</div>
-                      <Slider label="" value={sel.weeklyCapHrs} min={1} max={168} step={0.5}
+                      <Slider label="" value={sel.weeklyCapHrs} min={1} max={168} step={0.25}
                         onChange={v=>onUpdate(sel.id,"weeklyCapHrs",v)} color="#C9921A"
-                        format={v=>`${v}hr`}/>
+                        format={v=>`${v}hr`} typeable inputStep={0.25}/>
+
                     </div>
                     <div style={{ textAlign:"right", minWidth:100 }}>
                       <div style={{ fontSize:9, color:"#64748b", ...M }}>Utilized</div>
