@@ -464,6 +464,10 @@ export default function TeamPanel({ userRole }) {
           T7–8 read-only. <b>Scope</b> ties tier 4+ teammates to one service line.
         </div>
       </div>
+
+      {selectedCo && iAmAdmin && (
+        <InviteEmailHistory companyId={selectedCo} refreshKey={emailLogKey} />
+      )}
     </div>
   );
 }
