@@ -3271,7 +3271,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   onDelete={deleteVolumeEntry}/>
               )}
               {isWholeCompany && subTab === "faq"            && <FAQTab userRole={userRole}/>}
-              {isWholeCompany && subTab === "portfolio"      && canSeeCompanyDollars(userRole) && <PortfolioComparison userRole={userRole}/>}
+              {isWholeCompany && subTab === "portfolio"      && canSeeCompanyDollars(userRole) && <PortfolioComparison userRole={userRole} companies={config.companies ?? []}/>}
 
               {/* RES_HAB_DAILY tabs */}
               {activeSLType === SERVICE_LINE_TYPES.RES_HAB_DAILY && subTab === "mixeditor" && (
