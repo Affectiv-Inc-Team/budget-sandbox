@@ -113,6 +113,9 @@ export default function TeamPanel({ userRole }) {
   const [sending, setSending]         = useState(false);
   const [resending, setResending]     = useState(() => new Set());
   const [deliveryByEmail, setDeliveryByEmail] = useState({});
+  const [editScopeFor, setEditScopeFor] = useState(null); // member email being scope-edited
+  const [scopeDraft, setScopeDraft]     = useState([]);
+
 
   const myInvitableRoles = useMemo(() => invitableRoles(userRole), [userRole]);
   const canInviteAtAll   = myInvitableRoles.length > 0;
@@ -239,6 +242,24 @@ export default function TeamPanel({ userRole }) {
       p_role: nextRole || null,
     });
     if (error) return setErr(error.message);
+    loadMembers(selectedCo);
+  }
+
+  // Change which service lines an existing member is scoped to. Admins hold
+  // UPDATE on licensee_companies under RLS; empty list = whole company.
+  async function saveScope(email) {
+    setErr(null); setNotice(null);
+    const addr = String(email || "").trim().toLowerCase();
+    const { data: lic, error: licErr } = await supabase.from("licensees")
+      .select("id").ilike("name", addr).limit(1);
+    if (licErr || !lic?.length) return setErr(licErr?.message ?? "member not found");
+    const { error } = await supabase.from("licensee_companies")
+      .update({ service_line_scope: scopeDraft.length ? scopeDraft.join(",") : null })
+      .eq("licensee_id", lic[0].id)
+      .eq("company_id", selectedCo);
+    if (error) return setErr(error.message);
+    setEditScopeFor(null);
+    setNotice(`Service line access updated for ${addr}.`);
     loadMembers(selectedCo);
   }
 
@@ -455,7 +476,42 @@ export default function TeamPanel({ userRole }) {
                       <div style={{ color: "#fbbf24", fontSize: 11, marginTop: 4 }}>Pending — applies at first sign-in</div>
                     )}
                   </td>
-                  <td style={td}>{scopeLabel(m.service_line_scope, company)}</td>
+                  <td style={td}>
+                    {editScopeFor === m.email ? (
+                      <div>
+                        {activeLines.map((sl) => (
+                          <label key={sl.id} style={{ display: "block", fontSize: 12, marginBottom: 4 }}>
+                            <input
+                              type="checkbox"
+                              checked={scopeDraft.includes(sl.id)}
+                              onChange={() => setScopeDraft((prev) =>
+                                prev.includes(sl.id) ? prev.filter((x) => x !== sl.id) : [...prev, sl.id])}
+                              style={{ marginRight: 6 }}
+                            />
+                            {sl.name || sl.type}
+                          </label>
+                        ))}
+                        <div style={{ color: "#64748b", fontSize: 11, marginBottom: 6 }}>
+                          None checked = whole company.
+                        </div>
+                        <button style={{ ...btnGhost, marginRight: 6 }} onClick={() => saveScope(m.email)}>Save</button>
+                        <button style={btnGhost} onClick={() => setEditScopeFor(null)}>Cancel</button>
+                      </div>
+                    ) : (
+                      <>
+                        {scopeLabel(m.service_line_scope, company)}
+                        {canManageRow && (
+                          <button
+                            style={{ ...btnGhost, marginLeft: 8, padding: "2px 8px", fontSize: 11 }}
+                            onClick={() => { setEditScopeFor(m.email); setScopeDraft(parseScope(m.service_line_scope)); }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </td>
+
                   <td style={{ ...td, color: "#94a3b8" }}>{m.access_role}</td>
                   <td style={td}><span style={{ color: status.color, fontSize: 12 }}>{status.label}</span></td>
                   <td style={{ ...td, color: "#94a3b8", fontSize: 12 }}>
