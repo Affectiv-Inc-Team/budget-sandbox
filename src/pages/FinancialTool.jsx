@@ -236,14 +236,31 @@ function calcHourlyParticipant(p, rates, wage) {
 
 const M = { fontFamily:"'DM Mono',monospace" };
 
-function Slider({ label, value, min, max, step=1, onChange, color="#0E6B78", format }) {
+function Slider({ label, value, min, max, step=1, onChange, color="#0E6B78", format, typeable=false, inputStep }) {
   const p = ((value-min)/(max-min))*100;
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:8 }}>
         <span style={{ fontSize:9.5, color:"#7a6030", textTransform:"uppercase", letterSpacing:1.2, fontFamily:"'DM Mono',monospace", fontWeight:500 }}>{label}</span>
-        <span style={{ fontSize:15, fontWeight:800, color, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 }}>{format?format(value):value}</span>
+        {typeable ? (
+          <input
+            type="number" min={min} max={max} step={inputStep ?? step} value={value}
+            aria-label={label ? `${label} value` : "value"}
+            onChange={e => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              const n = Number(raw);
+              if (Number.isNaN(n)) return;
+              onChange(Math.min(max, Math.max(min, n)));
+            }}
+            style={{ width:74, textAlign:"right", fontSize:14, fontWeight:800, color, fontFamily:"'DM Mono',monospace",
+                     border:"1px solid #d0dae8", borderRadius:6, padding:"2px 6px", background:"#fff" }}
+          />
+        ) : (
+          <span style={{ fontSize:15, fontWeight:800, color, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 }}>{format?format(value):value}</span>
+        )}
       </div>
+
       <div style={{ position:"relative", height:5, background:"#ddd8cc", borderRadius:3 }}>
         <div style={{ position:"absolute", left:0, top:0, height:"100%", width:`${p}%`, background:`linear-gradient(90deg,${color}70,${color})`, borderRadius:3 }} />
         <input type="range" min={min} max={max} step={step} value={value}
@@ -1515,12 +1532,13 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
               <div>
                 <SL>Weekly Authorization</SL>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:14 }}>
-                  <Slider label="Individual Hrs / Week" value={sel.indHrsPerWeek} min={0} max={168} step={0.5}
+                  <Slider label="Individual Hrs / Week" value={sel.indHrsPerWeek} min={0} max={168} step={0.25}
                     onChange={v=>onUpdate(sel.id,"indHrsPerWeek",v)} color="#0E6B78"
-                    format={v=>`${v}hr`}/>
-                  <Slider label="Group Hrs / Week" value={sel.groupHrsPerWeek} min={0} max={168} step={0.5}
+                    format={v=>`${v}hr`} typeable inputStep={0.25}/>
+                  <Slider label="Group Hrs / Week" value={sel.groupHrsPerWeek} min={0} max={168} step={0.25}
                     onChange={v=>onUpdate(sel.id,"groupHrsPerWeek",v)} color="#0A5260"
-                    format={v=>`${v}hr`}/>
+                    format={v=>`${v}hr`} typeable inputStep={0.25}/>
+
 
                 </div>
                 {/* Weekly cap display */}
@@ -1528,9 +1546,10 @@ function HourlyTab({ participants, onUpdate, onAdd, onRemove, wage, rates, setRa
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <div>
                       <div style={{ fontSize:9, color:"#5a7498", textTransform:"uppercase", letterSpacing:1, ...M }}>Total Weekly Cap</div>
-                      <Slider label="" value={sel.weeklyCapHrs} min={1} max={168} step={0.5}
+                      <Slider label="" value={sel.weeklyCapHrs} min={1} max={168} step={0.25}
                         onChange={v=>onUpdate(sel.id,"weeklyCapHrs",v)} color="#C9921A"
-                        format={v=>`${v}hr`}/>
+                        format={v=>`${v}hr`} typeable inputStep={0.25}/>
+
                     </div>
                     <div style={{ textAlign:"right", minWidth:100 }}>
                       <div style={{ fontSize:9, color:"#64748b", ...M }}>Utilized</div>
