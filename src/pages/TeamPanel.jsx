@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, sendInvite, getMyCompanyScopes } from "../supabase.js";
+import { supabase, sendInvite, getMyCompanyScopes, resendSetupLink } from "../supabase.js";
 import {
   ROLE_TIERS,
   ROLE_LABELS,
@@ -91,6 +91,7 @@ export default function TeamPanel({ userRole }) {
   const [inviteRole, setInviteRole]   = useState("");
   const [inviteScope, setInviteScope] = useState("");
   const [sending, setSending]         = useState(false);
+  const [resending, setResending]     = useState(() => new Set());
 
   const myInvitableRoles = useMemo(() => invitableRoles(userRole), [userRole]);
   const canInviteAtAll   = myInvitableRoles.length > 0;
@@ -182,6 +183,21 @@ export default function TeamPanel({ userRole }) {
     setNotice(`Invite sent to ${inviteEmail.trim().toLowerCase()}${result.emailAction === "recovery" ? " (existing account — they received a sign-in link)" : ""}.`);
     setInviteEmail(""); setInviteRole(""); setInviteScope("");
     loadMembers(selectedCo);
+  }
+
+  async function resendMemberEmail(email) {
+    const addr = String(email || "").trim().toLowerCase();
+    if (!addr || resending.has(addr)) return;
+    setErr(null); setNotice(null);
+    setResending((prev) => new Set(prev).add(addr));
+    const result = await resendSetupLink(addr);
+    setResending((prev) => {
+      const next = new Set(prev);
+      next.delete(addr);
+      return next;
+    });
+    if (result.ok) setNotice(`Setup email re-sent to ${addr}.`);
+    else setErr(result.error);
   }
 
   async function changeOrgRole(email, nextRole) {
@@ -409,14 +425,24 @@ export default function TeamPanel({ userRole }) {
                         : <span style={{ color: "#64748b" }}>— No</span>
                     ) : <span style={{ color: "#64748b" }}>—</span>}
                   </td>
-                  <td style={td}>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
                     {canManageRow && (
-                      <button
-                        style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
-                        onClick={() => removeMember(m.email, m.access_role)}
-                      >
-                        Remove
-                      </button>
+                      <>
+                        <button
+                          style={{ ...btnGhost, marginRight: 6 }}
+                          disabled={resending.has(m.email?.toLowerCase())}
+                          title="Re-send their account setup / sign-in email"
+                          onClick={() => resendMemberEmail(m.email)}
+                        >
+                          {resending.has(m.email?.toLowerCase()) ? "Sending…" : "Resend email"}
+                        </button>
+                        <button
+                          style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
+                          onClick={() => removeMember(m.email, m.access_role)}
+                        >
+                          Remove
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>

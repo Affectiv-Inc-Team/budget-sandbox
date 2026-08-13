@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../supabase.js";
+import { supabase, resendSetupLink } from "../supabase.js";
 import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 
 const wrap    = { minHeight: "100vh", background: "#0b1220", color: "#e2e8f0", fontFamily: "system-ui, sans-serif", padding: 24 };
@@ -97,6 +97,7 @@ export default function AdminPanel({ onExit }) {
   const [orgRolesByCo, setOrgRolesByCo] = useState({}); // { companyId: { emailLower: statusRow } }
   const [invites, setInvites]       = useState([]);
   const [revokingIds, setRevokingIds] = useState(() => new Set());
+  const [resendingEmails, setResendingEmails] = useState(() => new Set());
   const [loading, setLoading]       = useState(true);
   const [err, setErr]               = useState(null);
   const [notice, setNotice]         = useState(null);
@@ -257,6 +258,21 @@ export default function AdminPanel({ onExit }) {
     const { error } = await supabase.from("licensees").delete().eq("id", id);
     if (error) return setErr(error.message);
     reload();
+  }
+
+  async function resendInviteEmail(email) {
+    const addr = String(email || "").trim().toLowerCase();
+    if (!addr || resendingEmails.has(addr)) return;
+    setErr(null); setNotice(null);
+    setResendingEmails(prev => new Set(prev).add(addr));
+    const result = await resendSetupLink(addr);
+    setResendingEmails(prev => {
+      const next = new Set(prev);
+      next.delete(addr);
+      return next;
+    });
+    if (result.ok) setNotice(`✓ Setup email re-sent to ${addr}.`);
+    else setErr(`Resend to ${addr}: ${result.error}`);
   }
 
   async function revokeInvite(id, email) {
@@ -521,7 +537,13 @@ export default function AdminPanel({ onExit }) {
                               <div style={{ color: "#fbbf24", fontSize: 11, marginTop: 4 }}>Pending — applies at first sign-in</div>
                             )}
                           </td>
-                          <td style={td}>
+                          <td style={{ ...td, whiteSpace: "nowrap" }}>
+                            <button style={{ ...btnGhost, marginRight: 6 }}
+                              disabled={resendingEmails.has(email.toLowerCase())}
+                              title="Re-send the account setup / sign-in email"
+                              onClick={() => resendInviteEmail(email)}>
+                              {resendingEmails.has(email.toLowerCase()) ? "Sending…" : "Resend email"}
+                            </button>
                             <button style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
                               onClick={() => unassign(a.licensee_id, a.company_id)}>Remove</button>
                           </td>
@@ -627,15 +649,25 @@ export default function AdminPanel({ onExit }) {
                   <td style={{ ...td, color: "#64748b", fontSize: 12 }}>
                     {i.email_sent_at ? new Date(i.email_sent_at).toLocaleString() : "—"}
                   </td>
-                  <td style={td}>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
                     {revocable && (
-                      <button
-                        style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
-                        disabled={revokingIds.has(i.id)}
-                        onClick={() => revokeInvite(i.id, i.email)}
-                      >
-                        {revokingIds.has(i.id) ? "Revoking…" : "Revoke"}
-                      </button>
+                      <>
+                        <button
+                          style={{ ...btnGhost, marginRight: 6 }}
+                          disabled={resendingEmails.has(i.email?.toLowerCase())}
+                          title="Re-send the invitation email"
+                          onClick={() => resendInviteEmail(i.email)}
+                        >
+                          {resendingEmails.has(i.email?.toLowerCase()) ? "Sending…" : "Resend"}
+                        </button>
+                        <button
+                          style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
+                          disabled={revokingIds.has(i.id)}
+                          onClick={() => revokeInvite(i.id, i.email)}
+                        >
+                          {revokingIds.has(i.id) ? "Revoking…" : "Revoke"}
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
