@@ -125,7 +125,7 @@ export default function LoginPage() {
               fontSize: 40, lineHeight: 1, marginBottom: 12,
             }} aria-hidden>✉️</div>
             <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 600, margin: "0 0 8px" }}>
-              We sent a secure link to
+              We sent a one-time code to
             </p>
             <p style={{
               color: "#0E6B78", fontSize: 14, fontWeight: 700,
@@ -142,7 +142,7 @@ export default function LoginPage() {
               type="button"
               className="login-btn"
               onClick={() => {
-                setMode("signin");
+                setMode("code");
                 setPassword("");
                 setError(null);
                 setInfo(null);
