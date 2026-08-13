@@ -425,14 +425,24 @@ export default function TeamPanel({ userRole }) {
                         : <span style={{ color: "#64748b" }}>— No</span>
                     ) : <span style={{ color: "#64748b" }}>—</span>}
                   </td>
-                  <td style={td}>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
                     {canManageRow && (
-                      <button
-                        style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
-                        onClick={() => removeMember(m.email, m.access_role)}
-                      >
-                        Remove
-                      </button>
+                      <>
+                        <button
+                          style={{ ...btnGhost, marginRight: 6 }}
+                          disabled={resending.has(m.email?.toLowerCase())}
+                          title="Re-send their account setup / sign-in email"
+                          onClick={() => resendMemberEmail(m.email)}
+                        >
+                          {resending.has(m.email?.toLowerCase()) ? "Sending…" : "Resend email"}
+                        </button>
+                        <button
+                          style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
+                          onClick={() => removeMember(m.email, m.access_role)}
+                        >
+                          Remove
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
