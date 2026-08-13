@@ -745,6 +745,16 @@ export type Database = {
         Args: { p_company_id: string; p_email: string; p_role: string }
         Returns: undefined
       }
+      admin_email_delivery_status: {
+        Args: never
+        Returns: {
+          email: string
+          error_message: string
+          sent_at: string
+          status: string
+          template_name: string
+        }[]
+      }
       admin_list_invites: {
         Args: never
         Returns: {

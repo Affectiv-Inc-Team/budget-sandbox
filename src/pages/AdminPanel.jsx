@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase, resendSetupLink } from "../supabase.js";
+import { supabase, resendSetupLink, fetchEmailDeliveryStatus } from "../supabase.js";
+import DeliveryStatus from "../components/DeliveryStatus.jsx";
 import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 import InviteEmailHistory from "../components/InviteEmailHistory.jsx";
 
@@ -98,6 +99,7 @@ export default function AdminPanel({ onExit }) {
   const [profiles, setProfiles]     = useState([]);
   const [orgRolesByCo, setOrgRolesByCo] = useState({}); // { companyId: { emailLower: statusRow } }
   const [invites, setInvites]       = useState([]);
+  const [deliveryByEmail, setDeliveryByEmail] = useState({});
   const [revokingIds, setRevokingIds] = useState(() => new Set());
   const [resendingEmails, setResendingEmails] = useState(() => new Set());
   const [loading, setLoading]       = useState(true);
@@ -144,6 +146,7 @@ export default function AdminPanel({ onExit }) {
     }
     setOrgRolesByCo(byCo);
     setInvites(inv.data ?? []);
+    setDeliveryByEmail(await fetchEmailDeliveryStatus());
     setLoading(false);
   }, []);
 
@@ -282,8 +285,12 @@ export default function AdminPanel({ onExit }) {
       return next;
     });
     setEmailLogKey(k => k + 1);
+    // Queue rows land a second or two later — refresh the delivery column twice.
+    fetchEmailDeliveryStatus().then(setDeliveryByEmail);
+    setTimeout(() => { fetchEmailDeliveryStatus().then(setDeliveryByEmail); }, 4000);
     if (result.ok) setNotice(`✓ Setup email re-sent to ${addr}.`);
     else setErr(`Resend to ${addr}: ${result.error}`);
+
   }
 
   async function revokeInvite(id, email) {
@@ -503,6 +510,7 @@ export default function AdminPanel({ onExit }) {
                     <th style={th}>Account</th>
                     <th style={th}>Access</th>
                     <th style={th}>Org role</th>
+                    <th style={th}>Last email</th>
                     <th style={th}></th>
                   </tr></thead>
                   <tbody>
@@ -547,6 +555,9 @@ export default function AdminPanel({ onExit }) {
                             {isPending && orgRole && (
                               <div style={{ color: "#fbbf24", fontSize: 11, marginTop: 4 }}>Pending — applies at first sign-in</div>
                             )}
+                          </td>
+                          <td style={td}>
+                            <DeliveryStatus record={deliveryByEmail[email.toLowerCase()]} />
                           </td>
                           <td style={{ ...td, whiteSpace: "nowrap" }}>
                             <button style={{ ...btnGhost, marginRight: 6 }}
@@ -657,8 +668,11 @@ export default function AdminPanel({ onExit }) {
                   </td>
                   <td style={td}>{i.invited_by_email}</td>
                   <td style={{ ...td, color: statusColor }}>{i.effective_status}</td>
-                  <td style={{ ...td, color: "#64748b", fontSize: 12 }}>
-                    {i.email_sent_at ? new Date(i.email_sent_at).toLocaleString() : "—"}
+                  <td style={td}>
+                    <DeliveryStatus
+                      record={deliveryByEmail[i.email?.toLowerCase()]}
+                      fallbackSentAt={i.email_sent_at}
+                    />
                   </td>
                   <td style={{ ...td, whiteSpace: "nowrap" }}>
                     {revocable && (
