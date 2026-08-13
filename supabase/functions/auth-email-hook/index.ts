@@ -17,10 +17,10 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
+  signup: 'Confirm your Intrinsic email',
+  invite: "You've been invited to Intrinsic",
+  magiclink: 'Your Intrinsic login link',
+  recovery: 'Your Intrinsic password reset code',
   email_change: 'Confirm your new email',
   reauthentication: 'Your verification code',
 }
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "budget-playpen"
+const SITE_NAME = "Intrinsic"
 const SENDER_DOMAIN = "notify.budget.intrinsic.agency"
 const ROOT_DOMAIN = "budget.intrinsic.agency"
 const FROM_DOMAIN = "notify.budget.intrinsic.agency" // Domain shown in From address (may be root or sender subdomain)
@@ -225,6 +225,7 @@ async function handleWebhook(req: Request): Promise<Response> {
     recipient: payload.data.email,
     confirmationUrl: payload.data.url,
     token: payload.data.token,
+    actionType: emailType,
     email: payload.data.email,
     oldEmail: payload.data.old_email,
     newEmail: payload.data.new_email,

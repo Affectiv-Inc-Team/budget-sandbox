@@ -15,9 +15,13 @@ function safeNext(raw) {
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const nextPath = safeNext(searchParams.get("next"));
-  const [mode, setMode] = useState("signin"); // "signin" | "reset" | "sent"
+  const setupType = searchParams.get("setup");
+  const initialMode = setupType === "invite" || setupType === "recovery" ? "code" : "signin";
+  const [mode, setMode] = useState(initialMode); // "signin" | "reset" | "sent" | "code"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [codeType, setCodeType] = useState(setupType === "invite" ? "invite" : "recovery");
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -72,12 +76,35 @@ export default function LoginPage() {
     } else {
       posthog.capture('password_reset_requested');
       setEmail(normalizedEmail);
+      setCodeType(linkData?.emailAction === "invite" ? "invite" : "recovery");
       setMode("sent");
     }
   }
 
+  async function handleCode(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedCode = code.replace(/\s/g, "");
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: normalizedEmail,
+      token: normalizedCode,
+      type: codeType,
+    });
+    setLoading(false);
+    if (verifyError) {
+      setError("That code is invalid or has expired. Request a new code and try again.");
+      posthog.capture('password_reset_code_failed', { code_type: codeType });
+      return;
+    }
+    posthog.capture('password_reset_code_verified', { code_type: codeType });
+    window.location.assign("/reset-password");
+  }
+
   const isReset = mode === "reset";
   const isSent = mode === "sent";
+  const isCode = mode === "code";
 
   return (
     <div className="login-root">
@@ -86,7 +113,7 @@ export default function LoginPage() {
           <a href="/" aria-label="Intrinsic home"><img src={LOGO} alt="Intrinsic" className="login-logo" style={{ cursor: "pointer" }} /></a>
           <h1 className="login-wordmark">Intrinsic</h1>
           <div className="login-subtitle">
-            {isSent ? "Check your email" : isReset ? "Set up or reset your password" : "Financial Model Builder"}
+            {isSent ? "Check your email" : isCode ? "Enter your one-time code" : isReset ? "Set up or reset your password" : "Financial Model Builder"}
           </div>
           <div className="login-divider" />
         </div>
@@ -107,9 +134,9 @@ export default function LoginPage() {
               {email}
             </p>
             <p style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>
-              Open it on this device to set your password and finish signing in.
-              The link expires in about an hour. If it doesn't arrive within a
-              couple of minutes, check your spam folder.
+              Enter the one-time code from the message to set your password.
+              The code expires in about an hour. If it doesn't arrive within a
+              couple of minutes, check your junk or quarantine folder.
             </p>
             <button
               type="button"
@@ -121,7 +148,7 @@ export default function LoginPage() {
                 setInfo(null);
               }}
             >
-              Back to sign in
+              Enter my code
             </button>
             <div style={{ marginTop: 12, fontSize: 12, color: "#94a3b8" }}>
               Wrong email?{" "}
@@ -136,7 +163,7 @@ export default function LoginPage() {
           </div>
         ) : (
           <>
-            <form className="login-form" onSubmit={isReset ? handleReset : handleSignIn}>
+            <form className="login-form" onSubmit={isCode ? handleCode : isReset ? handleReset : handleSignIn}>
               <div className="login-field">
                 <label className="login-label" htmlFor="email">Email</label>
                 <input
@@ -151,7 +178,24 @@ export default function LoginPage() {
                 />
               </div>
 
-              {!isReset && (
+              {isCode && (
+                <div className="login-field">
+                  <label className="login-label" htmlFor="code">One-time code</label>
+                  <input
+                    id="code"
+                    className="login-input"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="123456"
+                    value={code}
+                    onChange={e => setCode(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              {!isReset && !isCode && (
                 <div className="login-field">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                     <label className="login-label" htmlFor="password">Password</label>
@@ -195,8 +239,8 @@ export default function LoginPage() {
 
               <button className="login-btn" type="submit" disabled={loading}>
                 {loading
-                  ? (isReset ? "Sending…" : "Signing in…")
-                  : (isReset ? "Email me a link" : "Sign In")}
+                  ? (isCode ? "Verifying…" : isReset ? "Sending…" : "Signing in…")
+                  : (isCode ? "Verify code" : isReset ? "Email me a code" : "Sign In")}
               </button>
             </form>
 
@@ -204,12 +248,12 @@ export default function LoginPage() {
               marginTop: 20, paddingTop: 16, borderTop: "1px solid #e2e8f0",
               fontSize: 13, color: "#64748b", textAlign: "center", lineHeight: 1.5,
             }}>
-              {isReset ? (
+              {isReset || isCode ? (
                 <>
                   Remembered it?{" "}
                   <button
                     type="button"
-                    onClick={() => { setMode("signin"); setError(null); setInfo(null); }}
+                    onClick={() => { setMode("signin"); setError(null); setInfo(null); setCode(""); }}
                     style={{ background: "none", border: "none", color: "#0E6B78", fontWeight: 600, cursor: "pointer", padding: 0 }}
                   >
                     Back to sign in
