@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../supabase.js";
+import { supabase, resendSetupLink } from "../supabase.js";
 import { ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 
 const wrap    = { minHeight: "100vh", background: "#0b1220", color: "#e2e8f0", fontFamily: "system-ui, sans-serif", padding: 24 };
@@ -97,6 +97,7 @@ export default function AdminPanel({ onExit }) {
   const [orgRolesByCo, setOrgRolesByCo] = useState({}); // { companyId: { emailLower: statusRow } }
   const [invites, setInvites]       = useState([]);
   const [revokingIds, setRevokingIds] = useState(() => new Set());
+  const [resendingEmails, setResendingEmails] = useState(() => new Set());
   const [loading, setLoading]       = useState(true);
   const [err, setErr]               = useState(null);
   const [notice, setNotice]         = useState(null);
