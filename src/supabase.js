@@ -151,14 +151,20 @@ export async function getProvenance(derivedRole) {
  */
 export async function sendInvite({ companyId, email, orgRole, serviceLineScope = null }) {
   const normalizedEmail = email.trim().toLowerCase();
+  // serviceLineScope accepts a single id, an array of ids, or null. Multiple
+  // ids are persisted as a comma-separated list in invites.service_line_scope.
+  const scope = Array.isArray(serviceLineScope)
+    ? (serviceLineScope.filter(Boolean).join(',') || null)
+    : (serviceLineScope || null);
   const { data, error } = await supabase.functions.invoke('send-invite', {
     body: {
       company_id: companyId,
       email: normalizedEmail,
       org_role: orgRole,
-      service_line_scope: serviceLineScope,
+      service_line_scope: scope,
     },
   });
+
 
   if (error) {
     // Non-2xx responses carry the real message in the JSON body.

@@ -15,6 +15,13 @@ import { LOGO } from "../assets/logo.js";
 import posthog, { useFeatureFlag } from "../lib/posthog.js";
 import OnboardingOverlay from "./onboarding/OnboardingOverlay.jsx";
 
+// A member's service-line scope is null (whole company) or a comma-separated
+// list of service line ids. Empty list means "not scoped".
+function parseScopeIds(scope) {
+  return String(scope ?? "").split(",").map(s => s.trim()).filter(Boolean);
+}
+
+
 
 /* ══════════════════════════════════════════════════════════
    RATES & CONSTANTS
@@ -2589,9 +2596,10 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
   // reassigned/archived out from under them.
   useEffect(() => {
     if (activeKey === "WHOLE_COMPANY" || !company) return;
-    const myScope = memberScopes?.[company.id]?.serviceLineScope ?? null;
-    if (myScope && activeKey !== myScope) setActiveKey("WHOLE_COMPANY");
+    const myScope = parseScopeIds(memberScopes?.[company.id]?.serviceLineScope);
+    if (myScope.length && !myScope.includes(activeKey)) setActiveKey("WHOLE_COMPANY");
   }, [activeKey, company, memberScopes]);
+
 
   // ── Update helpers ──
   const updateCompany = (coId, mutator) => setConfig(prev => ({
@@ -3021,12 +3029,14 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
   }
 
   // ── Service line strip data ──
-  // Tier 4+ invites are scoped to one service line (Phase 1 invitations); this
-  // is client-side presentation filtering only — service lines live inside
-  // companies.config JSONB, so RLS can't slice them server-side. Whole Company
-  // stays visible regardless of scope; its contents are already tier-gated.
-  const myScope = memberScopes?.[company.id]?.serviceLineScope ?? null;
-  const visibleSLs = company.serviceLines.filter(sl => !sl.archived && (!myScope || sl.id === myScope));
+  // Tier 4+ invites are scoped to one or more service lines (Phase 1
+  // invitations); this is client-side presentation filtering only — service
+  // lines live inside companies.config JSONB, so RLS can't slice them
+  // server-side. Whole Company stays visible regardless of scope; its
+  // contents are already tier-gated.
+  const myScope = parseScopeIds(memberScopes?.[company.id]?.serviceLineScope);
+  const visibleSLs = company.serviceLines.filter(sl => !sl.archived && (!myScope.length || myScope.includes(sl.id)));
+
   const subTabs = (isWholeCompany
     ? applyTabOrder(getSubTabsFor("WHOLE_COMPANY"), company.shared.wholeCompanySubTabOrder)
     : applyTabOrder(getSubTabsFor(activeSLType), activeSL?.subTabOrder)
