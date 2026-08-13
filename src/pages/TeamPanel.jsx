@@ -323,7 +323,7 @@ export default function TeamPanel({ userRole }) {
               <select
                 style={{ ...input, minWidth: 200 }}
                 value={inviteRole}
-                onChange={(e) => { setInviteRole(e.target.value); setInviteScope(""); }}
+                onChange={(e) => { setInviteRole(e.target.value); setInviteScope([]); }}
                 aria-label="Invite tier"
               >
                 <option value="" disabled>Choose a tier…</option>
@@ -333,17 +333,29 @@ export default function TeamPanel({ userRole }) {
                 })}
               </select>
               {inviteRole && (needsScope ? (
-                <select
-                  style={{ ...input, minWidth: 200 }}
-                  value={inviteScope}
-                  onChange={(e) => setInviteScope(e.target.value)}
+                <div
+                  role="group"
                   aria-label="Service line scope"
+                  style={{
+                    display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center",
+                    padding: "6px 10px", border: "1px solid #334155", borderRadius: 8,
+                    minWidth: 240,
+                  }}
                 >
-                  <option value="" disabled>Choose a service line…</option>
                   {activeLines.map((sl) => (
-                    <option key={sl.id} value={sl.id}>{sl.name || sl.type}</option>
+                    <label key={sl.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={inviteScope.includes(sl.id)}
+                        onChange={() => toggleScope(sl.id)}
+                      />
+                      {sl.name || sl.type}
+                    </label>
                   ))}
-                </select>
+                  {!activeLines.length && (
+                    <span style={{ color: "#94a3b8", fontSize: 12 }}>No active service lines</span>
+                  )}
+                </div>
               ) : (
                 <input style={{ ...input, width: 160, color: "#94a3b8" }} value="Whole Company" disabled aria-label="Scope" />
               ))}
@@ -353,10 +365,11 @@ export default function TeamPanel({ userRole }) {
             </form>
             <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 10, lineHeight: 1.6 }}>
               {needsScope
-                ? `Tier ${inviteTier} (${ROLE_LABELS[inviteRole]}) is tied to one service line, not the whole company.`
+                ? `Tier ${inviteTier} (${ROLE_LABELS[inviteRole]}) is limited to the service lines you check — pick one or several.`
                 : inviteRole
                   ? `Tier ${inviteTier} (${ROLE_LABELS[inviteRole]}) sees the whole company — nothing to scope.`
-                  : "Pick a tier, then a scope — tiers 1–3 always see the whole company; tier 4 and below are tied to one service line."}
+                  : "Pick a tier, then a scope — tiers 1–3 always see the whole company; tier 4 and below are limited to the service lines you select."}
+
               {needsScope && !activeLines.length && (
                 <div style={{ color: "#fbbf24", marginTop: 4 }}>
                   This company has no active service lines yet — add one in the tool before sending tier-4+ invites.
