@@ -517,6 +517,37 @@ function getLaborApprovalStatus(laborRatio, total) {
   return                                                        { status:"rejected",   label:"Not Viable",     color:"#f87171", bg:"#f8717112", border:"#f8717135", icon:"✗" };
 }
 
+// Shared labor-ratio color ramp (matches getLaborApprovalStatus bands)
+const laborRatioColor = r => r < 0.47 ? "#00e5aa" : r < 0.58 ? "#f59e0b" : r < 0.68 ? "#fb923c" : "#f87171";
+
+// Compact approval pill used in home lists / headers
+function ApprovalPill({ approval, ratio, size = "sm" }) {
+  const big = size === "lg";
+  return (
+    <div style={{ display:"inline-flex", alignItems:"center", gap:big?7:5, padding:big?"7px 14px":"2px 7px",
+      borderRadius:big?10:6, background:approval.bg, border:`1px solid ${approval.border}` }}>
+      <span style={{ fontSize:big?14:10, color:approval.color, lineHeight:1 }}>{approval.icon}</span>
+      <div>
+        {big && <div style={{ fontSize:7, color:approval.color, textTransform:"uppercase", letterSpacing:2, ...M, opacity:0.7 }}>Intrinsic</div>}
+        <div style={{ fontSize:big?12:9, fontWeight:big?800:700, color:approval.color, fontFamily:big?"'Cinzel',serif":undefined, ...(big?{}:M) }}>
+          {approval.label}{ratio !== undefined && ratio !== null ? ` · ${(ratio*100).toFixed(0)}%` : ""}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Thin labor-vs-revenue ratio bar with the 47% approval marker
+function LaborRatioBar({ ratio, height = 6 }) {
+  const w = Math.max(0, Math.min(1, ratio)) * 100;
+  return (
+    <div style={{ position:"relative", height, background:"#e6e1d8", borderRadius:height, overflow:"hidden" }}>
+      <div style={{ width:`${w}%`, height:"100%", background:laborRatioColor(ratio), borderRadius:height, transition:"width .2s" }}/>
+      <div style={{ position:"absolute", left:"47%", top:0, bottom:0, width:1, background:"#0A3D4755" }}/>
+    </div>
+  );
+}
+
 function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
   const showDollars = canSeeCompanyDollars(userRole);
   const showMargin  = canSeeMargin(userRole);
