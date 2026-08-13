@@ -209,6 +209,13 @@ have not yet created a password.
 | Recipient never receives email but log shows `sent` | DNS not verified, or the recipient's enterprise gateway quarantined it | Check Cloud → Emails, then the recipient tenant's quarantine/message trace using the logged provider message ID. |
 | Auth log shows `/verify` before the user opens the email | Enterprise link scanner consumed a legacy one-click link | Send a fresh invite/recovery email. Current templates use scanner-safe one-time codes. |
 
+`sent` means the outbound provider accepted the message. It does **not** prove
+that the recipient gateway placed it in an inbox. The Admin and Team panels
+therefore label this state “Accepted by sender · inbox not confirmed.” For a
+Microsoft 365 recipient that does not receive an accepted message, the tenant
+administrator must check Exchange message trace and quarantine using the
+recipient address and exact send timestamp.
+
 ---
 
 ## 6. Change checklist

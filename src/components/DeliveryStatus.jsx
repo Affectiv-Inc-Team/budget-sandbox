@@ -3,7 +3,7 @@
  * a colour-coded status badge plus the exact send timestamp.
  */
 const STATUS_STYLE = {
-  sent:       { label: "Delivered to mail provider", color: "#4ade80", dot: "●" },
+  sent:       { label: "Accepted by sender · inbox not confirmed", color: "var(--success-mid)", dot: "●" },
   pending:    { label: "Queued",                     color: "#fbbf24", dot: "◐" },
   dlq:        { label: "Failed",                     color: "#fca5a5", dot: "✕" },
   failed:     { label: "Failed",                     color: "#fca5a5", dot: "✕" },
