@@ -203,6 +203,8 @@ export default function TeamPanel({ userRole }) {
       return next;
     });
     setEmailLogKey((k) => k + 1);
+    fetchEmailDeliveryStatus().then(setDeliveryByEmail);
+    setTimeout(() => { fetchEmailDeliveryStatus().then(setDeliveryByEmail); }, 4000);
     if (result.ok) setNotice(`Setup email re-sent to ${addr}.`);
     else setErr(result.error);
   }
