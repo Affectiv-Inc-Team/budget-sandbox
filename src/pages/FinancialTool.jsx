@@ -2202,7 +2202,7 @@ function PortfolioComparison({ userRole, companies = [] }) {
               <SH col="netMgn"    label="Net Margin" right/>
               <SH col="wage"      label="Wage"      right/>
               <SH col="occ"       label="Occ%"      right/>
-              <SH col="lastSaved" label="Last Saved" right/>
+              <SH col="lines"     label="Service Lines" right/>
             </tr>
           </thead>
           <tbody>
