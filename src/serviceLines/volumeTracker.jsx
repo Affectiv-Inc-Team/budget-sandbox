@@ -262,8 +262,8 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, ...M }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #d0dae8" }}>
-                  {["Month", "Service Line", "Clients", "MoM", "Notes", ""].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
+                  {["Month", "Service Line", ...SERVICE_LEVELS.map(l => l.label), "Total", "MoM", "Notes", ""].map((h, hi) => (
+                    <th key={`${h}-${hi}`} style={thStyle}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -272,11 +272,18 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
                   const delta      = getMoMDelta(entry);
                   const deltaColor = delta === null ? "#94a3b8" : delta > 0 ? "#22c55e" : delta < 0 ? "#f87171" : "#94a3b8";
                   const deltaStr   = delta === null ? "—" : delta > 0 ? `+${delta}` : String(delta);
+                  const levels     = entryLevels(entry);
                   return (
                     <tr key={entry.id} style={{ borderBottom: "1px solid #edf2f7", background: i % 2 === 0 ? "#fafcff" : "#fff" }}>
                       <td style={{ padding: "7px 10px", fontWeight: 600, color: "#0A3D47" }}>{formatMonth(entry.month)}</td>
                       <td style={{ padding: "7px 10px", color: "#475569" }}>{getScopeName(entry.serviceLineId)}</td>
+                      {SERVICE_LEVELS.map(({ key, color }) => (
+                        <td key={key} style={{ padding: "7px 10px", textAlign: "right", color: levels ? color : "#cbd5e1", fontWeight: 600 }}>
+                          {levels ? levels[key] : "—"}
+                        </td>
+                      ))}
                       <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 700, color: "#0A3D47" }}>{entry.clientCount}</td>
+
                       <td style={{ padding: "7px 10px", textAlign: "right", color: deltaColor, fontWeight: 600 }}>{deltaStr}</td>
                       <td style={{ padding: "7px 10px", color: "#64748b", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {entry.notes || ""}
