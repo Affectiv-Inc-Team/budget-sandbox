@@ -520,12 +520,52 @@ function ReferralForm({ role, companyId, existing, onSaved }) {
         {!existing && <div style={{ fontSize: 10.5, color: "#6b4c10" }}>Activity log & status history appear once the referral is saved.</div>}
       </Section>
 
-      <Section title="10 · Outcome / conversion" open={open.outcome} onToggle={() => toggleOpen("outcome")}>
+      <Section title="10 · Outcome / conversion" hint="Closing a referral out moves it off the Active list and records why."
+        open={open.outcome ?? !!draft.outcome} onToggle={() => toggleOpen("outcome")}>
+        <div>
+          <span style={labelStyle}>Convert / close out</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {SELECTABLE_OUTCOMES.map(o => {
+              const active = draft.outcome === o.value;
+              return (
+                <button key={o.value} type="button"
+                  onClick={() => setDraft(d => ({
+                    ...d,
+                    outcome: active ? "" : o.value,
+                    outcome_reason: active ? "" : (OUTCOME_REASONS[o.value] ? "" : d.outcome_reason),
+                    stage: active ? d.stage : (o.stage ?? d.stage),
+                    decision_date: active ? d.decision_date : (d.decision_date || new Date().toISOString().slice(0, 10)),
+                  }))}
+                  style={{
+                    padding: "6px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer", fontWeight: 700, ...M,
+                    border: `1px solid ${active ? o.color : "#d5c898"}`,
+                    background: active ? o.color : "#fff",
+                    color: active ? "#fff" : "#7a6030",
+                  }}>
+                  {o.won ? "✓ " : ""}{o.label}
+                </button>
+              );
+            })}
+          </div>
+          {draft.outcome && (
+            <div style={{ fontSize: 10.5, color: "#6b4c10", marginTop: 7 }}>
+              Stage set to <strong>{labelFor("stage", draft.stage)}</strong>
+              {isClosedOutcome(draft.outcome) ? " · this referral will show under Closed." : " · stays on the Active list."}
+            </div>
+          )}
+        </div>
+
         <Row>
-          <Select label="Outcome" value={draft.outcome} onChange={v => set("outcome", v)} options={OUTCOMES} />
+          {OUTCOME_REASONS[draft.outcome] ? (
+            <Select label="Reason" value={draft.outcome_reason} onChange={v => set("outcome_reason", v)}
+              options={OUTCOME_REASONS[draft.outcome].map(r => ({ value: r, label: r }))} blank="— select a reason —" />
+          ) : (
+            <Text label="Reason" value={draft.outcome_reason} onChange={v => set("outcome_reason", v)} />
+          )}
           <Text label="Decision date" type="date" value={draft.decision_date} onChange={v => set("decision_date", v)} />
         </Row>
-        <Area label="Outcome reason" value={draft.outcome_reason} onChange={v => set("outcome_reason", v)} />
+        <Area label="Outcome notes" value={draft.outcome_note} onChange={v => set("outcome_note", v)} />
+        <Text label="Where did they go? (provider / program)" value={draft.outcome_destination} onChange={v => set("outcome_destination", v)} />
         <Text label="Client record link (placeholder)" value={draft.client_record_link} onChange={v => set("client_record_link", v)} />
       </Section>
     </div>
