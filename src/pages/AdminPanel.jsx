@@ -260,6 +260,21 @@ export default function AdminPanel({ onExit }) {
     reload();
   }
 
+  async function resendInviteEmail(email) {
+    const addr = String(email || "").trim().toLowerCase();
+    if (!addr || resendingEmails.has(addr)) return;
+    setErr(null); setNotice(null);
+    setResendingEmails(prev => new Set(prev).add(addr));
+    const result = await resendSetupLink(addr);
+    setResendingEmails(prev => {
+      const next = new Set(prev);
+      next.delete(addr);
+      return next;
+    });
+    if (result.ok) setNotice(`✓ Setup email re-sent to ${addr}.`);
+    else setErr(`Resend to ${addr}: ${result.error}`);
+  }
+
   async function revokeInvite(id, email) {
     if (revokingIds.has(id)) return; // already in flight — ignore a fast double-click
     if (!confirm(`Revoke the invite for ${email}? Their pending access to the company is removed.`)) return;
