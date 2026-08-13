@@ -182,6 +182,47 @@ export async function sendInvite({ companyId, email, orgRole, serviceLineScope =
 }
 
 /**
+ * Resend the account-setup / sign-in email to somebody who already has access
+ * (a provisioned licensee or an invited teammate) but never got the first one.
+ * Uses the request-setup-link edge function: invite email for accounts that
+ * don't exist yet, recovery link for ones that do.
+ * Returns { ok, error }.
+ */
+export async function resendSetupLink(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return { ok: false, error: 'An email address is required.' };
+
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined;
+
+  const { data, error } = await supabase.functions.invoke('request-setup-link', {
+    body: { email: normalizedEmail, redirectTo },
+  });
+
+  if (error) {
+    let message = error.message;
+    try {
+      const body = await error.context?.json?.();
+      if (body?.error) message = body.error;
+    } catch { /* keep the generic message */ }
+    posthog.capture('setup_link_resend_failed', { error_message: message });
+    return { ok: false, error: message };
+  }
+
+  if (data && data.ok === false) {
+    return {
+      ok: false,
+      error:
+        data.reason === 'not_provisioned'
+          ? 'That address has no access yet — assign them to a company first.'
+          : 'Unable to send the setup link.',
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
  * The caller's own company memberships: access level + service-line scope.
  * Returns { [companyId]: { accessRole, serviceLineScope } }.
  * serviceLineScope null = whole company.
