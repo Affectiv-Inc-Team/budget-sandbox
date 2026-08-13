@@ -83,6 +83,7 @@ export default function TeamPanel({ userRole }) {
   const [myScopes, setMyScopes]   = useState({});   // companyId -> { accessRole, serviceLineScope }
   const [companies, setCompanies] = useState([]);   // [{id, name, config}]
   const [selectedCo, setSelectedCo] = useState("");
+  const [emailLogKey, setEmailLogKey] = useState(0);
   const [members, setMembers]     = useState([]);   // get_company_member_status rows
   const [loading, setLoading]     = useState(true);
   const [err, setErr]             = useState(null);
@@ -183,6 +184,7 @@ export default function TeamPanel({ userRole }) {
     if (!result.ok) { setErr(result.error); return; }
     setNotice(`Invite sent to ${inviteEmail.trim().toLowerCase()}${result.emailAction === "recovery" ? " (existing account — they received a sign-in link)" : ""}.`);
     setInviteEmail(""); setInviteRole(""); setInviteScope("");
+    setEmailLogKey((k) => k + 1);
     loadMembers(selectedCo);
   }
 
