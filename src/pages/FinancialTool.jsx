@@ -1120,12 +1120,22 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                 </div>
               </div>
             </div>
-            {canEdit && homes.length>1 && (
-              <button onClick={()=>{const nxt=homes.find(h=>h.id!==sel.id)?.id; onRemove(sel.id); if(nxt)setSelId(nxt);}}
-                style={{ background:"#f0eef8", border:"1px solid #f0c8d4", color:"#f87171", cursor:"pointer", borderRadius:6, padding:"5px 12px", fontSize:11, ...M }}>
-                Remove
-              </button>
-            )}
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ minWidth:150 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                  <span style={{ fontSize:8, color:"#9a8050", letterSpacing:1.5, textTransform:"uppercase", ...M }}>Labor / Revenue</span>
+                  <span style={{ fontSize:10, fontWeight:700, color:laborRatioColor(selRatio), ...M }}>{(selRatio*100).toFixed(1)}%</span>
+                </div>
+                <LaborRatioBar ratio={selRatio}/>
+              </div>
+              {selApproval && <ApprovalPill approval={selApproval} size="lg"/>}
+              {canEdit && homes.length>1 && (
+                <button onClick={()=>{const nxt=homes.find(h=>h.id!==sel.id)?.id; onRemove(sel.id); if(nxt)setSelId(nxt);}}
+                  style={{ background:"#f0eef8", border:"1px solid #f0c8d4", color:"#f87171", cursor:"pointer", borderRadius:6, padding:"5px 12px", fontSize:11, ...M }}>
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
 
           <div style={{ padding:"18px 20px", display:"flex", flexDirection:"column", gap:16 }}>
