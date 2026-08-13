@@ -688,6 +688,24 @@ export type Database = {
         Args: { p_company_id: string; p_email: string; p_role: string }
         Returns: undefined
       }
+      admin_list_invites: {
+        Args: never
+        Returns: {
+          access_role: string
+          company_id: string
+          company_name: string
+          created_at: string
+          effective_status: string
+          email: string
+          email_sent_at: string
+          id: string
+          invited_by_email: string
+          org_role: string
+          revoked_at: string
+          service_line_scope: string
+          status: string
+        }[]
+      }
       can_edit_company: { Args: { p_company_id: string }; Returns: boolean }
       create_invite: {
         Args: {
@@ -758,6 +776,7 @@ export type Database = {
         Args: { p_referral_id: string; p_ssn: string }
         Returns: undefined
       }
+      revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
       role_tier: { Args: { p_role: string }; Returns: number }
       set_member_org_role: {
         Args: { p_company_id: string; p_role: string; p_target_email: string }
