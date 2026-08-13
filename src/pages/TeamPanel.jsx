@@ -109,7 +109,7 @@ export default function TeamPanel({ userRole }) {
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole]   = useState("");
-  const [inviteScope, setInviteScope] = useState("");
+  const [inviteScope, setInviteScope] = useState([]);  // service line ids
   const [sending, setSending]         = useState(false);
   const [resending, setResending]     = useState(() => new Set());
   const [deliveryByEmail, setDeliveryByEmail] = useState({});
@@ -167,7 +167,8 @@ export default function TeamPanel({ userRole }) {
   // stale scope id or error/notice from company A shouldn't carry over to a
   // submit against company B.
   useEffect(() => {
-    setInviteEmail(""); setInviteRole(""); setInviteScope("");
+    setInviteEmail(""); setInviteRole(""); setInviteScope([]);
+
     setErr(null); setNotice(null);
   }, [selectedCo]);
 
@@ -188,7 +189,10 @@ export default function TeamPanel({ userRole }) {
   const inviteTier = ROLE_TIERS[inviteRole];
   const needsScope = !!inviteRole && inviteTier >= 4;
   const emailOk = inviteEmail.trim().length > 3 && inviteEmail.includes("@");
-  const canSend = emailOk && !!inviteRole && (!needsScope || !!inviteScope) && !sending;
+  const canSend = emailOk && !!inviteRole && (!needsScope || inviteScope.length > 0) && !sending;
+
+  const toggleScope = (id) =>
+    setInviteScope((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   async function submitInvite(e) {
     e.preventDefault();
@@ -203,7 +207,8 @@ export default function TeamPanel({ userRole }) {
     setSending(false);
     if (!result.ok) { setErr(result.error); return; }
     setNotice(`Invite sent to ${inviteEmail.trim().toLowerCase()}${result.emailAction === "recovery" ? " (existing account — they received a sign-in link)" : ""}.`);
-    setInviteEmail(""); setInviteRole(""); setInviteScope("");
+    setInviteEmail(""); setInviteRole(""); setInviteScope([]);
+
     setEmailLogKey((k) => k + 1);
     loadMembers(selectedCo);
   }
