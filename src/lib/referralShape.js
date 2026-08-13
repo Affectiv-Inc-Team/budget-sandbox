@@ -130,13 +130,69 @@ export const REPEATABLE_CONTACT_KINDS = [
   { value: 'other',     label: 'Other' },
 ];
 
+// Conversion outcomes. `won` marks a converted referral; `open` outcomes keep
+// the referral on the active board, everything else closes it out.
+// Legacy stored values ('enrolled', 'declined') remain readable via labelFor.
 export const OUTCOMES = [
-  { value: 'enrolled',     label: 'Enrolled' },
-  { value: 'declined',     label: 'Declined' },
-  { value: 'waitlisted',   label: 'Waitlisted' },
-  { value: 'withdrawn',    label: 'Withdrawn' },
-  { value: 'referred_out', label: 'Referred out' },
+  { value: 'in_services',        label: 'In services (converted)',        won: true,  color: '#00e5aa', stage: 'ENROLLED' },
+  { value: 'accepted_pending',   label: 'Accepted — pending placement',   won: true,  open: true, color: '#22c55e', stage: 'ACCEPTED_PENDING_PLACEMENT' },
+  { value: 'waitlisted',         label: 'Waitlisted (still ours)',        open: true, color: '#f59e0b', stage: 'WAITLIST' },
+  { value: 'chose_other_provider', label: 'Chose another company',        color: '#fb923c', stage: 'DECLINED' },
+  { value: 'declined_services',  label: 'Decided not to access services', color: '#fb923c', stage: 'DECLINED' },
+  { value: 'we_declined',        label: 'We declined the referral',       color: '#f87171', stage: 'DECLINED' },
+  { value: 'referred_out',       label: 'Referred out',                   color: '#94a3b8', stage: 'REFERRED_OUT' },
+  { value: 'not_eligible',       label: 'Not eligible / no funding',      color: '#94a3b8', stage: 'DECLINED' },
+  { value: 'lost_contact',       label: 'Lost contact / no response',     color: '#94a3b8', stage: 'WITHDRAWN' },
+  { value: 'withdrawn',          label: 'Withdrawn by family',            color: '#94a3b8', stage: 'WITHDRAWN' },
+  // legacy
+  { value: 'enrolled',           label: 'Enrolled (legacy)',              won: true,  color: '#00e5aa', stage: 'ENROLLED', legacy: true },
+  { value: 'declined',           label: 'Declined (legacy)',              color: '#fb923c', stage: 'DECLINED', legacy: true },
 ];
+
+/** Outcomes shown in pickers (legacy values stay readable but unselectable). */
+export const SELECTABLE_OUTCOMES = OUTCOMES.filter(o => !o.legacy);
+
+export function outcomeMeta(value) {
+  return OUTCOMES.find(o => o.value === value) ?? null;
+}
+
+/** True once an outcome takes the referral off the active board. */
+export function isClosedOutcome(value) {
+  const meta = outcomeMeta(value);
+  return !!meta && !meta.open;
+}
+
+/** Structured "why" reasons, keyed by outcome value. */
+export const OUTCOME_REASONS = {
+  chose_other_provider: [
+    'Faster start date elsewhere', 'Closer location', 'Existing relationship with other provider',
+    'Specific home / roommate preference', 'Recommended by case manager', 'Other',
+  ],
+  declined_services: [
+    'Family chose to keep at home', 'Not ready for services', 'Cost / funding concerns',
+    'Participant declined', 'Circumstances changed', 'Other',
+  ],
+  we_declined: [
+    'No capacity / no open bed', 'Acuity beyond our supports', 'Behavioral risk',
+    'Medical needs beyond scope', 'Outside service area', 'Staffing constraints', 'Other',
+  ],
+  not_eligible: [
+    'Not Medicaid eligible', 'Waiver not approved', 'Authorization denied',
+    'Does not meet program criteria', 'Other',
+  ],
+  referred_out: [
+    'Needs a different service type', 'Outside service area', 'Better fit elsewhere', 'Other',
+  ],
+  lost_contact: [
+    'No response to outreach', 'Bad contact information', 'Referring party unresponsive', 'Other',
+  ],
+  withdrawn: [
+    'Family withdrew request', 'Moved out of area', 'Placed elsewhere by state', 'Other',
+  ],
+  waitlisted: [
+    'No current opening', 'Awaiting funding', 'Awaiting compatible roommate', 'Other',
+  ],
+};
 
 const LABEL_MAPS = {
   stage: ALL_STAGES, source_type: SOURCE_TYPES, intake_method: INTAKE_METHODS,
