@@ -514,7 +514,20 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
         </div>
       </div>
 
+      {/* ── Growth trend chart ── */}
+      {volumeLog.length > 0 && (
+        <GrowthTrendPanel
+          volumeLog={volumeLog}
+          activeSLs={activeSLs}
+          scope={trendScope}
+          setScope={setTrendScope}
+          months={trendMonths}
+          setMonths={setTrendMonths}
+        />
+      )}
+
       {/* ── Monthly log ── */}
+
       {sortedLog.length > 0 && (
         <div style={card}>
           <div style={sectionHeading}>Monthly Log</div>
