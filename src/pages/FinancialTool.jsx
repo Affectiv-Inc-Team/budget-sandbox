@@ -939,7 +939,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
 }
 
 
-function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates = RATES_DEF, setRates, graveyardWage, setGraveyardWage, occupancy, setOccupancy, canEdit = true, userRole }) {
+function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates = RATES_DEF, setRates, graveyardWage, setGraveyardWage, occupancy, setOccupancy, canEdit = true, canAdd = canEdit, userRole }) {
   const [selId, setSelId] = useState(homes[0]?.id);
   const sel = homes.find(h=>h.id===selId) ?? homes[0];
   const m   = sel ? calcHome(sel, wage, rates, graveyardWage) : null;
