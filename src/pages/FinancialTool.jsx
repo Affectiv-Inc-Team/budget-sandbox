@@ -3102,7 +3102,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   <span style={{ fontWeight:800, color:s.c, ...M, fontSize:15, lineHeight:1.2 }}>{s.v}</span>
                 </div>
               ))}
-              {onSave && canEditServiceLines(userRole) && (
+              {onSave && (canEditServiceLines(userRole) || canAddHome(userRole)) && (
                 <button data-tour="save-button" onClick={handleSave} disabled={saveStatus === "saving"} style={{
                   padding:"7px 18px", borderRadius:8, border:"none", cursor:"pointer",
                   fontWeight:700, fontSize:11, fontFamily:"'Sora',sans-serif",
