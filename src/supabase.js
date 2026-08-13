@@ -295,3 +295,24 @@ export async function saveConfig(config) {
 
   return true;
 }
+
+/**
+ * Latest delivery record per recipient from the mail send log.
+ * Admin-scoped server-side (super admins see all; company admins see their
+ * members). Returns a map keyed by lowercased email:
+ *   { status, templateName, errorMessage, sentAt }
+ */
+export async function fetchEmailDeliveryStatus() {
+  const { data, error } = await supabase.rpc('admin_email_delivery_status');
+  if (error) return {};
+  const map = {};
+  for (const row of data ?? []) {
+    map[String(row.email).toLowerCase()] = {
+      status: row.status,
+      templateName: row.template_name,
+      errorMessage: row.error_message,
+      sentAt: row.sent_at,
+    };
+  }
+  return map;
+}
