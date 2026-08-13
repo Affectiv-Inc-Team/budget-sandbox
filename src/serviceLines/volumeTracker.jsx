@@ -216,11 +216,21 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
             </select>
           </div>
 
+          {SERVICE_LEVELS.map(({ key, label, color }) => (
+            <div key={key}>
+              <div style={{ ...labelStyle, color }}>{label}</div>
+              <input type="number" min={0} step={1} value={formLevels[key]}
+                onChange={e => setLevel(key, e.target.value)} placeholder="0"
+                aria-label={label}
+                style={{ width: 82, padding: "4px 8px", border: "1px solid #c8d4e4", borderRadius: 5, fontSize: 13, ...M, textAlign: "right", background: "#fff" }}/>
+            </div>
+          ))}
+
           <div>
-            <div style={labelStyle}>Clients</div>
-            <input type="number" min={0} step={1} value={formCount}
-              onChange={e => setFormCount(e.target.value)} placeholder="0"
-              style={{ width: 72, padding: "4px 8px", border: "1px solid #c8d4e4", borderRadius: 5, fontSize: 13, ...M, textAlign: "right", background: "#fff" }}/>
+            <div style={labelStyle}>Total</div>
+            <div style={{ width: 62, padding: "4px 8px", border: "1px solid #d0dae8", borderRadius: 5, fontSize: 13, ...M, textAlign: "right", background: "#f4f7fb", fontWeight: 700, color: "#0A3D47" }}>
+              {formTotal}
+            </div>
           </div>
 
           <div style={{ flex: 1, minWidth: 140 }}>
@@ -230,10 +240,11 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
               style={{ width: "100%", padding: "4px 8px", border: "1px solid #c8d4e4", borderRadius: 5, fontSize: 13, fontFamily: "'Sora',sans-serif", background: "#fff", boxSizing: "border-box" }}/>
           </div>
 
-          <button onClick={handleSubmit}
-            style={{ padding: "6px 18px", background: "#0E6B78", border: "none", borderRadius: 6, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, ...M, whiteSpace: "nowrap" }}>
+          <button onClick={handleSubmit} disabled={!hasAnyLevel}
+            style={{ padding: "6px 18px", background: "#0E6B78", border: "none", borderRadius: 6, color: "#fff", cursor: hasAnyLevel ? "pointer" : "not-allowed", opacity: hasAnyLevel ? 1 : 0.45, fontSize: 12, fontWeight: 700, ...M, whiteSpace: "nowrap" }}>
             {editingId ? "Save" : "+ Add"}
           </button>
+
           {editingId && (
             <button onClick={cancelEdit}
               style={{ padding: "6px 12px", background: "transparent", border: "1px solid #c8d4e4", borderRadius: 6, color: "#64748b", cursor: "pointer", fontSize: 12, ...M }}>
