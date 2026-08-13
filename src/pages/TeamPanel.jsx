@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, sendInvite, getMyCompanyScopes, resendSetupLink } from "../supabase.js";
+import { supabase, sendInvite, getMyCompanyScopes, resendSetupLink, fetchEmailDeliveryStatus } from "../supabase.js";
+import DeliveryStatus from "../components/DeliveryStatus.jsx";
 import InviteEmailHistory from "../components/InviteEmailHistory.jsx";
 import {
   ROLE_TIERS,
@@ -94,6 +95,7 @@ export default function TeamPanel({ userRole }) {
   const [inviteScope, setInviteScope] = useState("");
   const [sending, setSending]         = useState(false);
   const [resending, setResending]     = useState(() => new Set());
+  const [deliveryByEmail, setDeliveryByEmail] = useState({});
 
   const myInvitableRoles = useMemo(() => invitableRoles(userRole), [userRole]);
   const canInviteAtAll   = myInvitableRoles.length > 0;
@@ -139,6 +141,7 @@ export default function TeamPanel({ userRole }) {
     });
     if (error) { setErr(error.message); return; }
     setMembers(data ?? []);
+    setDeliveryByEmail(await fetchEmailDeliveryStatus());
   }, []);
 
   useEffect(() => { loadMembers(selectedCo); }, [selectedCo, loadMembers]);
@@ -360,6 +363,7 @@ export default function TeamPanel({ userRole }) {
               <th style={th}>Access</th>
               <th style={th}>Status</th>
               <th style={th}>Last sign-in</th>
+              <th style={th}>Last email</th>
               <th style={th}>You can invite this tier</th>
               <th style={th}></th>
             </tr>
@@ -429,6 +433,9 @@ export default function TeamPanel({ userRole }) {
                         : <span style={{ color: "#64748b" }}>— No</span>
                     ) : <span style={{ color: "#64748b" }}>—</span>}
                   </td>
+                  <td style={td}>
+                    <DeliveryStatus record={deliveryByEmail[String(m.email || "").toLowerCase()]} />
+                  </td>
                   <td style={{ ...td, whiteSpace: "nowrap" }}>
                     {canManageRow && (
                       <>
@@ -453,7 +460,7 @@ export default function TeamPanel({ userRole }) {
               );
             })}
             {!members.length && (
-              <tr><td style={{ ...td, color: "#64748b" }} colSpan={8}>No members yet.</td></tr>
+              <tr><td style={{ ...td, color: "#64748b" }} colSpan={9}>No members yet.</td></tr>
             )}
           </tbody>
         </table>
