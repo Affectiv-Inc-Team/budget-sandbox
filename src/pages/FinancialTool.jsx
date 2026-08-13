@@ -2003,17 +2003,78 @@ function FAQTab({ userRole }) {
    ROOT
 ══════════════════════════════════════════════════════════ */
 /* ══════════════════════════════════════════════════════════
-   PORTFOLIO COMPARISON (demo data — live version uses Supabase)
+   PORTFOLIO COMPARISON (live — computed from the companies the
+   signed-in user actually has access to via licensee_companies)
 ══════════════════════════════════════════════════════════ */
-const DEMO_COMPANIES = [
-  { id:1, name:"Cascade Care Group",   status:"active",  wage:18.50, occ:92, clients:14, homes:6, ebitdaMgn:0.58, netMgn:0.42, revNet:1240000, ebitda:719200,  netInc:520800, lastSaved:"2026-03-18" },
-  { id:2, name:"Blue Ridge Services",  status:"active",  wage:17.00, occ:88, clients:9,  homes:4, ebitdaMgn:0.51, netMgn:0.37, revNet:780000,  ebitda:397800,  netInc:288600, lastSaved:"2026-03-15" },
-  { id:3, name:"Summit Supported Living",status:"active", wage:19.00, occ:95, clients:21, homes:8, ebitdaMgn:0.63, netMgn:0.47, revNet:1890000, ebitda:1190700, netInc:888300, lastSaved:"2026-03-19" },
-  { id:4, name:"Valley View HCBS",     status:"active",  wage:16.50, occ:80, clients:6,  homes:3, ebitdaMgn:0.38, netMgn:0.25, revNet:520000,  ebitda:197600,  netInc:130000, lastSaved:"2026-02-28" },
-  { id:5, name:"Clearwater Partners",  status:"active",  wage:18.00, occ:90, clients:12, homes:5, ebitdaMgn:0.55, netMgn:0.40, revNet:1050000, ebitda:577500,  netInc:420000, lastSaved:"2026-03-10" },
-  { id:6, name:"Pioneer Community Care",status:"suspended",wage:17.50, occ:65, clients:5,  homes:3, ebitdaMgn:0.28, netMgn:0.14, revNet:380000,  ebitda:106400,  netInc:53200,  lastSaved:"2026-01-15" },
-  { id:7, name:"Horizon Home Services",status:"active",  wage:20.00, occ:97, clients:18, homes:7, ebitdaMgn:0.61, netMgn:0.45, revNet:1640000, ebitda:1000400, netInc:738000, lastSaved:"2026-03-17" },
-];
+
+// Roll one company's v2 config up into the summary row the comparison table
+// needs. Mirrors the whole-company `co` math in App() below.
+function summarizeCompany(co) {
+  const sls = (co.serviceLines ?? []).filter(sl => !sl.archived);
+  const find = t => sls.find(sl => sl.type === t);
+  const dailySL  = find(SERVICE_LINE_TYPES.RES_HAB_DAILY);
+  const hourlySL = find(SERVICE_LINE_TYPES.RES_HAB_HOURLY);
+  const tscSL    = find(SERVICE_LINE_TYPES.TSC);
+  const cddaSL   = find(SERVICE_LINE_TYPES.CHILDRENS_DDA);
+  const cseSL    = find(SERVICE_LINE_TYPES.VOC_SERVICES);
+  const schoolSL = find(SERVICE_LINE_TYPES.SCHOOL_BASED);
+
+  const shared        = co.shared ?? {};
+  const wage          = shared.wage          ?? 16;
+  const graveyardWage = shared.graveyardWage ?? 9.5;
+  const occupancy     = shared.occupancy     ?? 95;
+  const entityType    = shared.entityType    ?? "ccorp";
+  const ownerRate     = shared.ownerRate     ?? 32;
+  const rates         = shared.rates         ?? RATES_DEF;
+  const mgmt          = shared.mgmt          ?? [];
+  const overhead      = shared.overhead      ?? [];
+  const mgmtFeePct    = shared.mgmtFeePct    ?? 5;
+  const billingFeePct = shared.billingFeePct ?? 1;
+
+  const indHomes = [
+    ...expandHomeTypes(dailySL?.config?.homes ?? []),
+    ...(dailySL?.config?.indHomes ?? []),
+  ];
+  const homeMetrics = indHomes.map(h => calcHome(h, wage, rates, graveyardWage));
+  const hourlyPx    = hourlySL?.config?.participants ?? [];
+  const hourlyM     = hourlyPx.map(p => calcHourlyParticipant(p, rates, wage));
+
+  const tsc    = tscSL    ? calcTSCService(tscSL.config)            : { totalAnnualRev:0, totalAnnualLabor:0, totalCaseload:0 };
+  const cdda   = cddaSL   ? calcChildrensDDAService(cddaSL.config)  : { totalAnnualRev:0, totalAnnualLabor:0, totalCaseload:0 };
+  const cse    = cseSL    ? calcCSEService(cseSL.config)            : { totalAnnualRev:0, totalAnnualLabor:0, totalCaseload:0 };
+  const school = schoolSL ? calcSchoolBasedService(schoolSL.config) : { totalAnnualRev:0, totalAnnualLabor:0, totalAnnualLaborRaw:0, totalCaseload:0 };
+
+  const dailyRev   = homeMetrics.reduce((a,m) => a + m.rev,   0);
+  const dailyLabor = homeMetrics.reduce((a,m) => a + m.labor, 0);
+  const hourlyRev   = hourlyM.reduce((a,m) => a + m.annualRev,   0);
+  const hourlyLabor = hourlyM.reduce((a,m) => a + m.annualLabor, 0);
+
+  const annualRevGross = dailyRev * 365 + hourlyRev + tsc.totalAnnualRev + cdda.totalAnnualRev + cse.totalAnnualRev + school.totalAnnualRev;
+  const revNet         = annualRevGross * (occupancy / 100);
+  const directLabor    = (dailyLabor * 365 + hourlyLabor + tsc.totalAnnualLabor + cdda.totalAnnualLabor + cse.totalAnnualLabor + (school.totalAnnualLaborRaw ?? 0)) * (occupancy / 100);
+  const totalLabor     = directLabor * 1.22;
+  const mgmtTotal      = mgmt.reduce((a,m) => a + (m.salary || 0), 0) * 1.22;
+  const overheadTotal  = overhead.reduce((a,o) => a + (o.amount || 0), 0);
+  const totalCosts     = totalLabor + mgmtTotal + overheadTotal + revNet * (mgmtFeePct / 100) + revNet * (billingFeePct / 100);
+  const ebitda         = revNet - totalCosts;
+  const ebitdaMgn      = revNet > 0 ? ebitda / revNet : 0;
+  const { netIncome }  = calcTax(ebitda, entityType, ownerRate);
+  const netMgn         = revNet > 0 ? netIncome / revNet : 0;
+
+  return {
+    id: co.id,
+    name: co.name,
+    status: co.archived ? "archived" : "active",
+    wage, occ: occupancy,
+    homes: indHomes.length,
+    clients: indHomes.reduce((a,h) => a + (h.nHigh || 0) + (h.nIntense || 0), 0)
+      + hourlyPx.length + (tsc.totalCaseload || 0) + (cdda.totalCaseload || 0)
+      + (cse.totalCaseload || 0) + (school.totalCaseload || 0),
+    lines: sls.length,
+    revNet, ebitda, ebitdaMgn, netInc: netIncome, netMgn,
+  };
+}
+
 
 function MarginBar({ value, max=0.7 }) {
   const pctVal = Math.max(0, Math.min(value ?? 0, max));
