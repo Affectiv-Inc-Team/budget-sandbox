@@ -190,10 +190,18 @@ export default function AdminPanel({ onExit }) {
     const coNames = coIds
       .map(cid => companies.find(c => c.id === cid)?.name ?? cid)
       .join(", ");
-    setNotice(`✓ ${email} added to ${coNames} as ${qaAccess}${qaOrg ? ` / ${qaOrg}` : ""}. They can now request a setup link at sign-in.`);
+
+    // 4. Email the setup link right away — provisioning alone sends nothing.
+    const mail = await resendSetupLink(email, coIds[0]);
+    if (mail?.error) {
+      setErr(`${email} was added to ${coNames}, but the setup email failed: ${mail.error}. Use “Resend email” on their row to retry.`);
+    } else {
+      setNotice(`✓ ${email} added to ${coNames} as ${qaAccess}${qaOrg ? ` / ${qaOrg}` : ""} — account setup email sent.`);
+    }
     setQaEmail(""); setQaOrg(""); setQaCo([]);
     reload();
   }
+
 
   async function createCompany(e) {
     e.preventDefault();
