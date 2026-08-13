@@ -217,18 +217,21 @@ export type Database = {
           company_id: string
           licensee_id: string
           role: string
+          service_line_scope: string | null
         }
         Insert: {
           assigned_at?: string
           company_id: string
           licensee_id: string
           role?: string
+          service_line_scope?: string | null
         }
         Update: {
           assigned_at?: string
           company_id?: string
           licensee_id?: string
           role?: string
+          service_line_scope?: string | null
         }
         Relationships: [
           {
@@ -741,6 +744,14 @@ export type Database = {
           last_sign_in_at: string
           org_role: string
           pending_org_role: string
+        }[]
+      }
+      get_my_company_scopes: {
+        Args: never
+        Returns: {
+          access_role: string
+          company_id: string
+          service_line_scope: string
         }[]
       }
       has_company_access: { Args: { p_company_id: string }; Returns: boolean }
