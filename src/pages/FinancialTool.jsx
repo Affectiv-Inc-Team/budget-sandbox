@@ -8,7 +8,7 @@ import { TSCCurrentServicesTab, TSCSandboxTab, TSCPLTab, TSCRateScheduleTab, cal
 import { ChildrensDDACurrentServicesTab, ChildrensDDASandboxTab, ChildrensDDAPLTab, ChildrensDDARateScheduleTab, calcChildrensDDAService } from "../serviceLines/childrens_dda.jsx";
 import { CSERosterTab, CSEProductivityTab, CSEPLTab, CSERateScheduleTab, calcCSEService } from "../serviceLines/cse.jsx";
 import { SchoolBasedRosterTab, SchoolBasedProductivityTab, SchoolBasedPLTab, SchoolBasedRateScheduleTab, SchoolBasedStaffingTab, SchoolBasedScenarioTab, SchoolBasedParticipantsTab, calcSchoolBasedService, SchoolBasedCurrentServicesTab, SchoolBasedSandboxTab } from "../serviceLines/school_based.jsx";
-import { budgetRowVisibility, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeMargin, canSeeRevenue, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
+import { budgetRowVisibility, canAddHome, canAddServiceLine, canEditServiceLines, canSeeCompanyDollars, canSeeControl, canSeeMargin, canSeeRevenue, canSeeTopNumbers, editMode, wageDisplayMode, ROLE_TIERS, ROLE_LABELS } from "../lib/access.js";
 import { VolumeTrackerTab } from "../serviceLines/volumeTracker.jsx";
 
 import { LOGO } from "../assets/logo.js";
@@ -967,7 +967,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
       <div>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <SL>Homes ({homes.length})</SL>
-          {canEdit && <button onClick={onAdd} style={{ fontSize:10, color:"#0E6B78", background:"#3a280022", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 8px", cursor:"pointer", ...M }}>+ Add</button>}
+          {canAdd && <button onClick={onAdd} style={{ fontSize:10, color:"#0E6B78", background:"#3a280022", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 8px", cursor:"pointer", ...M }}>+ Add</button>}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
           {homes.map(h=>{
@@ -3294,6 +3294,8 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   graveyardWage={graveyardWage} setGraveyardWage={setGraveyardWage}
                   occupancy={occupancy} setOccupancy={setOccupancy}
                   canEdit={canEditServiceLines(userRole)}
+                  canAdd={canAddHome(userRole)}
+
                   userRole={userRole}/>
               )}
               {activeSLType === SERVICE_LINE_TYPES.RES_HAB_DAILY && subTab === "labor" &&
