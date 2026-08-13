@@ -67,7 +67,7 @@ export default function MarketingLayout({ isAuthenticated = false, page = "home"
         </nav>
       </header>
 
-      <main className="mk-main">{children}</main>
+      <main id="main" className="mk-main">{children}</main>
 
       <footer className="mk-footer">
         <div className="mk-footer-inner">
