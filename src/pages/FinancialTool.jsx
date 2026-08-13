@@ -1007,13 +1007,30 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
 
   const portfolioStats = useMemo(()=>{
     const ms = homes.map(h=>calcHome(h,wage,rates,graveyardWage));
+    const ratios = homes.map((h,i)=>ms[i].rev>0 ? ms[i].labor/ms[i].rev : 0);
+    const statuses = homes.map((h,i)=>getLaborApprovalStatus(ratios[i], h.nHigh+h.nIntense).status);
+    const totalRev   = ms.reduce((a,m)=>a+m.rev,0);
+    const totalLabor = ms.reduce((a,m)=>a+m.labor,0);
     return {
       clients: homes.reduce((a,h)=>a+h.nHigh+h.nIntense,0),
-      dailyRev: ms.reduce((a,m)=>a+m.rev,0),
+      dailyRev: totalRev,
       dailyGross: ms.reduce((a,m)=>a+m.gross,0),
       annualGross: ms.reduce((a,m)=>a+m.annualGross,0),
+      avgLaborRatio: totalRev>0 ? totalLabor/totalRev : 0,
+      counts: statuses.reduce((a,s)=>({ ...a, [s]:(a[s]||0)+1 }), {}),
     };
-  }, [homes, wage, rates]);
+  }, [homes, wage, rates, graveyardWage]);
+
+  const STATUS_KEYS = [
+    { key:"approved",     label:"Approved",     color:"#00e5aa", icon:"✓" },
+    { key:"needs_review", label:"Needs Review", color:"#f59e0b", icon:"⚠" },
+    { key:"concerning",   label:"Concerning",   color:"#fb923c", icon:"⚠" },
+    { key:"rejected",     label:"Not Viable",   color:"#f87171", icon:"✗" },
+    { key:"incomplete",   label:"Unconfigured", color:"#64748b", icon:"○" },
+  ];
+
+  const selRatio    = m && m.rev>0 ? m.labor/m.rev : 0;
+  const selApproval = sel ? getLaborApprovalStatus(selRatio, sel.nHigh+sel.nIntense) : null;
 
   return (
     <div style={{ display:"grid", gridTemplateColumns:"210px 1fr", gap:14, alignItems:"start" }}>
@@ -1027,12 +1044,14 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
           {homes.map(h=>{
             const hm = calcHome(h,wage,rates,graveyardWage);
             const s  = h.id===sel?.id;
+            const ratio = hm.rev>0 ? hm.labor/hm.rev : 0;
+            const ap = getLaborApprovalStatus(ratio, h.nHigh+h.nIntense);
             return (
               <div key={h.id} onClick={()=>setSelId(h.id)} style={{
                 padding:"9px 12px", borderRadius:8, cursor:"pointer",
                 background: s ? "#fff" : "#f4f1ea",
                 border: s ? "1px solid #d0ccc4" : "1px solid #e0dbd4",
-                borderLeft:s?`4px solid ${showMargin?mc(hm.margin):'#9a8050'}`:`2px solid ${showMargin?mc(hm.margin)+'50':'#e0dbd4'}`,
+                borderLeft:s?`4px solid ${ap.color}`:`2px solid ${ap.color}50`,
                 boxShadow: s ? "0 2px 8px rgba(13,26,42,0.08)" : "none",
                 transition:"all 0.15s",
               }}>
@@ -1040,13 +1059,32 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
                   <span style={{ fontSize:11, fontWeight:700, color:s?"#0A3D47":"#7a6040" }}>{h.label}</span>
                   {showMargin && <span style={{ fontSize:11, fontWeight:700, color:mc(hm.margin), ...M }}>{pct(hm.margin)}</span>}
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:4 }}>
+                <div style={{ marginTop:6 }}><ApprovalPill approval={ap} ratio={ap.status==="incomplete"?undefined:ratio}/></div>
+                <div style={{ marginTop:6 }}><LaborRatioBar ratio={ratio} height={5}/></div>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:6 }}>
                   <MixBadges nHigh={h.nHigh} nIntense={h.nIntense} size={18}/>
                   <span style={{ fontSize:9, color:"#9a8050", ...M }}>{showDollars ? `${$d(hm.gross)}/day` : (showMargin ? `${pct(hm.margin)} margin` : `${h.nHigh+h.nIntense} client${h.nHigh+h.nIntense===1?'':'s'}`)}</span>
                 </div>
               </div>
             );
           })}
+        </div>
+        {/* Approval summary */}
+        <div style={{ marginTop:10, padding:"12px 14px", background:"#FAF4E8", borderRadius:9, border:"1px solid #e0dbd4" }}>
+          <SL>Intrinsic Approval</SL>
+          {STATUS_KEYS.filter(k=>portfolioStats.counts[k.key]).map(k=>(
+            <div key={k.key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"3px 0" }}>
+              <span style={{ fontSize:10, color:k.color, ...M }}>{k.icon} {k.label}</span>
+              <span style={{ fontSize:10, fontWeight:700, color:k.color, ...M }}>{portfolioStats.counts[k.key]}</span>
+            </div>
+          ))}
+          <div style={{ marginTop:8 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+              <span style={{ fontSize:9, color:"#5a4020", ...M }}>Labor / Revenue</span>
+              <span style={{ fontSize:10, fontWeight:700, color:laborRatioColor(portfolioStats.avgLaborRatio), ...M }}>{(portfolioStats.avgLaborRatio*100).toFixed(1)}%</span>
+            </div>
+            <LaborRatioBar ratio={portfolioStats.avgLaborRatio}/>
+          </div>
         </div>
         {/* Portfolio stats */}
         <div style={{ marginTop:10, padding:"12px 14px", background:"#FAF4E8", borderRadius:9, border:"1px solid #e0dbd4" }}>
