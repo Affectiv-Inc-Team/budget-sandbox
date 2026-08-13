@@ -224,6 +224,29 @@ export async function resendSetupLink(email, companyId = null) {
 }
 
 /**
+ * Invite/resend email history. RLS limits rows to companies the caller admins
+ * (super admins see everything). Optional filters: companyId, email.
+ * Returns an array of log rows, newest first.
+ */
+export async function fetchInviteEmailHistory({ companyId = null, email = null, limit = 200 } = {}) {
+  let q = supabase
+    .from('invite_email_log')
+    .select('id, email, company_id, kind, email_action, status, error_message, triggered_by_email, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (companyId) q = q.eq('company_id', companyId);
+  if (email) q = q.eq('email', String(email).trim().toLowerCase());
+
+  const { data, error } = await q;
+  if (error) {
+    console.error('fetchInviteEmailHistory error:', error);
+    return { rows: [], error: error.message };
+  }
+  return { rows: data || [], error: null };
+}
+
+/**
  * The caller's own company memberships: access level + service-line scope.
  * Returns { [companyId]: { accessRole, serviceLineScope } }.
  * serviceLineScope null = whole company.
