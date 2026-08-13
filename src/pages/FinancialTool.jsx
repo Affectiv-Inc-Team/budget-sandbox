@@ -236,14 +236,31 @@ function calcHourlyParticipant(p, rates, wage) {
 
 const M = { fontFamily:"'DM Mono',monospace" };
 
-function Slider({ label, value, min, max, step=1, onChange, color="#0E6B78", format }) {
+function Slider({ label, value, min, max, step=1, onChange, color="#0E6B78", format, typeable=false, inputStep }) {
   const p = ((value-min)/(max-min))*100;
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:8 }}>
         <span style={{ fontSize:9.5, color:"#7a6030", textTransform:"uppercase", letterSpacing:1.2, fontFamily:"'DM Mono',monospace", fontWeight:500 }}>{label}</span>
-        <span style={{ fontSize:15, fontWeight:800, color, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 }}>{format?format(value):value}</span>
+        {typeable ? (
+          <input
+            type="number" min={min} max={max} step={inputStep ?? step} value={value}
+            aria-label={label ? `${label} value` : "value"}
+            onChange={e => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              const n = Number(raw);
+              if (Number.isNaN(n)) return;
+              onChange(Math.min(max, Math.max(min, n)));
+            }}
+            style={{ width:74, textAlign:"right", fontSize:14, fontWeight:800, color, fontFamily:"'DM Mono',monospace",
+                     border:"1px solid #d0dae8", borderRadius:6, padding:"2px 6px", background:"#fff" }}
+          />
+        ) : (
+          <span style={{ fontSize:15, fontWeight:800, color, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 }}>{format?format(value):value}</span>
+        )}
       </div>
+
       <div style={{ position:"relative", height:5, background:"#ddd8cc", borderRadius:3 }}>
         <div style={{ position:"absolute", left:0, top:0, height:"100%", width:`${p}%`, background:`linear-gradient(90deg,${color}70,${color})`, borderRadius:3 }} />
         <input type="range" min={min} max={max} step={step} value={value}
