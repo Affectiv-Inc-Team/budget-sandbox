@@ -277,28 +277,44 @@ export async function getMyCompanyScopes() {
 
 /**
  * Save the full v2 config blob back to Supabase.
- * Upserts each company row individually.
+ *
+ * Uses UPDATE (not upsert) per company: companies are provisioned by super
+ * admins, so normal members only ever hold UPDATE rights under RLS. An upsert
+ * asks PostgREST for INSERT rights too, which made every save fail for
+ * non-super-admin editors (e.g. Program Managers editing a home mix).
+ *
+ * Rows the caller cannot edit are skipped silently by RLS (0 rows affected);
+ * that is not treated as an error so a read-only company in the portfolio
+ * doesn't block saving the ones they can edit.
  */
 export async function saveConfig(config) {
   if (!config?.companies) return false;
 
-  const rows = config.companies.map(co => ({
-    id: co.id,
-    name: co.name,
-    archived: co.archived ?? false,
-    config: {
-      shared: co.shared,
-      serviceLines: co.serviceLines,
-    },
-  }));
+  const results = await Promise.all(
+    config.companies.map(co =>
+      supabase
+        .from('companies')
+        .update({
+          name: co.name,
+          archived: co.archived ?? false,
+          config: { shared: co.shared, serviceLines: co.serviceLines },
+        })
+        .eq('id', co.id)
+        .select('id'),
+    ),
+  );
 
-  const { error } = await supabase
-    .from('companies')
-    .upsert(rows, { onConflict: 'id' });
+  const failure = results.find(r => r.error);
+  if (failure) {
+    console.error('saveConfig error:', failure.error);
+    posthog.captureException(failure.error, { endpoint: 'saveConfig', error_code: failure.error.code });
+    return false;
+  }
 
-  if (error) {
-    console.error('saveConfig error:', error);
-    posthog.captureException(error, { endpoint: 'saveConfig', error_code: error.code });
+  // Nothing was writable at all — surface it rather than showing a false "Saved".
+  const wrote = results.reduce((n, r) => n + (r.data?.length ?? 0), 0);
+  if (wrote === 0) {
+    console.error('saveConfig: no company rows were writable for this user');
     return false;
   }
 
