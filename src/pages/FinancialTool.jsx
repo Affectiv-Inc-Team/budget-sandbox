@@ -15,6 +15,13 @@ import { LOGO } from "../assets/logo.js";
 import posthog, { useFeatureFlag } from "../lib/posthog.js";
 import OnboardingOverlay from "./onboarding/OnboardingOverlay.jsx";
 
+// A member's service-line scope is null (whole company) or a comma-separated
+// list of service line ids. Empty list means "not scoped".
+function parseScopeIds(scope) {
+  return String(scope ?? "").split(",").map(s => s.trim()).filter(Boolean);
+}
+
+
 
 /* ══════════════════════════════════════════════════════════
    RATES & CONSTANTS
