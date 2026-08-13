@@ -946,6 +946,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
     if (homes.length > prevCount.current) setSelId(homes[homes.length-1]?.id);
     prevCount.current = homes.length;
   }, [homes]);
+  const canOperate = canEdit || canAdd; // tier 5 (Program Manager) gets operational edit rights
   const sel = homes.find(h=>h.id===selId) ?? homes[0];
   const m   = sel ? calcHome(sel, wage, rates, graveyardWage) : null;
   const canGroup = sel && sel.nIntense>0 && (sel.nHigh+sel.nIntense)>=2;
@@ -1045,7 +1046,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             {/* Mix */}
             <div>
               <SL>Client Mix — max 3 per home</SL>
-              <div style={{ display:"flex", gap:18, alignItems:"center", flexWrap:"wrap", pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
+              <div style={{ display:"flex", gap:18, alignItems:"center", flexWrap:"wrap", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <Stepper label="High Support" value={sel.nHigh}    max={3-sel.nIntense} onChange={chH} color="#C9921A"/>
                 <Stepper label="Intense"      value={sel.nIntense} max={3-sel.nHigh}    onChange={chI} color="#D4A520"/>
                 <div>
@@ -1087,7 +1088,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             )}
 
             {/* ── Home Settings ── */}
-            <div style={{ background:"#f5f3ee", borderRadius:10, border:"1px solid #ddd8ce", padding:"14px 16px", pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
+            <div style={{ background:"#f5f3ee", borderRadius:10, border:"1px solid #ddd8ce", padding:"14px 16px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
               <div style={{ fontSize:9, color:"#9a8050", letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:12 }}>Home Settings</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px 24px" }}>
                 {wageDisplayMode(userRole) === 'dollars' && (
@@ -1117,7 +1118,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             )}
 
             {sel.nHigh > 0 && (
-              <div style={{ background:"#f0f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
+              <div style={{ background:"#f0f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>High Support — 1:1 Individual Hours</SL>
                 <Slider label="1:1 hrs/week per High Support client" value={sel.hhrsPerWeek||0} min={0} max={40} step={1}
                   onChange={v=>onUpdate(sel.id,"hhrsPerWeek",v)} color="#0A5260" format={v=>`${v} hrs/wk`}/>
@@ -1130,7 +1131,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             )}
 
             {(sel.nHigh + sel.nIntense) > 0 && (
-              <div style={{ background:"#f4f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
+              <div style={{ background:"#f4f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>Graveyard — Sleeping Staff Hours</SL>
                 <Slider label={canGroup ? `Sleeping hrs within ${sel.groupHrs}hr night group` : "Overnight sleeping hrs (of 24hr shift)"} value={Math.min(sel.graveyardSleepHrs||0, canGroup ? sel.groupHrs : 12)} min={0} max={canGroup ? sel.groupHrs : 12} step={1}
                   onChange={v=>onUpdate(sel.id,"graveyardSleepHrs",v)} color="#7a94b0" format={v=>`${v}hr sleeping`}/>
