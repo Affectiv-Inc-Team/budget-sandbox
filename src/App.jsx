@@ -207,8 +207,14 @@ export default function App() {
   // or bounce to /login. Public pages render immediately and never block on this.
   const isSuperAdmin = !!profile?.is_super_admin;
 
+  // An admin-issued temporary password flags the account; every protected route
+  // funnels the user to /reset-password until they pick their own password.
+  const mustChangePassword = !!session?.user?.user_metadata?.must_change_password;
+  const forcedReset = mustChangePassword ? <Navigate to="/reset-password" replace /> : null;
+
   const appElement =
     session === undefined ? null
+      : forcedReset ? forcedReset
       : session ? (
           <AuthedApp
             effectiveRole={effectiveRole}
@@ -229,6 +235,7 @@ export default function App() {
   const adminElement =
     session === undefined ? null
       : !session ? <Navigate to="/login" replace />
+      : forcedReset ? forcedReset
       : !profile ? null
       : isSuperAdmin ? <AdminPanel onExit={() => window.location.assign('/app')} />
       : <Navigate to="/app" replace />;
@@ -242,6 +249,7 @@ export default function App() {
   const teamElement =
     session === undefined ? null
       : !session ? <Navigate to="/login" replace />
+      : forcedReset ? forcedReset
       : !profile ? null
       : <TeamPanel userRole={effectiveRole} />;
 
