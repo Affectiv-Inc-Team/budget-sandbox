@@ -236,6 +236,8 @@ function GrowthTrendPanel({ volumeLog, activeSLs, scope, setScope, months, setMo
           <option value={12}>Last 12 months</option>
           <option value={24}>Last 24 months</option>
           <option value={36}>Last 36 months</option>
+          <option value={48}>Last 48 months</option>
+          <option value={60}>Last 60 months</option>
         </select>
       </div>
 
