@@ -537,7 +537,13 @@ export default function AdminPanel({ onExit }) {
                               <div style={{ color: "#fbbf24", fontSize: 11, marginTop: 4 }}>Pending — applies at first sign-in</div>
                             )}
                           </td>
-                          <td style={td}>
+                          <td style={{ ...td, whiteSpace: "nowrap" }}>
+                            <button style={{ ...btnGhost, marginRight: 6 }}
+                              disabled={resendingEmails.has(email.toLowerCase())}
+                              title="Re-send the account setup / sign-in email"
+                              onClick={() => resendInviteEmail(email)}>
+                              {resendingEmails.has(email.toLowerCase()) ? "Sending…" : "Resend email"}
+                            </button>
                             <button style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
                               onClick={() => unassign(a.licensee_id, a.company_id)}>Remove</button>
                           </td>
@@ -643,15 +649,25 @@ export default function AdminPanel({ onExit }) {
                   <td style={{ ...td, color: "#64748b", fontSize: 12 }}>
                     {i.email_sent_at ? new Date(i.email_sent_at).toLocaleString() : "—"}
                   </td>
-                  <td style={td}>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
                     {revocable && (
-                      <button
-                        style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
-                        disabled={revokingIds.has(i.id)}
-                        onClick={() => revokeInvite(i.id, i.email)}
-                      >
-                        {revokingIds.has(i.id) ? "Revoking…" : "Revoke"}
-                      </button>
+                      <>
+                        <button
+                          style={{ ...btnGhost, marginRight: 6 }}
+                          disabled={resendingEmails.has(i.email?.toLowerCase())}
+                          title="Re-send the invitation email"
+                          onClick={() => resendInviteEmail(i.email)}
+                        >
+                          {resendingEmails.has(i.email?.toLowerCase()) ? "Sending…" : "Resend"}
+                        </button>
+                        <button
+                          style={{ ...btnGhost, borderColor: "#7f1d1d", color: "#fca5a5" }}
+                          disabled={revokingIds.has(i.id)}
+                          onClick={() => revokeInvite(i.id, i.email)}
+                        >
+                          {revokingIds.has(i.id) ? "Revoking…" : "Revoke"}
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
