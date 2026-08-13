@@ -967,7 +967,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
       <div>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <SL>Homes ({homes.length})</SL>
-          {canAdd && <button onClick={onAdd} style={{ fontSize:10, color:"#0E6B78", background:"#3a280022", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 8px", cursor:"pointer", ...M }}>+ Add</button>}
+          {canAdd && <button onClick={()=>{ const before = homes.map(h=>h.id); onAdd(); setTimeout(()=>{ const added = (homes.find(h=>!before.includes(h.id))); if(added) setSelId(added.id); },0); }} style={{ fontSize:10, color:"#0E6B78", background:"#3a280022", border:"1px solid #d0dae8", borderRadius:5, padding:"3px 8px", cursor:"pointer", ...M }}>+ Add</button>}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
           {homes.map(h=>{
