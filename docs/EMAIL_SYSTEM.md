@@ -1,7 +1,7 @@
 # Email System
 
 **Status:** Active
-**Last updated:** 2026-07-13
+**Last updated:** 2026-08-13
 **Owners:** Platform / Auth
 **Related:** [`AUTH_IMPLEMENTATION.md`](./AUTH_IMPLEMENTATION.md),
 [`onboarding-invitation-action-items.md`](./onboarding-invitation-action-items.md),
@@ -139,6 +139,13 @@ normal operation.
    `email_send_log` to `sent`/`failed`/`dlq`, and honors any `Retry-After`
    from Lovable Emails by writing `email_send_state.retry_after_until`.
 
+Recovery and invite templates present the auth event's one-time code instead
+of embedding the consumable verification URL. The email button opens the
+non-authenticating `/login?setup=recovery|invite` form, where the recipient
+enters their email and code. This prevents Microsoft Safe Links and similar
+enterprise mail scanners from consuming a one-click credential before the
+recipient sees the message.
+
 ### 4.2 Team invitations (`send-invite`)
 
 Used by the Team management UI. Design intent — the TS layer adds **no
@@ -199,7 +206,8 @@ have not yet created a password.
 | `send-invite` returns 403 | `create_invite` raised `insufficient_privilege` | Caller lacks tier/scope to invite that role. Check `access-levels-and-rights.md`. |
 | `send-invite` returns 502 "invite recorded but the email failed" | GoTrue rejected the address, or Lovable Emails 4xx | Inspect edge function logs; the invite row will be `failed` and can be resent. |
 | Every send returns 429 → DLQ | Rate limit; cooldown should engage automatically | Confirm `email_send_state.retry_after_until` is being written; if not, the retry-after parsing on the SDK error is stale. |
-| Recipient never receives email but log shows `sent` | DNS not verified for `notify.budget.intrinsic.agency` | Check Cloud → Emails; complete DNS. |
+| Recipient never receives email but log shows `sent` | DNS not verified, or the recipient's enterprise gateway quarantined it | Check Cloud → Emails, then the recipient tenant's quarantine/message trace using the logged provider message ID. |
+| Auth log shows `/verify` before the user opens the email | Enterprise link scanner consumed a legacy one-click link | Send a fresh invite/recovery email. Current templates use scanner-safe one-time codes. |
 
 ---
 
