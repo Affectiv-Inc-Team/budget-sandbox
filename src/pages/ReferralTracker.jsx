@@ -8,7 +8,8 @@ import {
   buildDisplayLabel, isSaveable, softWarnings, labelFor, daysInStage,
   SOURCE_TYPES, INTAKE_METHODS, PRIORITIES, ALL_STAGES, PIPELINE_STAGES,
   SERVICES, SERVICE_LEVELS, PAY_SOURCES, LIVING_SITUATIONS, RISK_INDICATORS,
-  REPEATABLE_CONTACT_KINDS, OUTCOMES,
+  REPEATABLE_CONTACT_KINDS, SELECTABLE_OUTCOMES, OUTCOME_REASONS,
+  outcomeMeta, isClosedOutcome,
 } from "../lib/referralShape.js";
 import { COMMON_MEDICATIONS, MEDICATION_FREQUENCIES } from "../data/medications.js";
 import posthog from "../lib/posthog.js";
@@ -41,6 +42,7 @@ function emptyDraft() {
     poa: "", housing_needed: undefined, preferred_location: "",
     potential_home_match: "", roommate_notes: "",
     next_followup_date: "", outcome: "", outcome_reason: "", decision_date: "",
+    outcome_note: "", outcome_destination: "",
     client_record_link: "",
     contactsDraft: [],
   };
@@ -200,33 +202,105 @@ function SSNField({ role, referralId, value, onChange }) {
 
 // ─── Referral list ──────────────────────────────────────────────────────────
 
+function ConversionSummary({ items }) {
+  const closed = items.filter(r => isClosedOutcome(r.outcome));
+  const won = closed.filter(r => outcomeMeta(r.outcome)?.won);
+  const lost = closed.filter(r => !outcomeMeta(r.outcome)?.won);
+  const rate = closed.length ? Math.round((won.length / closed.length) * 100) : null;
+  const byOutcome = lost.reduce((acc, r) => ({ ...acc, [r.outcome]: (acc[r.outcome] ?? 0) + 1 }), {});
+  const rows = Object.entries(byOutcome).sort((a, b) => b[1] - a[1]);
+
+  return (
+    <div style={{ background: "#FAF4E8", borderRadius: 10, border: "1px solid #d5c898", padding: "11px 13px" }}>
+      <div style={{ fontSize: 9, color: "#7a6030", textTransform: "uppercase", letterSpacing: 1.3, fontWeight: 700, ...M }}>Conversion</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 5 }}>
+        <span style={{ fontSize: 20, fontWeight: 800, color: rate == null ? "#9a8050" : rate >= 50 ? "#0f9d70" : "#C9921A" }}>
+          {rate == null ? "—" : `${rate}%`}
+        </span>
+        <span style={{ fontSize: 10, color: "#7a6030", ...M }}>{won.length} converted / {closed.length} closed</span>
+      </div>
+      {rows.length > 0 && (
+        <div style={{ marginTop: 8, borderTop: "1px dashed #d5c898", paddingTop: 7 }}>
+          <div style={{ fontSize: 9, color: "#7a6030", marginBottom: 4, ...M }}>Why we didn't get them</div>
+          {rows.map(([val, n]) => (
+            <div key={val} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "2px 0" }}>
+              <span style={{ fontSize: 10.5, color: outcomeMeta(val)?.color ?? "#7a6030" }}>{labelFor("outcome", val)}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: "#3a2800", ...M }}>{n}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReferralList({ items, onSelect, onNew }) {
+  const [view, setView] = useState("open"); // open | closed | all
+
+  const shown = items.filter(r => {
+    const closed = isClosedOutcome(r.outcome);
+    return view === "all" ? true : view === "closed" ? closed : !closed;
+  });
+  const counts = {
+    open: items.filter(r => !isClosedOutcome(r.outcome)).length,
+    closed: items.filter(r => isClosedOutcome(r.outcome)).length,
+    all: items.length,
+  };
+
   return (
     <div style={{ width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
       <button type="button" onClick={onNew}
         style={{ padding: "10px", borderRadius: 8, border: "none", background: "#D4A520", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5, ...M }}>
         + New Referral
       </button>
-      {items.length === 0 && (
+
+      <ConversionSummary items={items} />
+
+      <div style={{ display: "flex", gap: 5 }}>
+        {[["open", "Active"], ["closed", "Closed"], ["all", "All"]].map(([k, lbl]) => (
+          <button key={k} type="button" onClick={() => setView(k)}
+            style={{
+              flex: 1, padding: "6px 0", borderRadius: 7, fontSize: 11, cursor: "pointer", fontWeight: 700, ...M,
+              border: `1px solid ${view === k ? "#D4A520" : "#d5c898"}`,
+              background: view === k ? "#D4A520" : "#fff",
+              color: view === k ? "#fff" : "#7a6030",
+            }}>{lbl} {counts[k]}</button>
+        ))}
+      </div>
+
+      {shown.length === 0 && (
         <div style={{ padding: 16, fontSize: 12, color: "#6b4c10", textAlign: "center" }}>
-          No referrals yet. Capture one with a single detail.
+          {items.length === 0 ? "No referrals yet. Capture one with a single detail." : `No ${view === "closed" ? "closed" : "active"} referrals.`}
         </div>
       )}
-      {items.map(r => {
+      {shown.map(r => {
         const age = daysInStage(r.stage_entered_at);
+        const meta = outcomeMeta(r.outcome);
+        const closed = isClosedOutcome(r.outcome);
         return (
           <button key={r.id} type="button" onClick={() => onSelect(r)}
             style={{
               textAlign: "left", padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-              background: "#FAF4E8", border: "1px solid #d5c898",
-              borderLeft: `3px solid ${r.priority === "crisis" ? "#f87171" : r.priority === "high" ? "#fb923c" : "#D4A520"}`,
+              background: closed ? "#f4f1e8" : "#FAF4E8", border: "1px solid #d5c898",
+              borderLeft: `3px solid ${closed ? (meta?.color ?? "#94a3b8") : r.priority === "crisis" ? "#f87171" : r.priority === "high" ? "#fb923c" : "#D4A520"}`,
+              opacity: closed ? 0.82 : 1,
             }}>
             <div style={{ color: "#3a2800", fontSize: 13, fontWeight: 700 }}>
               {r.display_label || buildDisplayLabel(r)}
             </div>
             <div style={{ color: "#7a6030", fontSize: 10, marginTop: 3, ...M }}>
-              {labelFor("stage", r.stage)}{r.city ? ` · ${r.city}` : ""}{age != null ? ` · ${age}d in stage` : ""}
+              {labelFor("stage", r.stage)}{r.city ? ` · ${r.city}` : ""}{age != null && !closed ? ` · ${age}d in stage` : ""}
             </div>
+            {meta && (
+              <div style={{ marginTop: 5, display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 20, background: `${meta.color}1f`, border: `1px solid ${meta.color}55` }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: meta.color, ...M }}>
+                  {meta.won ? "✓" : "✕"} {meta.label}
+                </span>
+              </div>
+            )}
+            {closed && r.outcome_reason && (
+              <div style={{ fontSize: 9.5, color: "#8a7040", marginTop: 4 }}>{r.outcome_reason}</div>
+            )}
           </button>
         );
       })}
@@ -447,12 +521,52 @@ function ReferralForm({ role, companyId, existing, onSaved }) {
         {!existing && <div style={{ fontSize: 10.5, color: "#6b4c10" }}>Activity log & status history appear once the referral is saved.</div>}
       </Section>
 
-      <Section title="10 · Outcome / conversion" open={open.outcome} onToggle={() => toggleOpen("outcome")}>
+      <Section title="10 · Outcome / conversion" hint="Closing a referral out moves it off the Active list and records why."
+        open={open.outcome ?? !!draft.outcome} onToggle={() => toggleOpen("outcome")}>
+        <div>
+          <span style={labelStyle}>Convert / close out</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {SELECTABLE_OUTCOMES.map(o => {
+              const active = draft.outcome === o.value;
+              return (
+                <button key={o.value} type="button"
+                  onClick={() => setDraft(d => ({
+                    ...d,
+                    outcome: active ? "" : o.value,
+                    outcome_reason: active ? "" : (OUTCOME_REASONS[o.value] ? "" : d.outcome_reason),
+                    stage: active ? d.stage : (o.stage ?? d.stage),
+                    decision_date: active ? d.decision_date : (d.decision_date || new Date().toISOString().slice(0, 10)),
+                  }))}
+                  style={{
+                    padding: "6px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer", fontWeight: 700, ...M,
+                    border: `1px solid ${active ? o.color : "#d5c898"}`,
+                    background: active ? o.color : "#fff",
+                    color: active ? "#fff" : "#7a6030",
+                  }}>
+                  {o.won ? "✓ " : ""}{o.label}
+                </button>
+              );
+            })}
+          </div>
+          {draft.outcome && (
+            <div style={{ fontSize: 10.5, color: "#6b4c10", marginTop: 7 }}>
+              Stage set to <strong>{labelFor("stage", draft.stage)}</strong>
+              {isClosedOutcome(draft.outcome) ? " · this referral will show under Closed." : " · stays on the Active list."}
+            </div>
+          )}
+        </div>
+
         <Row>
-          <Select label="Outcome" value={draft.outcome} onChange={v => set("outcome", v)} options={OUTCOMES} />
+          {OUTCOME_REASONS[draft.outcome] ? (
+            <Select label="Reason" value={draft.outcome_reason} onChange={v => set("outcome_reason", v)}
+              options={OUTCOME_REASONS[draft.outcome].map(r => ({ value: r, label: r }))} blank="— select a reason —" />
+          ) : (
+            <Text label="Reason" value={draft.outcome_reason} onChange={v => set("outcome_reason", v)} />
+          )}
           <Text label="Decision date" type="date" value={draft.decision_date} onChange={v => set("decision_date", v)} />
         </Row>
-        <Area label="Outcome reason" value={draft.outcome_reason} onChange={v => set("outcome_reason", v)} />
+        <Area label="Outcome notes" value={draft.outcome_note} onChange={v => set("outcome_note", v)} />
+        <Text label="Where did they go? (provider / program)" value={draft.outcome_destination} onChange={v => set("outcome_destination", v)} />
         <Text label="Client record link (placeholder)" value={draft.client_record_link} onChange={v => set("client_record_link", v)} />
       </Section>
     </div>
