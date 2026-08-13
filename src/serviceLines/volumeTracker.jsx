@@ -351,6 +351,9 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
   const [formNotes,   setFormNotes]   = useState("");
   const [editingId,   setEditingId]   = useState(null);
   const [annualScope, setAnnualScope] = useState(null); // null = whole company
+  const [trendScope,  setTrendScope]  = useState(null); // null = whole company
+  const [trendMonths, setTrendMonths] = useState(24);
+
 
   const formTotal = sumLevels(formLevels);
   const hasAnyLevel = SERVICE_LEVELS.some(({ key }) => String(formLevels[key]).trim() !== "");
