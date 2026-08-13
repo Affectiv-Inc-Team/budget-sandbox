@@ -1019,9 +1019,10 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
               {showMargin && <MarginRing p={m.margin} size={48}/>}
               <div>
-                <input value={sel.label} onChange={canEdit ? e=>onUpdate(sel.id,"label",e.target.value) : undefined}
-                  readOnly={!canEdit}
-                  style={{ background:"none", border:"none", color:"#0A3D47", fontWeight:800, fontSize:15, fontFamily:"'Sora',sans-serif", padding:0, width:200, outline:"none", cursor: canEdit ? undefined : "default" }}/>
+                <input value={sel.label} onChange={(canEdit || canAdd) ? e=>onUpdate(sel.id,"label",e.target.value) : undefined}
+                  readOnly={!(canEdit || canAdd)}
+                  placeholder="Home name"
+                  style={{ background:"none", border:"none", color:"#0A3D47", fontWeight:800, fontSize:15, fontFamily:"'Sora',sans-serif", padding:0, width:200, outline:"none", cursor: (canEdit || canAdd) ? undefined : "default" }}/>
                 <div style={{ fontSize:10, color:"#9a8050", ...M, marginTop:2 }}>
                   {m.laborHrs}hr labor{showDollars ? ` · ${$d(m.rev)} rev` : ""}{showDollars ? ` · ${$d(m.labor)} labor cost/day` : ""}
                 </div>
