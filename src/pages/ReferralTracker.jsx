@@ -8,7 +8,8 @@ import {
   buildDisplayLabel, isSaveable, softWarnings, labelFor, daysInStage,
   SOURCE_TYPES, INTAKE_METHODS, PRIORITIES, ALL_STAGES, PIPELINE_STAGES,
   SERVICES, SERVICE_LEVELS, PAY_SOURCES, LIVING_SITUATIONS, RISK_INDICATORS,
-  REPEATABLE_CONTACT_KINDS, OUTCOMES,
+  REPEATABLE_CONTACT_KINDS, OUTCOMES, SELECTABLE_OUTCOMES, OUTCOME_REASONS,
+  outcomeMeta, isClosedOutcome,
 } from "../lib/referralShape.js";
 import { COMMON_MEDICATIONS, MEDICATION_FREQUENCIES } from "../data/medications.js";
 import posthog from "../lib/posthog.js";
