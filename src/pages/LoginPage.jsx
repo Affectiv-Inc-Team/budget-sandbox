@@ -84,12 +84,13 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-brand">
           <a href="/" aria-label="Intrinsic home"><img src={LOGO} alt="Intrinsic" className="login-logo" style={{ cursor: "pointer" }} /></a>
-          <div className="login-wordmark">Intrinsic</div>
+          <h1 className="login-wordmark">Intrinsic</h1>
           <div className="login-subtitle">
             {isSent ? "Check your email" : isReset ? "Set up or reset your password" : "Financial Model Builder"}
           </div>
           <div className="login-divider" />
         </div>
+
 
         {isSent ? (
           <div style={{ textAlign: "center" }}>

@@ -39,8 +39,10 @@ export default function MarketingLayout({ isAuthenticated = false, page = "home"
 
   return (
     <div className="mk-root">
+      <a href="#main" className="skip-link">Skip to content</a>
       <header className="mk-header">
         <Link to="/" className="mk-brand" aria-label="Intrinsic home">
+
           <img src={LOGO} alt="" className="mk-logo" />
           <span className="mk-wordmark">Intrinsic</span>
         </Link>
@@ -65,7 +67,7 @@ export default function MarketingLayout({ isAuthenticated = false, page = "home"
         </nav>
       </header>
 
-      <main className="mk-main">{children}</main>
+      <main id="main" className="mk-main">{children}</main>
 
       <footer className="mk-footer">
         <div className="mk-footer-inner">
