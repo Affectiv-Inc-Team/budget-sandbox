@@ -316,3 +316,32 @@ export async function fetchEmailDeliveryStatus() {
   }
   return map;
 }
+
+/**
+ * Admin-initiated password reset for a member.
+ * mode: 'email' — send them a reset code/link
+ *       'temp'  — generate a one-time password, returned once as tempPassword
+ * Authorization is enforced server-side (super admin, or company admin of a
+ * company the target belongs to). Returns { ok, tempPassword?, error }.
+ */
+export async function adminResetPassword({ email, mode, companyId = null }) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return { ok: false, error: 'An email address is required.' };
+
+  const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+    body: { email: normalizedEmail, mode, company_id: companyId || undefined },
+  });
+
+  if (error) {
+    let message = error.message;
+    try {
+      const body = await error.context?.json?.();
+      if (body?.error) message = body.error;
+    } catch { /* keep the generic message */ }
+    posthog.capture('admin_password_reset_failed', { mode });
+    return { ok: false, error: message };
+  }
+
+  posthog.capture('admin_password_reset', { mode });
+  return { ok: true, tempPassword: data?.tempPassword };
+}
