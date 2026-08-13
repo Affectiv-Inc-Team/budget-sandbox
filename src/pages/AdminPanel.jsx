@@ -285,8 +285,12 @@ export default function AdminPanel({ onExit }) {
       return next;
     });
     setEmailLogKey(k => k + 1);
+    // Queue rows land a second or two later — refresh the delivery column twice.
+    fetchEmailDeliveryStatus().then(setDeliveryByEmail);
+    setTimeout(() => { fetchEmailDeliveryStatus().then(setDeliveryByEmail); }, 4000);
     if (result.ok) setNotice(`✓ Setup email re-sent to ${addr}.`);
     else setErr(`Resend to ${addr}: ${result.error}`);
+
   }
 
   async function revokeInvite(id, email) {
