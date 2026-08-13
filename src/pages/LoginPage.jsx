@@ -73,6 +73,10 @@ export default function LoginPage() {
     } else if (linkData?.ok === false && linkData?.reason === "not_provisioned") {
       setError("That email hasn't been added to a company yet. Ask your Intrinsic admin to add the exact email, then try again.");
       posthog.capture('password_reset_unprovisioned');
+    } else if (linkData?.ok === false && linkData?.reason === "rate_limited") {
+      const waitSeconds = Number(linkData.retryAfterSeconds);
+      setInfo(`An email was already requested. Wait ${Number.isFinite(waitSeconds) ? waitSeconds : 60} seconds before sending another.`);
+      setMode("sent");
     } else {
       posthog.capture('password_reset_requested');
       setEmail(normalizedEmail);
