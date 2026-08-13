@@ -42,6 +42,7 @@ function emptyDraft() {
     poa: "", housing_needed: undefined, preferred_location: "",
     potential_home_match: "", roommate_notes: "",
     next_followup_date: "", outcome: "", outcome_reason: "", decision_date: "",
+    outcome_note: "", outcome_destination: "",
     client_record_link: "",
     contactsDraft: [],
   };
