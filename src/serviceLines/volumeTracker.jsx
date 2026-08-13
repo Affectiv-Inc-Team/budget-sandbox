@@ -52,16 +52,51 @@ function getPriorMonth(yyyyMM) {
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONTH_KEYS   = ["01","02","03","04","05","06","07","08","09","10","11","12"];
 
+// Client volume is logged per service level. `clientCount` stays on every entry
+// as the total so older entries (logged before the breakdown existed) and all
+// downstream rollups keep working unchanged.
+export const SERVICE_LEVELS = [
+  { key: "intense", label: "Intense Support", color: "#D4A520" },
+  { key: "high",    label: "High Support",    color: "#C9921A" },
+  { key: "hourly",  label: "Hourly",          color: "#0E6B78" },
+];
+
+const EMPTY_LEVELS = { intense: "", high: "", hourly: "" };
+
+// Reads an entry's breakdown; entries predating the feature report no levels.
+export function entryLevels(entry) {
+  const bl = entry?.byLevel;
+  if (!bl) return null;
+  const out = {};
+  let any = false;
+  for (const { key } of SERVICE_LEVELS) {
+    const n = Number(bl[key]);
+    out[key] = Number.isFinite(n) ? n : 0;
+    if (out[key] !== 0) any = true;
+  }
+  return any || Object.keys(bl).length ? out : null;
+}
+
+export function sumLevels(levels) {
+  return SERVICE_LEVELS.reduce((sum, { key }) => {
+    const n = Number(levels?.[key]);
+    return sum + (Number.isFinite(n) ? n : 0);
+  }, 0);
+}
+
 export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
   const volumeLog = shared.volumeLog ?? [];
   const activeSLs = (serviceLines ?? []).filter(sl => !sl.archived);
 
   const [formMonth,   setFormMonth]   = useState(currentMonthStr());
   const [formScopeId, setFormScopeId] = useState(null); // null = whole company
-  const [formCount,   setFormCount]   = useState("");
+  const [formLevels,  setFormLevels]  = useState(EMPTY_LEVELS);
   const [formNotes,   setFormNotes]   = useState("");
   const [editingId,   setEditingId]   = useState(null);
   const [annualScope, setAnnualScope] = useState(null); // null = whole company
+
+  const formTotal = sumLevels(formLevels);
+  const hasAnyLevel = SERVICE_LEVELS.some(({ key }) => String(formLevels[key]).trim() !== "");
 
   // Most-recent-first sorted log
   const sortedLog = useMemo(
@@ -89,34 +124,49 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
     return sl ? (sl.name || sl.type) : serviceLineId;
   }
 
+  function setLevel(key, value) {
+    setFormLevels(prev => ({ ...prev, [key]: value }));
+  }
+
   function handleSubmit() {
-    const count = Number(formCount);
-    if (!formMonth || formCount === "" || isNaN(count)) return;
+    if (!formMonth || !hasAnyLevel) return;
+    const byLevel = {};
+    for (const { key } of SERVICE_LEVELS) {
+      const n = Number(formLevels[key]);
+      byLevel[key] = Number.isFinite(n) && String(formLevels[key]).trim() !== "" ? n : 0;
+    }
     onUpsert({
       id: editingId ?? genVolumeId(),
       month: formMonth,
       serviceLineId: formScopeId,
-      clientCount: count,
+      byLevel,
+      clientCount: sumLevels(byLevel),
       notes: formNotes.trim(),
     });
-    setFormCount("");
+    setFormLevels(EMPTY_LEVELS);
     setFormNotes("");
     setEditingId(null);
   }
 
   function handleEdit(entry) {
+    const levels = entryLevels(entry);
     setEditingId(entry.id);
     setFormMonth(entry.month);
     setFormScopeId(entry.serviceLineId);
-    setFormCount(String(entry.clientCount));
+    // Entries logged before the breakdown existed carry only a total — seed it
+    // into the first level so the user can split it out while editing.
+    setFormLevels(levels
+      ? { intense: String(levels.intense), high: String(levels.high), hourly: String(levels.hourly) }
+      : { ...EMPTY_LEVELS, intense: String(entry.clientCount ?? "") });
     setFormNotes(entry.notes ?? "");
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setFormCount("");
+    setFormLevels(EMPTY_LEVELS);
     setFormNotes("");
   }
+
 
   // Annual summary pivot
   const annualRows = useMemo(() => {
@@ -166,11 +216,21 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
             </select>
           </div>
 
+          {SERVICE_LEVELS.map(({ key, label, color }) => (
+            <div key={key}>
+              <div style={{ ...labelStyle, color }}>{label}</div>
+              <input type="number" min={0} step={1} value={formLevels[key]}
+                onChange={e => setLevel(key, e.target.value)} placeholder="0"
+                aria-label={label}
+                style={{ width: 82, padding: "4px 8px", border: "1px solid #c8d4e4", borderRadius: 5, fontSize: 13, ...M, textAlign: "right", background: "#fff" }}/>
+            </div>
+          ))}
+
           <div>
-            <div style={labelStyle}>Clients</div>
-            <input type="number" min={0} step={1} value={formCount}
-              onChange={e => setFormCount(e.target.value)} placeholder="0"
-              style={{ width: 72, padding: "4px 8px", border: "1px solid #c8d4e4", borderRadius: 5, fontSize: 13, ...M, textAlign: "right", background: "#fff" }}/>
+            <div style={labelStyle}>Total</div>
+            <div style={{ width: 62, padding: "4px 8px", border: "1px solid #d0dae8", borderRadius: 5, fontSize: 13, ...M, textAlign: "right", background: "#f4f7fb", fontWeight: 700, color: "#0A3D47" }}>
+              {formTotal}
+            </div>
           </div>
 
           <div style={{ flex: 1, minWidth: 140 }}>
@@ -180,10 +240,11 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
               style={{ width: "100%", padding: "4px 8px", border: "1px solid #c8d4e4", borderRadius: 5, fontSize: 13, fontFamily: "'Sora',sans-serif", background: "#fff", boxSizing: "border-box" }}/>
           </div>
 
-          <button onClick={handleSubmit}
-            style={{ padding: "6px 18px", background: "#0E6B78", border: "none", borderRadius: 6, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, ...M, whiteSpace: "nowrap" }}>
+          <button onClick={handleSubmit} disabled={!hasAnyLevel}
+            style={{ padding: "6px 18px", background: "#0E6B78", border: "none", borderRadius: 6, color: "#fff", cursor: hasAnyLevel ? "pointer" : "not-allowed", opacity: hasAnyLevel ? 1 : 0.45, fontSize: 12, fontWeight: 700, ...M, whiteSpace: "nowrap" }}>
             {editingId ? "Save" : "+ Add"}
           </button>
+
           {editingId && (
             <button onClick={cancelEdit}
               style={{ padding: "6px 12px", background: "transparent", border: "1px solid #c8d4e4", borderRadius: 6, color: "#64748b", cursor: "pointer", fontSize: 12, ...M }}>
@@ -201,8 +262,8 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, ...M }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #d0dae8" }}>
-                  {["Month", "Service Line", "Clients", "MoM", "Notes", ""].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
+                  {["Month", "Service Line", ...SERVICE_LEVELS.map(l => l.label), "Total", "MoM", "Notes", ""].map((h, hi) => (
+                    <th key={`${h}-${hi}`} style={thStyle}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -211,11 +272,18 @@ export function VolumeTrackerTab({ shared, serviceLines, onUpsert, onDelete }) {
                   const delta      = getMoMDelta(entry);
                   const deltaColor = delta === null ? "#94a3b8" : delta > 0 ? "#22c55e" : delta < 0 ? "#f87171" : "#94a3b8";
                   const deltaStr   = delta === null ? "—" : delta > 0 ? `+${delta}` : String(delta);
+                  const levels     = entryLevels(entry);
                   return (
                     <tr key={entry.id} style={{ borderBottom: "1px solid #edf2f7", background: i % 2 === 0 ? "#fafcff" : "#fff" }}>
                       <td style={{ padding: "7px 10px", fontWeight: 600, color: "#0A3D47" }}>{formatMonth(entry.month)}</td>
                       <td style={{ padding: "7px 10px", color: "#475569" }}>{getScopeName(entry.serviceLineId)}</td>
+                      {SERVICE_LEVELS.map(({ key, color }) => (
+                        <td key={key} style={{ padding: "7px 10px", textAlign: "right", color: levels ? color : "#cbd5e1", fontWeight: 600 }}>
+                          {levels ? levels[key] : "—"}
+                        </td>
+                      ))}
                       <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 700, color: "#0A3D47" }}>{entry.clientCount}</td>
+
                       <td style={{ padding: "7px 10px", textAlign: "right", color: deltaColor, fontWeight: 600 }}>{deltaStr}</td>
                       <td style={{ padding: "7px 10px", color: "#64748b", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {entry.notes || ""}
