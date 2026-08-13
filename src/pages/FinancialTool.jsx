@@ -2243,12 +2243,17 @@ function PortfolioComparison({ userRole, companies = [] }) {
                   <td style={{ padding:"8px 12px", minWidth:130 }}><MarginBar value={co.netMgn} max={0.5}/></td>
                   <td style={{ padding:"10px 12px", textAlign:"right", fontSize:11, color:"#5a7498", ...M }}>{showWage ? `$${co.wage?.toFixed(2)}/hr` : "—"}</td>
                   <td style={{ padding:"10px 12px", textAlign:"right", fontSize:11, color:"#5a7498", ...M }}>{co.occ}%</td>
-                  <td style={{ padding:"10px 12px", textAlign:"right", fontSize:10, color:"#64748b", ...M }}>
-                    {new Date(co.lastSaved).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"})}
-                  </td>
+                  <td style={{ padding:"10px 12px", textAlign:"right", fontSize:11, color:"#5a7498", ...M }}>{co.lines}</td>
                 </tr>
               );
             })}
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={13} style={{ padding:"22px 12px", textAlign:"center", fontSize:12, color:"#64748b" }}>
+                  No companies to compare yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
