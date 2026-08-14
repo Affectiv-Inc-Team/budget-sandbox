@@ -79,11 +79,16 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   const dHrs      = 24 - gHrs;
 
   // ── Graveyard sleep hours apply to ALL home types ────────────────────────
-  // For grouped homes: sleeping hrs are within the group night window (max = gHrs)
-  // For all-high or single-client: sleeping hrs are within the overnight shift (max = 12)
-  const maxSleepHrs = canGroup ? gHrs : 12;
+  // Sleep hours are on-shift hours paid at the lower graveyard wage. They are NOT
+  // limited to the night-group window: a home can run 0 group hours (e.g. an intense
+  // client 1:1 all day) and still have the high-support staff sleeping overnight.
+  const maxSleepHrs = canGroup
+    ? Math.max(gHrs, nHigh > 0 ? 12 : 0)   // group window, plus a sleeping high-support staff
+    : 12;
   const sleepHrs      = Math.max(0, Math.min(graveyardSleepHrs, maxSleepHrs));
-  const awakeNightHrs = canGroup ? gHrs - sleepHrs : 0;
+  const groupSleepHrs = Math.min(sleepHrs, gHrs);
+  const spillSleepHrs = Math.min(Math.max(0, sleepHrs - groupSleepHrs), dHrs);
+  const awakeNightHrs = canGroup ? gHrs - groupSleepHrs : 0;
 
   // ── Labor hours (structural count, unchanged) ────────────────────────────
   let laborHrs;
@@ -105,10 +110,13 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   // ── Labor cost with graveyard sleep wage ─────────────────────────────────
   let laborCost;
   if (canGroup) {
-    // Grouped: 1 night staff (split sleep/awake) + day staff at regular wage
+    // Grouped: 1 night staff (split sleep/awake) + day staff at regular wage.
+    // Sleep hours beyond the group window discount one high-support staff member
+    // (the intense 1:1 staff stays awake).
     const highDayStaff = nHigh > 0 ? Math.ceil(nHigh / 2) : 0;
-    const nightCost = awakeNightHrs * wage + sleepHrs * sleepWage;
-    const dayCost   = dHrs * (highDayStaff + nIntense) * wage;
+    const nightCost = awakeNightHrs * wage + groupSleepHrs * sleepWage;
+    const spill     = highDayStaff > 0 ? spillSleepHrs : 0;
+    const dayCost   = dHrs * (highDayStaff + nIntense) * wage - spill * (wage - sleepWage);
     laborCost = nightCost + dayCost;
   } else {
     // All-high or single-client: 1 staff covers all hours
@@ -116,6 +124,7 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
     const awakeHrs = 24 - sleepHrs;
     laborCost = sleepHrs * sleepWage + awakeHrs * wage;
   }
+
 
   // ── 1:1 individual hours for High Support clients (weekly, billed U2) ────
   const hhrsPerDay  = (hhrsPerWeek * 52) / 365;
