@@ -1258,16 +1258,17 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
               <div style={{ background:"#f4f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>Graveyard — Sleeping Staff Hours</SL>
                 <div style={{ fontSize:9, color:"#475569", marginTop:-4, marginBottom:6, ...M }}>
-                  Hours the on-shift staff member is asleep on site — still on shift, but paid at the lower Graveyard / Sleeping Wage.
+                  Hours the on-shift staff member is asleep on site — still on shift, but paid at the lower Graveyard / Sleeping Wage. Independent of Night Group Hours: a home with 0 group hours can still have a sleeping overnight staff.
                 </div>
-
-                <Slider label={canGroup ? `Sleeping hrs within ${sel.groupHrs}hr night group` : "Overnight sleeping hrs (of 24hr shift)"} value={Math.min(sel.graveyardSleepHrs||0, canGroup ? sel.groupHrs : 12)} min={0} max={canGroup ? sel.groupHrs : 12} step={1}
+                {(() => { const maxS = maxSleepFor(sel); const s = Math.min(sel.graveyardSleepHrs||0, maxS); return (<>
+                <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                   onChange={v=>onUpdate(sel.id,"graveyardSleepHrs",v)} color="#7a94b0" format={v=>`${v}hr sleeping`}/>
-                {(sel.graveyardSleepHrs||0) > 0 && (
+                {s > 0 && (
                   <div style={{ fontSize:9, color:"#475569", marginTop:5, ...M }}>
-                    {Math.min(sel.graveyardSleepHrs||0, canGroup ? sel.groupHrs : 12)}hr at sleep wage · {canGroup ? sel.groupHrs - Math.min(sel.graveyardSleepHrs||0, sel.groupHrs) : 24 - Math.min(sel.graveyardSleepHrs||0, 12)}hr at regular wage · sleep wage set in sidebar
+                    {s}hr at sleep wage{canGroup && sel.groupHrs > 0 ? ` (${Math.min(s, sel.groupHrs)}hr in the night group${s > sel.groupHrs ? `, ${s - sel.groupHrs}hr on the high-support staff` : ""})` : ""} · rest of the shift at regular wage · sleep wage set in sidebar
                   </div>
-                )}
+                )}</>); })()}
+
               </div>
             )}
 
