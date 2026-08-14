@@ -1208,7 +1208,7 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
 
             {/* Billing */}
             {sel.nIntense>0 && (
-              <div style={{ pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
+              <div style={{ pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>Intense Billing</SL>
                 <Toggle value={sel.billingType} onChange={v=>onUpdate(sel.id,"billingType",v)} options={[
                   { value:"normal",  label:showDollars ? `Normal (Daily $${rates.intenseDaily.toFixed(2)})` : "Normal (Daily Rate)", color:"#0E6B78" },
