@@ -1163,15 +1163,15 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             {canGroup && (
               <div>
                 <SL>Night Group Hours</SL>
-                <div style={{ pointerEvents: canEdit ? "auto" : "none", opacity: canEdit ? 1 : 0.65 }}>
+                <div style={{ pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <Slider label="" value={sel.groupHrs} min={0} max={20} step={1}
                   onChange={v=>onUpdate(sel.id,"groupHrs",v)} color="#f59e0b" format={v=>`${v}hr`}/>
                 <div style={{ marginTop:10, display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:6 }}>
                   {[0,6,8,10,12,14].map(gh=>{
                     const tm=calcHome({...sel,groupHrs:gh},wage,rates,graveyardWage);
                     return (
-                      <div key={gh} onClick={canEdit ? ()=>onUpdate(sel.id,"groupHrs",gh) : undefined}
-                        style={{ padding:"7px 0", background:sel.groupHrs===gh?"#e8f1fb":"#f4f1ea", borderRadius:7, border:sel.groupHrs===gh?"1px solid #0E6B7840":"1px solid #e0e8f0", cursor: canEdit ? "pointer" : "default", textAlign:"center" }}>
+                      <div key={gh} onClick={canOperate ? ()=>onUpdate(sel.id,"groupHrs",gh) : undefined}
+                        style={{ padding:"7px 0", background:sel.groupHrs===gh?"#e8f1fb":"#f4f1ea", borderRadius:7, border:sel.groupHrs===gh?"1px solid #0E6B7840":"1px solid #e0e8f0", cursor: canOperate ? "pointer" : "default", textAlign:"center" }}>
                         <div style={{ fontSize:9, color:"#5a4020", ...M }}>{gh}hr</div>
                         <div style={{ fontSize:11, fontWeight:700, color:mc(tm.margin), ...M }}>{pct(tm.margin)}</div>
                         {showDollars && <div style={{ fontSize:9, color:"#7a5020", ...M }}>{$d(tm.gross)}</div>}
