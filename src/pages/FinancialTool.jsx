@@ -743,13 +743,15 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
           {total > 0 && (
             <div style={{ background: "#f4f6ff", borderRadius: 9, border: "1px solid #c8d4e4", padding: "10px 12px" }}>
               <SL>Graveyard — Sleeping Hrs</SL>
-              <Slider label={canGroup ? `Sleeping hrs (of ${groupHrs}hr group)` : "Overnight sleeping hrs (of 24hr shift)"} value={Math.min(graveyardSleepHrs, canGroup ? groupHrs : 12)} min={0} max={canGroup ? groupHrs : 12} step={1}
+              {(() => { const maxS = maxSleepFor({ nHigh, nIntense, groupHrs }); const s = Math.min(graveyardSleepHrs, maxS); return (<>
+              <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                 onChange={v => setGraveyardSleepHrs(v)} color="#7a94b0" format={v => `${v}hr`}/>
-              {graveyardSleepHrs > 0 && (
+              {s > 0 && (
                 <div style={{ fontSize: 9, color: "#475569", marginTop: 4, ...M }}>
-                  {Math.min(graveyardSleepHrs, canGroup ? groupHrs : 12)}hr at sleep wage · {canGroup ? groupHrs - Math.min(graveyardSleepHrs, groupHrs) : 24 - Math.min(graveyardSleepHrs, 12)}hr awake · sleep wage set in sidebar
+                  {s}hr at sleep wage · rest of the shift at regular wage · sleep wage set in sidebar
                 </div>
-              )}
+              )}</>); })()}
+
             </div>
           )}
 
