@@ -144,6 +144,19 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
     hhrsRev, hhrsLabor, hhrsPerDay, sleepHrs, awakeNightHrs, maxSleepHrs };
 }
 
+/* Max sleeping (graveyard-wage) hours available for a home configuration.
+   Grouped homes: the night-group window, or up to 12 overnight hours when there is a
+   high-support staff who can sleep on shift (even with 0 group hours). */
+function maxSleepFor({ nHigh = 0, nIntense = 0, groupHrs = 0 }) {
+  const total = nHigh + nIntense;
+  if (total === 0) return 0;
+  const canGroup = nIntense > 0 && total >= 2;
+  const gHrs = canGroup ? Math.max(0, Math.min(groupHrs, 20)) : 0;
+  return canGroup ? Math.max(gHrs, nHigh > 0 ? 12 : 0) : 12;
+}
+
+
+
 /* ══════════════════════════════════════════════════════════
    ID FACTORY & DEFAULTS
 ══════════════════════════════════════════════════════════ */
