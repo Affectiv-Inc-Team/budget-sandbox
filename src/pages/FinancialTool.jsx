@@ -1233,6 +1233,10 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             {(sel.nHigh + sel.nIntense) > 0 && (
               <div style={{ background:"#f4f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>Graveyard — Sleeping Staff Hours</SL>
+                <div style={{ fontSize:9, color:"#475569", marginTop:-4, marginBottom:6, ...M }}>
+                  Hours the on-shift staff member is asleep on site — still on shift, but paid at the lower Graveyard / Sleeping Wage.
+                </div>
+
                 <Slider label={canGroup ? `Sleeping hrs within ${sel.groupHrs}hr night group` : "Overnight sleeping hrs (of 24hr shift)"} value={Math.min(sel.graveyardSleepHrs||0, canGroup ? sel.groupHrs : 12)} min={0} max={canGroup ? sel.groupHrs : 12} step={1}
                   onChange={v=>onUpdate(sel.id,"graveyardSleepHrs",v)} color="#7a94b0" format={v=>`${v}hr sleeping`}/>
                 {(sel.graveyardSleepHrs||0) > 0 && (
