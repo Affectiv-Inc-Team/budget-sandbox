@@ -1163,7 +1163,11 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
             {canGroup && (
               <div>
                 <SL>Night Group Hours</SL>
+                <div style={{ fontSize:9, color:"#7a6a4a", marginTop:-4, marginBottom:6, ...M }}>
+                  Hours overnight when intense clients can be covered together with the high-support clients — 1 staff covers the whole home, lowering total night labor hours.
+                </div>
                 <div style={{ pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
+
                 <Slider label="" value={sel.groupHrs} min={0} max={20} step={1}
                   onChange={v=>onUpdate(sel.id,"groupHrs",v)} color="#f59e0b" format={v=>`${v}hr`}/>
                 <div style={{ marginTop:10, display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:6 }}>
