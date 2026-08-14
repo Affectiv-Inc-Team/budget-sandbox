@@ -114,7 +114,7 @@ Defaults: `defaultConfig` ([types.js:110](../src/serviceLines/types.js)).
 |---|---|---|---|
 | Day hours | `dHrs = 24 − gHrs` | Daytime fully-staffed window | FinancialTool.jsx:71 |
 | High day-staff pairing | `ceil(nHigh / 2)` | 1 staff per 2 high clients during day | FinancialTool.jsx:87, 101 |
-| Max sleep hours | `gHrs` (grouped) else `12` | Cap on sleep-wage hours | FinancialTool.jsx:76 |
+| Max sleep hours | grouped: `max(gHrs, nHigh>0 ? 12 : 0)`; else `12` | Cap on sleep-wage hours — a grouped home with 0 night-group hours can still sleep a high-support staff up to 12hr | FinancialTool.jsx:85 |
 | Awake-night hours | `gHrs − sleepHrs` (grouped) | Night hours at full wage | FinancialTool.jsx:78 |
 | 1:1 add-on daily hrs | `hhrsPerWeek × 52 / 365` | Weekly 1:1 hours → daily | FinancialTool.jsx:113 |
 | `margin` | `gross / rev` | Per-home gross margin | FinancialTool.jsx:125 |

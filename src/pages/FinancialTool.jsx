@@ -79,11 +79,16 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   const dHrs      = 24 - gHrs;
 
   // ── Graveyard sleep hours apply to ALL home types ────────────────────────
-  // For grouped homes: sleeping hrs are within the group night window (max = gHrs)
-  // For all-high or single-client: sleeping hrs are within the overnight shift (max = 12)
-  const maxSleepHrs = canGroup ? gHrs : 12;
+  // Sleep hours are on-shift hours paid at the lower graveyard wage. They are NOT
+  // limited to the night-group window: a home can run 0 group hours (e.g. an intense
+  // client 1:1 all day) and still have the high-support staff sleeping overnight.
+  const maxSleepHrs = canGroup
+    ? Math.max(gHrs, nHigh > 0 ? 12 : 0)   // group window, plus a sleeping high-support staff
+    : 12;
   const sleepHrs      = Math.max(0, Math.min(graveyardSleepHrs, maxSleepHrs));
-  const awakeNightHrs = canGroup ? gHrs - sleepHrs : 0;
+  const groupSleepHrs = Math.min(sleepHrs, gHrs);
+  const spillSleepHrs = Math.min(Math.max(0, sleepHrs - groupSleepHrs), dHrs);
+  const awakeNightHrs = canGroup ? gHrs - groupSleepHrs : 0;
 
   // ── Labor hours (structural count, unchanged) ────────────────────────────
   let laborHrs;
@@ -105,10 +110,13 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   // ── Labor cost with graveyard sleep wage ─────────────────────────────────
   let laborCost;
   if (canGroup) {
-    // Grouped: 1 night staff (split sleep/awake) + day staff at regular wage
+    // Grouped: 1 night staff (split sleep/awake) + day staff at regular wage.
+    // Sleep hours beyond the group window discount one high-support staff member
+    // (the intense 1:1 staff stays awake).
     const highDayStaff = nHigh > 0 ? Math.ceil(nHigh / 2) : 0;
-    const nightCost = awakeNightHrs * wage + sleepHrs * sleepWage;
-    const dayCost   = dHrs * (highDayStaff + nIntense) * wage;
+    const nightCost = awakeNightHrs * wage + groupSleepHrs * sleepWage;
+    const spill     = highDayStaff > 0 ? spillSleepHrs : 0;
+    const dayCost   = dHrs * (highDayStaff + nIntense) * wage - spill * (wage - sleepWage);
     laborCost = nightCost + dayCost;
   } else {
     // All-high or single-client: 1 staff covers all hours
@@ -116,6 +124,7 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
     const awakeHrs = 24 - sleepHrs;
     laborCost = sleepHrs * sleepWage + awakeHrs * wage;
   }
+
 
   // ── 1:1 individual hours for High Support clients (weekly, billed U2) ────
   const hhrsPerDay  = (hhrsPerWeek * 52) / 365;
@@ -134,6 +143,19 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
     plHr: totalLaborHrs > 0 ? gross / totalLaborHrs : 0, gHrs, dHrs,
     hhrsRev, hhrsLabor, hhrsPerDay, sleepHrs, awakeNightHrs, maxSleepHrs };
 }
+
+/* Max sleeping (graveyard-wage) hours available for a home configuration.
+   Grouped homes: the night-group window, or up to 12 overnight hours when there is a
+   high-support staff who can sleep on shift (even with 0 group hours). */
+function maxSleepFor({ nHigh = 0, nIntense = 0, groupHrs = 0 }) {
+  const total = nHigh + nIntense;
+  if (total === 0) return 0;
+  const canGroup = nIntense > 0 && total >= 2;
+  const gHrs = canGroup ? Math.max(0, Math.min(groupHrs, 20)) : 0;
+  return canGroup ? Math.max(gHrs, nHigh > 0 ? 12 : 0) : 12;
+}
+
+
 
 /* ══════════════════════════════════════════════════════════
    ID FACTORY & DEFAULTS
@@ -721,13 +743,15 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
           {total > 0 && (
             <div style={{ background: "#f4f6ff", borderRadius: 9, border: "1px solid #c8d4e4", padding: "10px 12px" }}>
               <SL>Graveyard — Sleeping Hrs</SL>
-              <Slider label={canGroup ? `Sleeping hrs (of ${groupHrs}hr group)` : "Overnight sleeping hrs (of 24hr shift)"} value={Math.min(graveyardSleepHrs, canGroup ? groupHrs : 12)} min={0} max={canGroup ? groupHrs : 12} step={1}
+              {(() => { const maxS = maxSleepFor({ nHigh, nIntense, groupHrs }); const s = Math.min(graveyardSleepHrs, maxS); return (<>
+              <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                 onChange={v => setGraveyardSleepHrs(v)} color="#7a94b0" format={v => `${v}hr`}/>
-              {graveyardSleepHrs > 0 && (
+              {s > 0 && (
                 <div style={{ fontSize: 9, color: "#475569", marginTop: 4, ...M }}>
-                  {Math.min(graveyardSleepHrs, canGroup ? groupHrs : 12)}hr at sleep wage · {canGroup ? groupHrs - Math.min(graveyardSleepHrs, groupHrs) : 24 - Math.min(graveyardSleepHrs, 12)}hr awake · sleep wage set in sidebar
+                  {s}hr at sleep wage · rest of the shift at regular wage · sleep wage set in sidebar
                 </div>
-              )}
+              )}</>); })()}
+
             </div>
           )}
 
@@ -1234,16 +1258,17 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
               <div style={{ background:"#f4f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>Graveyard — Sleeping Staff Hours</SL>
                 <div style={{ fontSize:9, color:"#475569", marginTop:-4, marginBottom:6, ...M }}>
-                  Hours the on-shift staff member is asleep on site — still on shift, but paid at the lower Graveyard / Sleeping Wage.
+                  Hours the on-shift staff member is asleep on site — still on shift, but paid at the lower Graveyard / Sleeping Wage. Independent of Night Group Hours: a home with 0 group hours can still have a sleeping overnight staff.
                 </div>
-
-                <Slider label={canGroup ? `Sleeping hrs within ${sel.groupHrs}hr night group` : "Overnight sleeping hrs (of 24hr shift)"} value={Math.min(sel.graveyardSleepHrs||0, canGroup ? sel.groupHrs : 12)} min={0} max={canGroup ? sel.groupHrs : 12} step={1}
+                {(() => { const maxS = maxSleepFor(sel); const s = Math.min(sel.graveyardSleepHrs||0, maxS); return (<>
+                <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                   onChange={v=>onUpdate(sel.id,"graveyardSleepHrs",v)} color="#7a94b0" format={v=>`${v}hr sleeping`}/>
-                {(sel.graveyardSleepHrs||0) > 0 && (
+                {s > 0 && (
                   <div style={{ fontSize:9, color:"#475569", marginTop:5, ...M }}>
-                    {Math.min(sel.graveyardSleepHrs||0, canGroup ? sel.groupHrs : 12)}hr at sleep wage · {canGroup ? sel.groupHrs - Math.min(sel.graveyardSleepHrs||0, sel.groupHrs) : 24 - Math.min(sel.graveyardSleepHrs||0, 12)}hr at regular wage · sleep wage set in sidebar
+                    {s}hr at sleep wage{canGroup && sel.groupHrs > 0 ? ` (${Math.min(s, sel.groupHrs)}hr in the night group${s > sel.groupHrs ? `, ${s - sel.groupHrs}hr on the high-support staff` : ""})` : ""} · rest of the shift at regular wage · sleep wage set in sidebar
                   </div>
-                )}
+                )}</>); })()}
+
               </div>
             )}
 
