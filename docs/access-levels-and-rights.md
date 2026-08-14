@@ -210,7 +210,7 @@ This scoping is enforced by the same `licensee_companies` assignment mechanism d
 - **Service line operational tabs:** All visible except as noted above. Focuses operationally on the service lines they run.
 - **Budget Builder:** No header cards. Their own row in $, lines below in %, lines above hidden.
 - **Labor Efficiency tab:** Ratio/% content visible. Dollar tiles and 5-year projection hidden.
-- **Home Mix Editor:** Can add and name homes, and edit Client Mix, Staff Wage, Graveyard/Sleeping Wage, Occupancy Rate, Individual Hours, Night Group Hours, and Graveyard Sleeping Staff Hours. Per-home margin ring, "% margin" caption, and per-home margin badge are hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for remaining controls (no remove, no billing type).
+- **Home Mix Editor:** Can add and name homes, and edit Client Mix, Staff Wage, Graveyard/Sleeping Wage, Occupancy Rate, Individual Hours, Night Group Hours, Graveyard Sleeping Staff Hours, and Intense Billing type (Normal daily vs. Blended unit billing). Per-home margin ring, "% margin" caption, and per-home margin badge are hidden; card borders use a neutral color. Home detail "Margin" tile hidden. View-only for remaining controls (no remove).
 - **Sidebar:** Wage, occupancy, Res Hab rate overrides visible. Entity type, owner rate, fees hidden.
 - **Wages:** Visible.
 - **Add Service Line:** Button hidden — Program Managers cannot add service lines.
