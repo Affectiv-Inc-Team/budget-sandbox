@@ -692,7 +692,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
   });
 
   // Color for labor ratio: < 47% = approved green, 47–70% = amber/orange, > 70% = red
-  const lrc = r => r < 0.47 ? "#00e5aa" : r < 0.58 ? "#f59e0b" : r < 0.68 ? "#fb923c" : "#f87171";
+  const lrc = laborRatioColor;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
