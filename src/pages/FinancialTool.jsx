@@ -1015,11 +1015,11 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
               {approval.status === "approved" && allHigh && `All-high configuration with ${total} clients is efficient. One staff covers all ${total} clients during all hours.`}
               {approval.status === "approved" && !canGroup && !allHigh && "Configuration meets Intrinsic's efficiency standards."}
               {approval.status === "needs_review" && nIntense > 0 && total < 2 && "A single intense client requires 1:1 staffing all 24 hours. Adding a second client and enabling group hours would reduce the labor ratio significantly."}
-              {approval.status === "needs_review" && canGroup && groupHrs < 8 && "Increasing night group hours (try 10–14 hrs) would lower the labor ratio and likely reach Approved."}
+              {approval.status === "needs_review" && canGroup && groupHrs < 8 && "Increasing night group hours (try 10–14 hrs) would lower the cost of service and likely reach Efficient."}
               {approval.status === "needs_review" && allHigh && total < 3 && "Adding another high-support client would spread the fixed staffing hours across more clients, improving the ratio."}
               {approval.status === "needs_review" && canGroup && groupHrs >= 8 && "Configuration is close to threshold. Consider increasing group hours or adjusting client mix."}
-              {approval.status === "concerning" && nIntense > 0 && "Intense clients drive a high labor ratio. Adding a second intense client with extended group hours may bring this below Concerning."}
-              {approval.status === "concerning" && canGroup && groupHrs < 10 && "Labor ratio is elevated. Increasing group hours to 10–14 may move this home into Needs Review."}
+              {approval.status === "concerning" && nIntense > 0 && "Intense clients drive the cost of service up. Adding a second intense client with extended group hours may pull this back into Watch."}
+              {approval.status === "concerning" && canGroup && groupHrs < 10 && "Cost of service is elevated. Increasing group hours to 10–14 may move this home into Watch."}
               {approval.status === "concerning" && (!canGroup || groupHrs >= 10) && "This configuration's labor ratio is high. Review client mix and staffing hours before committing to this home."}
               {approval.status === "rejected" && total === 1 && nIntense > 0 && "One intense client requires full 24-hour 1:1 staffing. This ratio is not sustainable. A minimum of 2 clients is needed to enable grouping."}
               {approval.status === "rejected" && total > 1 && groupHrs === 0 && canGroup && "Group hours are set to 0. Enabling 10–14 hours of group staffing would substantially reduce the labor ratio."}
