@@ -514,33 +514,56 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, 
    These define what Intrinsic considers an acceptable home
    configuration. Clients see the status, not the numbers.
 ══════════════════════════════════════════════════════════ */
+/* ── One shared rating vocabulary ──────────────────────────
+   Both the labor-efficiency rating and the gross-margin rating
+   resolve to the same four bands, so a home never gets two
+   different verdicts. Labels are cost-load framed on purpose:
+   users should read the number as the cost of providing service.
+─────────────────────────────────────────────────────────── */
+const RATING_BANDS = {
+  incomplete:   { status:"incomplete",   label:"Configure Home", color:"#64748b", bg:"#eef1f6",   border:"#c8d8ec",   icon:"○" },
+  approved:     { status:"approved",     label:"Efficient",      color:"#00e5aa", bg:"#00e5aa12", border:"#00e5aa35", icon:"✓" },
+  needs_review: { status:"needs_review", label:"Watch",          color:"#f59e0b", bg:"#f59e0b12", border:"#f59e0b35", icon:"⚠" },
+  concerning:   { status:"concerning",   label:"Cost-Heavy",     color:"#fb923c", bg:"#fb923c12", border:"#fb923c35", icon:"⚠" },
+  rejected:     { status:"rejected",     label:"Unsustainable",  color:"#f87171", bg:"#f8717112", border:"#f8717135", icon:"✗" },
+};
+
+// Non-labor direct costs as a share of revenue. Used to keep the gross-margin
+// bands numerically consistent with the labor-ratio bands: GM ≈ 1 − labor − this.
+const NON_LABOR_DIRECT = 0.08;
+
+// Labor ratio (direct labor ÷ revenue). Lower is better.
+const LABOR_APPROVAL_THRESHOLDS = { approved: 0.47, marginal: 0.58, concerning: 0.62 };
+
+// Gross margin bands derived from the labor bands so both scales agree.
 const APPROVAL_THRESHOLDS = {
-  approved:  0.45,   // gross margin ≥ 45% → Approved
-  marginal:  0.30,   // gross margin 30–44% → Needs Review
-                     // gross margin < 30%  → Not Viable
+  approved:   1 - LABOR_APPROVAL_THRESHOLDS.approved   - NON_LABOR_DIRECT, // 0.45
+  marginal:   1 - LABOR_APPROVAL_THRESHOLDS.marginal   - NON_LABOR_DIRECT, // 0.34
+  concerning: 1 - LABOR_APPROVAL_THRESHOLDS.concerning - NON_LABOR_DIRECT, // 0.30
 };
 
 function getApprovalStatus(margin, total) {
-  if (!total || total === 0) return { status:"incomplete", label:"Configure Home", color:"#64748b", bg:"#eef1f6", border:"#c8d8ec", icon:"○" };
-  if (margin >= APPROVAL_THRESHOLDS.approved) return { status:"approved",  label:"Approved",     color:"#00e5aa", bg:"#00e5aa12", border:"#00e5aa35", icon:"✓" };
-  if (margin >= APPROVAL_THRESHOLDS.marginal) return { status:"marginal",  label:"Needs Review", color:"#f59e0b", bg:"#f59e0b12", border:"#f59e0b35", icon:"⚠" };
-  return                                             { status:"rejected",  label:"Not Viable",   color:"#f87171", bg:"#f8717112", border:"#f8717135", icon:"✗" };
+  if (!total || total === 0)                    return RATING_BANDS.incomplete;
+  if (margin >= APPROVAL_THRESHOLDS.approved)   return RATING_BANDS.approved;
+  if (margin >= APPROVAL_THRESHOLDS.marginal)   return RATING_BANDS.needs_review;
+  if (margin >= APPROVAL_THRESHOLDS.concerning) return RATING_BANDS.concerning;
+  return                                               RATING_BANDS.rejected;
 }
 
-// Labor Efficiency tab uses labor ratio thresholds (not gross margin).
-// Intrinsic approved threshold: labor ratio < 47% of revenue.
-const LABOR_APPROVAL_THRESHOLDS = { approved: 0.47, marginal: 0.58, concerning: 0.68 };
-
 function getLaborApprovalStatus(laborRatio, total) {
-  if (!total || total === 0)                             return { status:"incomplete",  label:"Configure Home", color:"#64748b", bg:"#eef1f6",   border:"#c8d8ec",   icon:"○" };
-  if (laborRatio < LABOR_APPROVAL_THRESHOLDS.approved)  return { status:"approved",    label:"Approved",       color:"#00e5aa", bg:"#00e5aa12", border:"#00e5aa35", icon:"✓" };
-  if (laborRatio < LABOR_APPROVAL_THRESHOLDS.marginal)  return { status:"needs_review", label:"Needs Review",  color:"#f59e0b", bg:"#f59e0b12", border:"#f59e0b35", icon:"⚠" };
-  if (laborRatio < LABOR_APPROVAL_THRESHOLDS.concerning) return { status:"concerning", label:"Concerning",     color:"#fb923c", bg:"#fb923c12", border:"#fb923c35", icon:"⚠" };
-  return                                                        { status:"rejected",   label:"Not Viable",     color:"#f87171", bg:"#f8717112", border:"#f8717135", icon:"✗" };
+  if (!total || total === 0)                              return RATING_BANDS.incomplete;
+  if (laborRatio < LABOR_APPROVAL_THRESHOLDS.approved)    return RATING_BANDS.approved;
+  if (laborRatio < LABOR_APPROVAL_THRESHOLDS.marginal)    return RATING_BANDS.needs_review;
+  if (laborRatio < LABOR_APPROVAL_THRESHOLDS.concerning)  return RATING_BANDS.concerning;
+  return                                                         RATING_BANDS.rejected;
 }
 
 // Shared labor-ratio color ramp (matches getLaborApprovalStatus bands)
-const laborRatioColor = r => r < 0.47 ? "#00e5aa" : r < 0.58 ? "#f59e0b" : r < 0.68 ? "#fb923c" : "#f87171";
+const laborRatioColor = r =>
+  r < LABOR_APPROVAL_THRESHOLDS.approved   ? RATING_BANDS.approved.color :
+  r < LABOR_APPROVAL_THRESHOLDS.marginal   ? RATING_BANDS.needs_review.color :
+  r < LABOR_APPROVAL_THRESHOLDS.concerning ? RATING_BANDS.concerning.color :
+                                             RATING_BANDS.rejected.color;
 
 // Compact approval pill used in home lists / headers
 function ApprovalPill({ approval, ratio, size = "sm" }) {
