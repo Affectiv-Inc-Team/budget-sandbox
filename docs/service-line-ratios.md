@@ -63,22 +63,32 @@ Computed in the company P&L (`calcSLCo`) and the home-approval helpers in
 | `mgmtFee` | `annualRevNet × mgmtFeePct/100` | Management fee (uses shared `mgmtFeePct`) | calcSLCo |
 | `billingFee` | `annualRevNet × billingFeePct/100` | Billing fee (uses shared `billingFeePct`) | calcSLCo |
 
-**Home gross-margin approval bands** — `APPROVAL_THRESHOLDS` ([FinancialTool.jsx:470](../src/pages/FinancialTool.jsx)):
+**Unified rating vocabulary** — `RATING_BANDS` in `FinancialTool.jsx`. Both the labor-efficiency
+rating and the gross-margin rating resolve to the same four bands, so a home never carries two
+different verdicts. Labels are cost-load framed (the number is read as the cost of providing
+service), not approval framed.
+
+**Labor-ratio bands** — `LABOR_APPROVAL_THRESHOLDS` (primary, shown to all tiers):
+
+| Band | Rule | Label | Color |
+|---|---|---|---|
+| `approved` | labor ratio < `0.47` | Efficient | `#00e5aa` |
+| `needs_review` | `0.47`–`0.58` | Watch | `#f59e0b` |
+| `concerning` | `0.58`–`0.62` | Cost-Heavy | `#fb923c` |
+| `rejected` | ≥ `0.62` | Unsustainable | `#f87171` |
+
+**Gross-margin bands** — `APPROVAL_THRESHOLDS`, *derived* from the labor bands using
+`NON_LABOR_DIRECT = 0.08` (GM ≈ 1 − labor ratio − non-labor direct costs), so the two scales agree:
 
 | Band | Rule | Label |
 |---|---|---|
-| `approved` | gross margin ≥ `0.45` | Approved |
-| `marginal` | `0.30` ≤ margin < `0.45` | Needs Review |
-| (below) | margin < `0.30` | Not Viable |
+| `approved` | gross margin ≥ `0.45` | Efficient |
+| `needs_review` | `0.34`–`0.45` | Watch |
+| `concerning` | `0.30`–`0.34` | Cost-Heavy |
+| `rejected` | < `0.30` | Unsustainable |
 
-**Labor-ratio approval bands** — `LABOR_APPROVAL_THRESHOLDS` ([FinancialTool.jsx:485](../src/pages/FinancialTool.jsx)):
-
-| Band | Rule | Label |
-|---|---|---|
-| `approved` | labor ratio < `0.47` | Approved |
-| `marginal` | `0.47`–`0.58` | Needs Review |
-| `concerning` | `0.58`–`0.68` | Concerning |
-| (above) | > `0.68` | Not Viable |
+Margin is leadership-only (Tier 5 and below are masked from revenue/margin), so labor efficiency
+is the shared operational language across the org.
 
 > Per-coordinator/provider cards also use lighter "color band" thresholds for at-a-glance
 > status (e.g. TSC: margin > 0.40 green / > 0.20 amber, utilization > 0.85 green; DDA/CSE/School:
