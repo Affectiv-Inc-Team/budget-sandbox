@@ -1069,10 +1069,10 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
   }, [homes, wage, rates, graveyardWage]);
 
   const STATUS_KEYS = [
-    { key:"approved",     label:"Approved",     color:"#00e5aa", icon:"✓" },
-    { key:"needs_review", label:"Needs Review", color:"#f59e0b", icon:"⚠" },
-    { key:"concerning",   label:"Concerning",   color:"#fb923c", icon:"⚠" },
-    { key:"rejected",     label:"Not Viable",   color:"#f87171", icon:"✗" },
+    { key:"approved",     label:RATING_BANDS.approved.label,     color:RATING_BANDS.approved.color,     icon:"✓" },
+    { key:"needs_review", label:RATING_BANDS.needs_review.label, color:RATING_BANDS.needs_review.color, icon:"⚠" },
+    { key:"concerning",   label:RATING_BANDS.concerning.label,   color:RATING_BANDS.concerning.color,   icon:"⚠" },
+    { key:"rejected",     label:RATING_BANDS.rejected.label,     color:RATING_BANDS.rejected.color,     icon:"✗" },
     { key:"incomplete",   label:"Unconfigured", color:"#64748b", icon:"○" },
   ];
 
