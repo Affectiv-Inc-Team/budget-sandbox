@@ -663,7 +663,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
   const chH = v => { setNHigh(Math.max(0, Math.min(v, 3 - nIntense))); };
   const chI = v => { setNIntense(Math.max(0, Math.min(v, 3 - nHigh))); };
 
-  const cfg = { nHigh, nIntense, groupHrs, billingType: billing, hhrsPerWeek, graveyardSleepHrs };
+  const cfg = { nHigh, nIntense, groupHrs, billingType: billing, hhrsPerWeek, graveyardSleepHrs, sleepingGraves };
   const m   = calcHome(cfg, wage, rates, graveyardWage);
 
   // Key efficiency ratios
