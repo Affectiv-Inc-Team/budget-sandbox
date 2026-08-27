@@ -132,7 +132,7 @@ const handler = createAuthEmailHandler({
   sendUrl: Deno.env.get('LOVABLE_SEND_URL'),
   emails: {
     signup: {
-      subject: 'Confirm your email',
+      subject: 'Confirm your Intrinsic email',
       render: (data) =>
         React.createElement(SignupEmail, {
           siteName: SITE_NAME,
@@ -142,16 +142,17 @@ const handler = createAuthEmailHandler({
         }),
     },
     invite: {
-      subject: "You've been invited",
+      subject: "You've been invited to Intrinsic",
       render: (data) =>
         React.createElement(InviteEmail, {
           siteName: SITE_NAME,
           siteUrl: SITE_URL,
           confirmationUrl: data.url,
+          token: data.token ?? '',
         }),
     },
     magiclink: {
-      subject: 'Your login link',
+      subject: 'Your Intrinsic login link',
       render: (data) =>
         React.createElement(MagicLinkEmail, {
           siteName: SITE_NAME,
@@ -159,11 +160,13 @@ const handler = createAuthEmailHandler({
         }),
     },
     recovery: {
-      subject: 'Reset your password',
+      subject: 'Your Intrinsic password reset code',
       render: (data) =>
         React.createElement(RecoveryEmail, {
           siteName: SITE_NAME,
+          siteUrl: SITE_URL,
           confirmationUrl: data.url,
+          token: data.token ?? '',
         }),
     },
     email_change: {
