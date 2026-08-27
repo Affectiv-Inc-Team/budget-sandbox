@@ -653,6 +653,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
   const [custWage,         setCustWage]         = useState(globalWage);
   const [hhrsPerWeek,      setHhrsPerWeek]      = useState(0);
   const [graveyardSleepHrs,setGraveyardSleepHrs]= useState(0);
+  const [sleepingGraves,   setSleepingGraves]   = useState(false);
   const wage = useGlobal ? globalWage : custWage;
 
   const total    = nHigh + nIntense;
