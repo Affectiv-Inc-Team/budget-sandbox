@@ -67,7 +67,7 @@ const calcTax = (ebitda, entityType, ownerRate) => {
    ▸ Normal Intense billing : $678.77/day regardless of group hrs
    ▸ Blended billing        : dHrs × IU_HR + gHrs × IG_HR per intense client
 ══════════════════════════════════════════════════════════ */
-function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, graveyardSleepHrs = 0 }, wage, rates = RATES_DEF, graveyardWage = null) {
+function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, graveyardSleepHrs = 0, sleepingGraves }, wage, rates = RATES_DEF, graveyardWage = null) {
   const IU_HR  = rates.iuUnit * 4;   // $28.28/hr
   const IG_HR  = rates.igUnit * 4;   // $14.44/hr
   const sleepWage = (graveyardWage != null && graveyardWage > 0) ? graveyardWage : wage;
@@ -79,13 +79,16 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   const dHrs      = 24 - gHrs;
 
   // ── Graveyard sleep hours apply to ALL home types ────────────────────────
-  // Sleep hours are on-shift hours paid at the lower graveyard wage. They are NOT
-  // limited to the night-group window: a home can run 0 group hours (e.g. an intense
-  // client 1:1 all day) and still have the high-support staff sleeping overnight.
+  // A home only pays the lower graveyard/sleeping wage if it is flagged as a
+  // sleeping-graveyard home. Otherwise every overnight hour is paid at the regular
+  // wage. Legacy homes (no flag) infer the flag from having sleep hours recorded.
+  // Sleep hours are NOT limited to the night-group window: a home can run 0 group
+  // hours and still have the high-support staff sleeping overnight.
+  const sleepEnabled = sleepingGraves == null ? graveyardSleepHrs > 0 : !!sleepingGraves;
   const maxSleepHrs = canGroup
     ? Math.max(gHrs, nHigh > 0 ? 12 : 0)   // group window, plus a sleeping high-support staff
     : 12;
-  const sleepHrs      = Math.max(0, Math.min(graveyardSleepHrs, maxSleepHrs));
+  const sleepHrs      = sleepEnabled ? Math.max(0, Math.min(graveyardSleepHrs, maxSleepHrs)) : 0;
   const groupSleepHrs = Math.min(sleepHrs, gHrs);
   const spillSleepHrs = Math.min(Math.max(0, sleepHrs - groupSleepHrs), dHrs);
   const awakeNightHrs = canGroup ? gHrs - groupSleepHrs : 0;
@@ -141,7 +144,7 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   return { laborHrs: totalLaborHrs, rev, labor, gross, margin,
     annualRev: rev*365, annualGross: gross*365, annualLabor: labor*365,
     plHr: totalLaborHrs > 0 ? gross / totalLaborHrs : 0, gHrs, dHrs,
-    hhrsRev, hhrsLabor, hhrsPerDay, sleepHrs, awakeNightHrs, maxSleepHrs };
+    hhrsRev, hhrsLabor, hhrsPerDay, sleepHrs, awakeNightHrs, maxSleepHrs, sleepEnabled };
 }
 
 /* Max sleeping (graveyard-wage) hours available for a home configuration.
@@ -164,7 +167,7 @@ let _uid = 400;
 const uid = () => ++_uid;
 
 const mkHome = (label, nHigh, nIntense, groupHrs, billingType) =>
-  ({ id:uid(), label, nHigh, nIntense, groupHrs, billingType, hhrsPerWeek:0, graveyardSleepHrs:0 });
+  ({ id:uid(), label, nHigh, nIntense, groupHrs, billingType, hhrsPerWeek:0, graveyardSleepHrs:0, sleepingGraves:false });
 
 // Expand legacy home-type entries (numHomes multiplier) into individual home objects.
 // Used at read-time so existing saves with config.homes are transparently migrated.
@@ -180,6 +183,7 @@ const expandHomeTypes = (homeTypes = []) =>
       billingType:       ht.billingType,
       hhrsPerWeek:       ht.hhrsPerWeek       ?? 0,
       graveyardSleepHrs: ht.graveyardSleepHrs ?? 0,
+      sleepingGraves:    ht.sleepingGraves ?? ((ht.graveyardSleepHrs ?? 0) > 0),
     }));
   });
 const DEFAULT_HOMES = [
@@ -649,6 +653,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
   const [custWage,         setCustWage]         = useState(globalWage);
   const [hhrsPerWeek,      setHhrsPerWeek]      = useState(0);
   const [graveyardSleepHrs,setGraveyardSleepHrs]= useState(0);
+  const [sleepingGraves,   setSleepingGraves]   = useState(false);
   const wage = useGlobal ? globalWage : custWage;
 
   const total    = nHigh + nIntense;
@@ -658,7 +663,7 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
   const chH = v => { setNHigh(Math.max(0, Math.min(v, 3 - nIntense))); };
   const chI = v => { setNIntense(Math.max(0, Math.min(v, 3 - nHigh))); };
 
-  const cfg = { nHigh, nIntense, groupHrs, billingType: billing, hhrsPerWeek, graveyardSleepHrs };
+  const cfg = { nHigh, nIntense, groupHrs, billingType: billing, hhrsPerWeek, graveyardSleepHrs, sleepingGraves };
   const m   = calcHome(cfg, wage, rates, graveyardWage);
 
   // Key efficiency ratios
@@ -767,11 +772,24 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
             <div style={{ background: "#f4f6ff", borderRadius: 9, border: "1px solid #c8d4e4", padding: "10px 12px" }}>
               <SL>Graveyard — Sleeping Hrs</SL>
               {(() => { const maxS = maxSleepFor({ nHigh, nIntense, groupHrs }); const s = Math.min(graveyardSleepHrs, maxS); return (<>
+              <Toggle value={sleepingGraves ? "yes" : "no"} onChange={v => {
+                const on = v === "yes";
+                setSleepingGraves(on);
+                if (on && graveyardSleepHrs === 0) setGraveyardSleepHrs(Math.min(8, maxS));
+              }} options={[
+                { value:"no",  label:"No Sleeping Graves", color:"#64748b" },
+                { value:"yes", label:"Sleeping Graveyard",  color:"#5a7498" },
+              ]}/>
+              {sleepingGraves ? (<div style={{ marginTop: 8 }}>
               <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                 onChange={v => setGraveyardSleepHrs(v)} color="#7a94b0" format={v => `${v}hr`}/>
               {s > 0 && (
                 <div style={{ fontSize: 9, color: "#475569", marginTop: 4, ...M }}>
                   {s}hr at sleep wage · rest of the shift at regular wage · sleep wage set in sidebar
+                </div>
+              )}</div>) : (
+                <div style={{ fontSize: 9, color: "#475569", marginTop: 6, ...M }}>
+                  All night hours paid at the regular staff wage.
                 </div>
               )}</>); })()}
 
@@ -1277,23 +1295,40 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
               </div>
             )}
 
-            {(sel.nHigh + sel.nIntense) > 0 && (
+            {(sel.nHigh + sel.nIntense) > 0 && (() => {
+              const sleepOn = sel.sleepingGraves == null ? (sel.graveyardSleepHrs||0) > 0 : !!sel.sleepingGraves;
+              const maxS = maxSleepFor(sel);
+              const s = Math.min(sel.graveyardSleepHrs||0, maxS);
+              return (
               <div style={{ background:"#f4f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>Graveyard — Sleeping Staff Hours</SL>
                 <div style={{ fontSize:9, color:"#475569", marginTop:-4, marginBottom:6, ...M }}>
-                  Hours the on-shift staff member is asleep on site — still on shift, but paid at the lower Graveyard / Sleeping Wage. Independent of Night Group Hours: a home with 0 group hours can still have a sleeping overnight staff.
+                  Does this home run a sleeping graveyard? If not, every overnight hour is paid at the regular staff wage. If it does, the sleeping hours below are paid at the lower Graveyard / Sleeping Wage. Independent of Night Group Hours: a home with 0 group hours can still have a sleeping overnight staff.
                 </div>
-                {(() => { const maxS = maxSleepFor(sel); const s = Math.min(sel.graveyardSleepHrs||0, maxS); return (<>
+                <Toggle value={sleepOn ? "yes" : "no"} onChange={v=>{
+                  const on = v === "yes";
+                  onUpdate(sel.id,"sleepingGraves",on);
+                  if (on && (sel.graveyardSleepHrs||0) === 0) onUpdate(sel.id,"graveyardSleepHrs",Math.min(8, maxS));
+                }} options={[
+                  { value:"no",  label:"No Sleeping Graves (full wage all night)", color:"#64748b" },
+                  { value:"yes", label:"Sleeping Graveyard Home", color:"#5a7498" },
+                ]}/>
+                {sleepOn && (<div style={{ marginTop:8 }}>
                 <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                   onChange={v=>onUpdate(sel.id,"graveyardSleepHrs",v)} color="#7a94b0" format={v=>`${v}hr sleeping`}/>
                 {s > 0 && (
                   <div style={{ fontSize:9, color:"#475569", marginTop:5, ...M }}>
                     {s}hr at sleep wage{canGroup && sel.groupHrs > 0 ? ` (${Math.min(s, sel.groupHrs)}hr in the night group${s > sel.groupHrs ? `, ${s - sel.groupHrs}hr on the high-support staff` : ""})` : ""} · rest of the shift at regular wage · sleep wage set in sidebar
                   </div>
-                )}</>); })()}
-
+                )}</div>)}
+                {!sleepOn && (
+                  <div style={{ fontSize:9, color:"#475569", marginTop:6, ...M }}>
+                    All 24 hours paid at the regular staff wage — no graveyard discount applied.
+                  </div>
+                )}
               </div>
-            )}
+              );
+            })()}
 
             {/* Metric grid */}
             <div style={{ background:"#ebebeb", borderRadius:10, overflow:"hidden", border:"1px solid #e0e8f0" }}>
