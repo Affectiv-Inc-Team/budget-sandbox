@@ -1281,23 +1281,40 @@ function HomeMixEditor({ homes, onUpdate, onAdd, onRemove, wage, setWage, rates 
               </div>
             )}
 
-            {(sel.nHigh + sel.nIntense) > 0 && (
+            {(sel.nHigh + sel.nIntense) > 0 && (() => {
+              const sleepOn = sel.sleepingGraves == null ? (sel.graveyardSleepHrs||0) > 0 : !!sel.sleepingGraves;
+              const maxS = maxSleepFor(sel);
+              const s = Math.min(sel.graveyardSleepHrs||0, maxS);
+              return (
               <div style={{ background:"#f4f6ff", borderRadius:9, border:"1px solid #c8d4e4", padding:"10px 14px", pointerEvents: canOperate ? "auto" : "none", opacity: canOperate ? 1 : 0.65 }}>
                 <SL>Graveyard — Sleeping Staff Hours</SL>
                 <div style={{ fontSize:9, color:"#475569", marginTop:-4, marginBottom:6, ...M }}>
-                  Hours the on-shift staff member is asleep on site — still on shift, but paid at the lower Graveyard / Sleeping Wage. Independent of Night Group Hours: a home with 0 group hours can still have a sleeping overnight staff.
+                  Does this home run a sleeping graveyard? If not, every overnight hour is paid at the regular staff wage. If it does, the sleeping hours below are paid at the lower Graveyard / Sleeping Wage. Independent of Night Group Hours: a home with 0 group hours can still have a sleeping overnight staff.
                 </div>
-                {(() => { const maxS = maxSleepFor(sel); const s = Math.min(sel.graveyardSleepHrs||0, maxS); return (<>
+                <Toggle value={sleepOn ? "yes" : "no"} onChange={v=>{
+                  const on = v === "yes";
+                  onUpdate(sel.id,"sleepingGraves",on);
+                  if (on && (sel.graveyardSleepHrs||0) === 0) onUpdate(sel.id,"graveyardSleepHrs",Math.min(8, maxS));
+                }} options={[
+                  { value:"no",  label:"No Sleeping Graves (full wage all night)", color:"#64748b" },
+                  { value:"yes", label:"Sleeping Graveyard Home", color:"#5a7498" },
+                ]}/>
+                {sleepOn && (<div style={{ marginTop:8 }}>
                 <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                   onChange={v=>onUpdate(sel.id,"graveyardSleepHrs",v)} color="#7a94b0" format={v=>`${v}hr sleeping`}/>
                 {s > 0 && (
                   <div style={{ fontSize:9, color:"#475569", marginTop:5, ...M }}>
                     {s}hr at sleep wage{canGroup && sel.groupHrs > 0 ? ` (${Math.min(s, sel.groupHrs)}hr in the night group${s > sel.groupHrs ? `, ${s - sel.groupHrs}hr on the high-support staff` : ""})` : ""} · rest of the shift at regular wage · sleep wage set in sidebar
                   </div>
-                )}</>); })()}
-
+                )}</div>)}
+                {!sleepOn && (
+                  <div style={{ fontSize:9, color:"#475569", marginTop:6, ...M }}>
+                    All 24 hours paid at the regular staff wage — no graveyard discount applied.
+                  </div>
+                )}
               </div>
-            )}
+              );
+            })()}
 
             {/* Metric grid */}
             <div style={{ background:"#ebebeb", borderRadius:10, overflow:"hidden", border:"1px solid #e0e8f0" }}>
