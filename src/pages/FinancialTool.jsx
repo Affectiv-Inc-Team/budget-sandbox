@@ -79,13 +79,16 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   const dHrs      = 24 - gHrs;
 
   // ── Graveyard sleep hours apply to ALL home types ────────────────────────
-  // Sleep hours are on-shift hours paid at the lower graveyard wage. They are NOT
-  // limited to the night-group window: a home can run 0 group hours (e.g. an intense
-  // client 1:1 all day) and still have the high-support staff sleeping overnight.
+  // A home only pays the lower graveyard/sleeping wage if it is flagged as a
+  // sleeping-graveyard home. Otherwise every overnight hour is paid at the regular
+  // wage. Legacy homes (no flag) infer the flag from having sleep hours recorded.
+  // Sleep hours are NOT limited to the night-group window: a home can run 0 group
+  // hours and still have the high-support staff sleeping overnight.
+  const sleepEnabled = sleepingGraves == null ? graveyardSleepHrs > 0 : !!sleepingGraves;
   const maxSleepHrs = canGroup
     ? Math.max(gHrs, nHigh > 0 ? 12 : 0)   // group window, plus a sleeping high-support staff
     : 12;
-  const sleepHrs      = Math.max(0, Math.min(graveyardSleepHrs, maxSleepHrs));
+  const sleepHrs      = sleepEnabled ? Math.max(0, Math.min(graveyardSleepHrs, maxSleepHrs)) : 0;
   const groupSleepHrs = Math.min(sleepHrs, gHrs);
   const spillSleepHrs = Math.min(Math.max(0, sleepHrs - groupSleepHrs), dHrs);
   const awakeNightHrs = canGroup ? gHrs - groupSleepHrs : 0;
