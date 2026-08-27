@@ -15,7 +15,7 @@ const corsHeaders = {
 }
 
 // Configuration
-const SITE_NAME = "Projection and Budget Tools"
+const SITE_NAME = "Intrinsic"
 const SENDER_DOMAIN = "notify.budget.intrinsic.agency"
 const ROOT_DOMAIN = "budget.intrinsic.agency"
 const FROM_DOMAIN = "notify.budget.intrinsic.agency"
