@@ -144,7 +144,7 @@ function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, gra
   return { laborHrs: totalLaborHrs, rev, labor, gross, margin,
     annualRev: rev*365, annualGross: gross*365, annualLabor: labor*365,
     plHr: totalLaborHrs > 0 ? gross / totalLaborHrs : 0, gHrs, dHrs,
-    hhrsRev, hhrsLabor, hhrsPerDay, sleepHrs, awakeNightHrs, maxSleepHrs };
+    hhrsRev, hhrsLabor, hhrsPerDay, sleepHrs, awakeNightHrs, maxSleepHrs, sleepEnabled };
 }
 
 /* Max sleeping (graveyard-wage) hours available for a home configuration.
