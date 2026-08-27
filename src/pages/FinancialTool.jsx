@@ -183,6 +183,7 @@ const expandHomeTypes = (homeTypes = []) =>
       billingType:       ht.billingType,
       hhrsPerWeek:       ht.hhrsPerWeek       ?? 0,
       graveyardSleepHrs: ht.graveyardSleepHrs ?? 0,
+      sleepingGraves:    ht.sleepingGraves ?? ((ht.graveyardSleepHrs ?? 0) > 0),
     }));
   });
 const DEFAULT_HOMES = [
