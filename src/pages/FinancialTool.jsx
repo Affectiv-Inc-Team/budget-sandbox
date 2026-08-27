@@ -772,11 +772,24 @@ function LaborEfficiencyTab({ wage: globalWage, rates = RATES_DEF, graveyardWage
             <div style={{ background: "#f4f6ff", borderRadius: 9, border: "1px solid #c8d4e4", padding: "10px 12px" }}>
               <SL>Graveyard — Sleeping Hrs</SL>
               {(() => { const maxS = maxSleepFor({ nHigh, nIntense, groupHrs }); const s = Math.min(graveyardSleepHrs, maxS); return (<>
+              <Toggle value={sleepingGraves ? "yes" : "no"} onChange={v => {
+                const on = v === "yes";
+                setSleepingGraves(on);
+                if (on && graveyardSleepHrs === 0) setGraveyardSleepHrs(Math.min(8, maxS));
+              }} options={[
+                { value:"no",  label:"No Sleeping Graves", color:"#64748b" },
+                { value:"yes", label:"Sleeping Graveyard",  color:"#5a7498" },
+              ]}/>
+              {sleepingGraves ? (<div style={{ marginTop: 8 }}>
               <Slider label={`Sleeping hrs on shift (max ${maxS}hr)`} value={s} min={0} max={maxS} step={1}
                 onChange={v => setGraveyardSleepHrs(v)} color="#7a94b0" format={v => `${v}hr`}/>
               {s > 0 && (
                 <div style={{ fontSize: 9, color: "#475569", marginTop: 4, ...M }}>
                   {s}hr at sleep wage · rest of the shift at regular wage · sleep wage set in sidebar
+                </div>
+              )}</div>) : (
+                <div style={{ fontSize: 9, color: "#475569", marginTop: 6, ...M }}>
+                  All night hours paid at the regular staff wage.
                 </div>
               )}</>); })()}
 
