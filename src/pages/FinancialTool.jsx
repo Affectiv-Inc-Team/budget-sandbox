@@ -67,7 +67,7 @@ const calcTax = (ebitda, entityType, ownerRate) => {
    ▸ Normal Intense billing : $678.77/day regardless of group hrs
    ▸ Blended billing        : dHrs × IU_HR + gHrs × IG_HR per intense client
 ══════════════════════════════════════════════════════════ */
-function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, graveyardSleepHrs = 0 }, wage, rates = RATES_DEF, graveyardWage = null) {
+function calcHome({ nHigh, nIntense, groupHrs, billingType, hhrsPerWeek = 0, graveyardSleepHrs = 0, sleepingGraves }, wage, rates = RATES_DEF, graveyardWage = null) {
   const IU_HR  = rates.iuUnit * 4;   // $28.28/hr
   const IG_HR  = rates.igUnit * 4;   // $14.44/hr
   const sleepWage = (graveyardWage != null && graveyardWage > 0) ? graveyardWage : wage;
