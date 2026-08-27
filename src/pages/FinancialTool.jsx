@@ -167,7 +167,7 @@ let _uid = 400;
 const uid = () => ++_uid;
 
 const mkHome = (label, nHigh, nIntense, groupHrs, billingType) =>
-  ({ id:uid(), label, nHigh, nIntense, groupHrs, billingType, hhrsPerWeek:0, graveyardSleepHrs:0 });
+  ({ id:uid(), label, nHigh, nIntense, groupHrs, billingType, hhrsPerWeek:0, graveyardSleepHrs:0, sleepingGraves:false });
 
 // Expand legacy home-type entries (numHomes multiplier) into individual home objects.
 // Used at read-time so existing saves with config.homes are transparently migrated.
