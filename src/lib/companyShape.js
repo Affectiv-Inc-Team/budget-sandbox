@@ -387,6 +387,7 @@ function migrateOldCompany(oldCo) {
     rates:         oldCo.rates         ?? { ...DEFAULT_RES_HAB_RATES },
     mgmt:          oldCo.mgmt          ?? [],
     overhead:      oldCo.overhead      ?? [],
+    overheadMode:  (oldCo.overhead ?? []).length > 0 ? 'itemized' : 'percent',
     sharedOverhead: oldCo.sharedOverhead ?? createSharedConfig().sharedOverhead,
     allocationMethod: oldCo.allocationMethod ?? 'revenue',
   });
