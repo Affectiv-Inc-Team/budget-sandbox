@@ -65,6 +65,24 @@ import { SERVICE_LINE_TYPES, getDefaultConfig } from '../serviceLines/types.js';
 // Default Res Hab rates (mirror of legacy RATES_DEF in FinancialTool.jsx)
 const DEFAULT_RES_HAB_RATES = { intenseDaily: 678.77, highDaily: 368.67, iuUnit: 7.07, igUnit: 3.61 };
 
+// Default operating overhead (G&A) as a % of net revenue, applied on top of the
+// management fee and billing fee. Covers rent/occupancy, insurance, admin
+// software & billing systems, vehicles/travel, training & compliance,
+// professional fees, office/supplies, recruiting, and technology.
+export const DEFAULT_OVERHEAD_PCT = 12;
+
+/**
+ * Effective annual operating overhead for a company.
+ * percent mode → % of net revenue; itemized mode → sum of line items.
+ */
+export function overheadTotalFor(shared = {}, netRevenue = 0) {
+  const mode = shared.overheadMode ?? 'percent';
+  if (mode === 'itemized') {
+    return (shared.overhead ?? []).reduce((a, o) => a + (o.amount || 0), 0);
+  }
+  return Math.max(0, netRevenue) * ((shared.overheadPct ?? DEFAULT_OVERHEAD_PCT) / 100);
+}
+
 // ──────────────────────────────────────────────────────────────────────
 // ID generation
 // ──────────────────────────────────────────────────────────────────────
@@ -105,6 +123,13 @@ export function createSharedConfig(overrides = {}) {
     // Cost rosters
     mgmt: [],
     overhead: [],
+
+    // Operating overhead model:
+    //   'percent'  → overhead = overheadPct % of net revenue (default standard)
+    //   'itemized' → overhead = sum of the `overhead` line items
+    overheadMode: 'percent',
+    overheadPct: DEFAULT_OVERHEAD_PCT,
+
 
     // Forward-looking allocation
     sharedOverhead: {
@@ -255,10 +280,21 @@ function normalizeV2(config) {
       return sl;
     });
     // Seed volumeLog on companies that predate the feature
-    const shared = co.shared && !co.shared.volumeLog
+    let shared = co.shared && !co.shared.volumeLog
       ? (changed = true, { ...co.shared, volumeLog: [] })
       : co.shared;
+    // Seed the overhead model. Companies that already itemized keep itemized;
+    // everyone else picks up the percent-of-revenue standard.
+    if (shared && !shared.overheadMode) {
+      changed = true;
+      shared = {
+        ...shared,
+        overheadMode: (shared.overhead ?? []).length > 0 ? 'itemized' : 'percent',
+        overheadPct: shared.overheadPct ?? DEFAULT_OVERHEAD_PCT,
+      };
+    }
     return { ...co, serviceLines, shared };
+
   });
   return changed ? { ...config, companies } : config;
 }
@@ -305,6 +341,7 @@ function migrateFlatV1(flat) {
     rates:         flat.rates          ?? { ...DEFAULT_RES_HAB_RATES },
     mgmt:          flat.mgmt           ?? [],
     overhead:      flat.overhead       ?? [],
+    overheadMode:  (flat.overhead ?? []).length > 0 ? 'itemized' : 'percent',
   });
 
   const serviceLines = [];
@@ -351,6 +388,7 @@ function migrateOldCompany(oldCo) {
     rates:         oldCo.rates         ?? { ...DEFAULT_RES_HAB_RATES },
     mgmt:          oldCo.mgmt          ?? [],
     overhead:      oldCo.overhead      ?? [],
+    overheadMode:  (oldCo.overhead ?? []).length > 0 ? 'itemized' : 'percent',
     sharedOverhead: oldCo.sharedOverhead ?? createSharedConfig().sharedOverhead,
     allocationMethod: oldCo.allocationMethod ?? 'revenue',
   });

@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 
 // ── New architecture imports ──
-import { migrateConfig, getSelectedCompany, createServiceLine, createSharedConfig } from "../lib/companyShape.js";
+import { migrateConfig, getSelectedCompany, createServiceLine, createSharedConfig, overheadTotalFor, DEFAULT_OVERHEAD_PCT } from "../lib/companyShape.js";
 import { SERVICE_LINE_TYPES, SERVICE_LINE_DEFS, getShortLabel, getGroupedPickerOptions } from "../serviceLines/types.js";
 import { ratesForLine } from "../data/idahoRates.js";
 import { TSCCurrentServicesTab, TSCSandboxTab, TSCPLTab, TSCRateScheduleTab, calcTSCService } from "../serviceLines/tsc.jsx";
@@ -384,7 +384,7 @@ function MixBadges({ nHigh, nIntense, size=22 }) {
 /* ══════════════════════════════════════════════════════════
    COMPANY P&L PANEL
 ══════════════════════════════════════════════════════════ */
-function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, slBreakdown, title, userRole }) {
+function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, overheadMode = 'percent', overheadPct = DEFAULT_OVERHEAD_PCT, onOverheadMode, onOverheadPct, entityType, ownerRate, mgmtFeePct, billingFeePct, slBreakdown, title, userRole }) {
   const [showEdit, setShowEdit] = useState(false);
   const { annualRevGross, annualRevNet, annualDirectLabor, payrollBurden, totalLabor,
     mgmtTotal, overheadTotal, mgmtFee, billingFee, totalCosts, ebitda, ebitdaMargin,
@@ -409,7 +409,8 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, 
     { l: showBreakdown ? "Direct Care Labor (total)" : "Direct Care Labor", v:-annualDirectLabor, t:"cost" },
     { l:"Payroll Burden (22%)",                         v:-payrollBurden,               t:"cost" },
     { l:"Management & Admin (Salaries)",                v:-mgmtTotal,                   t:"cost" },
-    { l:"Operating Overhead",                           v:-overheadTotal,               t:"cost" },
+    { l: overheadMode === 'percent' ? `Operating Overhead (${overheadPct}% of revenue)` : "Operating Overhead (itemized)",
+                                                        v:-overheadTotal,               t:"cost" },
     { l:`Management Fee (${mgmtFeePct}% of revenue)`,  v:-mgmtFee,                     t:"fee" },
     { l:`Billing Fee (${billingFeePct}% of revenue)`,  v:-billingFee,                  t:"fee" },
     { l:"Total Costs",                                  v:-totalCosts,                  t:"sub" },
@@ -483,9 +484,8 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, 
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr" }}>
           {[
             { title:"Management Team", items:mgmt, labelKey:"role", valKey:"salary", step:5000, onEdit:onMgmt, total:mgmtTotal, totalLabel:"Total w/ 22% burden" },
-            { title:"Operating Overhead", items:overhead, labelKey:"item",  valKey:"amount", step:1000, onEdit:onOvhd, total:overheadTotal, totalLabel:"Total Overhead" },
           ].map((sec,si)=>(
-            <div key={si} style={{ padding:"14px 18px", borderRight:si===0?"1px solid #e8edf3":"none" }}>
+            <div key={si} style={{ padding:"14px 18px", borderRight:"1px solid #e8edf3" }}>
               <SL>{sec.title}</SL>
               {sec.items.map(r=>(
                 <div key={r.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
@@ -504,8 +504,72 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, 
               </div>
             </div>
           ))}
+
+          {/* Operating Overhead — percentage standard by default, itemized override */}
+          <div style={{ padding:"14px 18px" }}>
+            <SL>Operating Overhead (G&amp;A)</SL>
+            <div style={{ display:"flex", gap:6, margin:"8px 0 10px" }}>
+              {[
+                { k:'percent',  l:'Standard %' },
+                { k:'itemized', l:'Itemized' },
+              ].map(opt=>(
+                <button key={opt.k} onClick={()=>onOverheadMode?.(opt.k)}
+                  style={{ flex:1, fontSize:10, padding:"4px 8px", borderRadius:5, cursor:"pointer", ...M,
+                    border:`1px solid ${overheadMode===opt.k ? "#0E6B78" : "#d0dae8"}`,
+                    background: overheadMode===opt.k ? "#0E6B78" : "transparent",
+                    color: overheadMode===opt.k ? "#FAF4E8" : "#5a4020" }}>
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+
+            {overheadMode === 'percent' ? (
+              <>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
+                  <span style={{ fontSize:10, color:"#5a4020", flex:1 }}>% of net revenue</span>
+                  <div style={{ display:"flex", alignItems:"center", gap:3, background:"#ebebeb", borderRadius:5, padding:"2px 7px", border:"1px solid #d0dae8" }}>
+                    <input type="number" value={overheadPct} min={0} max={40} step={0.5}
+                      onChange={e=>onOverheadPct?.(Number(e.target.value))}
+                      style={{ width:54, background:"none", border:"none", color:"#0A3D47", ...M, fontSize:11, fontWeight:700, outline:"none", textAlign:"right" }}/>
+                    <span style={{ fontSize:9, color:"#9a8050" }}>%</span>
+                  </div>
+                </div>
+                <div style={{ fontSize:9.5, color:"#8a7a5a", lineHeight:1.5, marginBottom:8 }}>
+                  Default {DEFAULT_OVERHEAD_PCT}% covers rent &amp; occupancy, insurance, admin software
+                  &amp; billing systems, vehicles/travel, training &amp; compliance, professional fees,
+                  office supplies, recruiting and technology — on top of the management and billing fees.
+                </div>
+              </>
+            ) : (
+              <>
+                {overhead.map(r=>(
+                  <div key={r.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
+                    <span style={{ fontSize:10, color:"#5a4020", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.item}</span>
+                    <div style={{ display:"flex", alignItems:"center", gap:3, background:"#ebebeb", borderRadius:5, padding:"2px 7px", border:"1px solid #d0dae8" }}>
+                      <span style={{ fontSize:9, color:"#9a8050" }}>$</span>
+                      <input type="number" value={r.amount} min={0} step={1000}
+                        onChange={e=>onOvhd(r.id, Number(e.target.value))}
+                        style={{ width:68, background:"none", border:"none", color:"#0A3D47", ...M, fontSize:11, fontWeight:700, outline:"none", textAlign:"right" }}/>
+                    </div>
+                  </div>
+                ))}
+                {overhead.length === 0 && (
+                  <div style={{ fontSize:9.5, color:"#8a7a5a", lineHeight:1.5, marginBottom:8 }}>
+                    No overhead line items yet — this company is modeling $0 of G&amp;A.
+                    Switch back to Standard % to apply the {DEFAULT_OVERHEAD_PCT}% benchmark.
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{ paddingTop:7, borderTop:"1px solid #d0dae8", display:"flex", justifyContent:"space-between", fontSize:11 }}>
+              <span style={{ color:"#5a4020" }}>Total Overhead</span>
+              <span style={{ fontWeight:800, color:"#D4A520", ...M }}>{$k(overheadTotal)}</span>
+            </div>
+          </div>
         </div>
       )}
+
     </div>
   );
 }
@@ -597,7 +661,7 @@ function LaborRatioBar({ ratio, height = 6 }) {
   );
 }
 
-function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
+function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, overheadMode, overheadPct, onOverheadMode, onOverheadPct, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
   const showDollars = canSeeCompanyDollars(userRole);
   const showMargin  = canSeeMargin(userRole);
   const showRevenue = canSeeRevenue(userRole);
@@ -629,7 +693,7 @@ function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate,
         )}
       </div>
       {showMargin ? (
-        <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
+        <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={onOverheadMode} onOverheadPct={onOverheadPct} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
       ) : (
         <div style={{ background:"#FAF4E8", borderRadius:13, border:"1px solid #d0dae8", padding:"18px 20px", fontSize:11, color:"#7a6040", ...M }}>
           Financial P&amp;L is restricted to Regional Director and above. Operational metrics remain available in the service-line tabs.
@@ -2232,6 +2296,8 @@ function summarizeCompany(co) {
   const rates         = shared.rates         ?? RATES_DEF;
   const mgmt          = shared.mgmt          ?? [];
   const overhead      = shared.overhead      ?? [];
+  const overheadMode  = shared.overheadMode  ?? 'percent';
+  const overheadPct   = shared.overheadPct   ?? DEFAULT_OVERHEAD_PCT;
   const mgmtFeePct    = shared.mgmtFeePct    ?? 5;
   const billingFeePct = shared.billingFeePct ?? 1;
 
@@ -2258,7 +2324,7 @@ function summarizeCompany(co) {
   const directLabor    = (dailyLabor * 365 + hourlyLabor + tsc.totalAnnualLabor + cdda.totalAnnualLabor + cse.totalAnnualLabor + (school.totalAnnualLaborRaw ?? 0)) * (occupancy / 100);
   const totalLabor     = directLabor * 1.22;
   const mgmtTotal      = mgmt.reduce((a,m) => a + (m.salary || 0), 0) * 1.22;
-  const overheadTotal  = overhead.reduce((a,o) => a + (o.amount || 0), 0);
+  const overheadTotal  = overheadTotalFor(shared, revNet);
   const totalCosts     = totalLabor + mgmtTotal + overheadTotal + revNet * (mgmtFeePct / 100) + revNet * (billingFeePct / 100);
   const ebitda         = revNet - totalCosts;
   const ebitdaMgn      = revNet > 0 ? ebitda / revNet : 0;
@@ -3025,6 +3091,8 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
   const rates         = shared.rates         ?? RATES_DEF;
   const mgmt          = shared.mgmt          ?? [];
   const overhead      = shared.overhead      ?? [];
+  const overheadMode  = shared.overheadMode  ?? 'percent';
+  const overheadPct   = shared.overheadPct   ?? DEFAULT_OVERHEAD_PCT;
   const mgmtFeePct    = shared.mgmtFeePct    ?? 5;
   const billingFeePct = shared.billingFeePct ?? 1;
 
@@ -3042,6 +3110,8 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
     typeof updater === 'function' ? updater(mgmt) : updater);
   const setOverhead = (updater) => updateShared("overhead",
     typeof updater === 'function' ? updater(overhead) : updater);
+  const setOverheadMode = v => updateShared("overheadMode", v);
+  const setOverheadPct  = v => updateShared("overheadPct", v);
 
   const upsertVolumeEntry = (entry) => {
     const current = company?.shared?.volumeLog ?? [];
@@ -3145,7 +3215,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
     const payrollBurden     = annualDirectLabor * 0.22;
     const totalLabor        = annualDirectLabor + payrollBurden;
     const mgmtTotal         = mgmt.reduce((a, m) => a + (m.salary || 0), 0) * 1.22;
-    const overheadTotal     = overhead.reduce((a, o) => a + (o.amount || 0), 0);
+    const overheadTotal     = overheadTotalFor(shared, annualRevNet);
     const mgmtFee           = annualRevNet * (mgmtFeePct / 100);
     const billingFee        = annualRevNet * (billingFeePct / 100);
     const totalCosts        = totalLabor + mgmtTotal + overheadTotal + mgmtFee + billingFee;
@@ -3187,7 +3257,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
       ebitda, ebitdaMargin, stateTax, federalTax, totalTax, netIncome, netMargin,
       slBreakdown,
     };
-  }, [indHomeMetrics, indHomes, occupancy, mgmt, overhead, entityType, ownerRate, rates, mgmtFeePct, billingFeePct, hourlyTotals, tscSummary, childrensddaSummary, cseSummary, schoolSummary]);
+  }, [indHomeMetrics, indHomes, occupancy, mgmt, overhead, overheadMode, overheadPct, entityType, ownerRate, rates, mgmtFeePct, billingFeePct, hourlyTotals, tscSummary, childrensddaSummary, cseSummary, schoolSummary]);
 
   // Hourly handlers
   const updateHourly = (id, f, v) => setHourlyPx(p => p.map(h => h.id === id ? { ...h, [f]: v } : h));
@@ -3461,7 +3531,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
 
               {/* WHOLE COMPANY tabs */}
               {isWholeCompany && subTab === "company" && canSeeCompanyDollars(userRole) && (
-                <CompanyTab co={co} mgmt={mgmt} overhead={overhead}
+                <CompanyTab co={co} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                   onMgmt={(id, v) => setMgmt(p => p.map(m => m.id === id ? { ...m, salary: v } : m))}
                   onOvhd={(id, v) => setOverhead(p => p.map(o => o.id === id ? { ...o, amount: v } : o))}
                   entityType={entityType} ownerRate={ownerRate}
@@ -3509,7 +3579,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                 const slCo = calcSLCo({ annualRevGrossRaw:rawRev, annualLaborRaw:rawLabor,
                   totalHomes:slHomes, totalClients:slClients, occupancy, mgmtFeePct, billingFeePct,
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
-                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                   onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                   onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                   entityType={entityType} ownerRate={ownerRate}
@@ -3529,7 +3599,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   annualLaborRaw:hourlyTotals.annualLabor, totalHomes:0,
                   totalClients:hourlyPx.length, occupancy, mgmtFeePct, billingFeePct,
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
-                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                   onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                   onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                   entityType={entityType} ownerRate={ownerRate}
@@ -3596,7 +3666,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
                 return (
                   <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                       onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                       onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                       entityType={entityType} ownerRate={ownerRate}
@@ -3626,7 +3696,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
                 return (
                   <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                       onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                       onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                       entityType={entityType} ownerRate={ownerRate}
