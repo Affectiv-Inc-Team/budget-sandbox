@@ -106,6 +106,13 @@ export function createSharedConfig(overrides = {}) {
     mgmt: [],
     overhead: [],
 
+    // Operating overhead model:
+    //   'percent'  → overhead = overheadPct % of net revenue (default standard)
+    //   'itemized' → overhead = sum of the `overhead` line items
+    overheadMode: 'percent',
+    overheadPct: DEFAULT_OVERHEAD_PCT,
+
+
     // Forward-looking allocation
     sharedOverhead: {
       fixedAnnual: 0,
