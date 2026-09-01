@@ -280,10 +280,21 @@ function normalizeV2(config) {
       return sl;
     });
     // Seed volumeLog on companies that predate the feature
-    const shared = co.shared && !co.shared.volumeLog
+    let shared = co.shared && !co.shared.volumeLog
       ? (changed = true, { ...co.shared, volumeLog: [] })
       : co.shared;
+    // Seed the overhead model. Companies that already itemized keep itemized;
+    // everyone else picks up the percent-of-revenue standard.
+    if (shared && !shared.overheadMode) {
+      changed = true;
+      shared = {
+        ...shared,
+        overheadMode: (shared.overhead ?? []).length > 0 ? 'itemized' : 'percent',
+        overheadPct: shared.overheadPct ?? DEFAULT_OVERHEAD_PCT,
+      };
+    }
     return { ...co, serviceLines, shared };
+
   });
   return changed ? { ...config, companies } : config;
 }
