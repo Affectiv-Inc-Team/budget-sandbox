@@ -370,13 +370,13 @@ new section for it here.
 Operating Overhead now has two modes, stored on `company.shared`:
 
 - `overheadMode: 'percent'` (default) — overhead = `overheadPct` % of **net revenue**.
-  Default `overheadPct` is **12%** (`DEFAULT_OVERHEAD_PCT` in `src/lib/companyShape.js`).
+  Default `overheadPct` is **14%** (`DEFAULT_OVERHEAD_PCT` in `src/lib/companyShape.js`).
 - `overheadMode: 'itemized'` — overhead = sum of the `shared.overhead` line items (legacy behavior).
 
 Helper: `overheadTotalFor(shared, netRevenue)` in `src/lib/companyShape.js`; used by both the
 company P&L memo and the portfolio rollup in `src/pages/FinancialTool.jsx`.
 
-What the 12% covers: rent & occupancy, insurance (GL/professional/auto/workers-comp admin),
+What the 14% covers: rent & occupancy, insurance (GL/professional/auto/workers-comp admin),
 admin software & billing systems, vehicles & travel, training & compliance, professional fees
 (legal/accounting), office supplies & communications, recruiting, and technology. It sits **on
 top of** the management fee (5%) and billing fee (1%), for ~18% total non-direct load.

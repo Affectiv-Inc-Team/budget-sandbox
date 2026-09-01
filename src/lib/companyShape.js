@@ -69,7 +69,7 @@ const DEFAULT_RES_HAB_RATES = { intenseDaily: 678.77, highDaily: 368.67, iuUnit:
 // management fee and billing fee. Covers rent/occupancy, insurance, admin
 // software & billing systems, vehicles/travel, training & compliance,
 // professional fees, office/supplies, recruiting, and technology.
-export const DEFAULT_OVERHEAD_PCT = 12;
+export const DEFAULT_OVERHEAD_PCT = 14;
 
 /**
  * Effective annual operating overhead for a company.
