@@ -384,7 +384,7 @@ function MixBadges({ nHigh, nIntense, size=22 }) {
 /* ══════════════════════════════════════════════════════════
    COMPANY P&L PANEL
 ══════════════════════════════════════════════════════════ */
-function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, slBreakdown, title, userRole }) {
+function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, overheadMode = 'percent', overheadPct = DEFAULT_OVERHEAD_PCT, onOverheadMode, onOverheadPct, entityType, ownerRate, mgmtFeePct, billingFeePct, slBreakdown, title, userRole }) {
   const [showEdit, setShowEdit] = useState(false);
   const { annualRevGross, annualRevNet, annualDirectLabor, payrollBurden, totalLabor,
     mgmtTotal, overheadTotal, mgmtFee, billingFee, totalCosts, ebitda, ebitdaMargin,
@@ -409,7 +409,8 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, 
     { l: showBreakdown ? "Direct Care Labor (total)" : "Direct Care Labor", v:-annualDirectLabor, t:"cost" },
     { l:"Payroll Burden (22%)",                         v:-payrollBurden,               t:"cost" },
     { l:"Management & Admin (Salaries)",                v:-mgmtTotal,                   t:"cost" },
-    { l:"Operating Overhead",                           v:-overheadTotal,               t:"cost" },
+    { l: overheadMode === 'percent' ? `Operating Overhead (${overheadPct}% of revenue)` : "Operating Overhead (itemized)",
+                                                        v:-overheadTotal,               t:"cost" },
     { l:`Management Fee (${mgmtFeePct}% of revenue)`,  v:-mgmtFee,                     t:"fee" },
     { l:`Billing Fee (${billingFeePct}% of revenue)`,  v:-billingFee,                  t:"fee" },
     { l:"Total Costs",                                  v:-totalCosts,                  t:"sub" },
@@ -597,7 +598,7 @@ function LaborRatioBar({ ratio, height = 6 }) {
   );
 }
 
-function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
+function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, overheadMode, overheadPct, onOverheadMode, onOverheadPct, entityType, ownerRate, mgmtFeePct, billingFeePct, hourlyCount, tscCaseload, slBreakdown, userRole }) {
   const showDollars = canSeeCompanyDollars(userRole);
   const showMargin  = canSeeMargin(userRole);
   const showRevenue = canSeeRevenue(userRole);
@@ -629,7 +630,7 @@ function CompanyTab({ co, mgmt, overhead, onMgmt, onOvhd, entityType, ownerRate,
         )}
       </div>
       {showMargin ? (
-        <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
+        <CompanyPL co={co} mgmt={mgmt} overhead={overhead} onMgmt={onMgmt} onOvhd={onOvhd} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={onOverheadMode} onOverheadPct={onOverheadPct} entityType={entityType} ownerRate={ownerRate} mgmtFeePct={mgmtFeePct} billingFeePct={billingFeePct} slBreakdown={slBreakdown} userRole={userRole}/>
       ) : (
         <div style={{ background:"#FAF4E8", borderRadius:13, border:"1px solid #d0dae8", padding:"18px 20px", fontSize:11, color:"#7a6040", ...M }}>
           Financial P&amp;L is restricted to Regional Director and above. Operational metrics remain available in the service-line tabs.
@@ -3467,7 +3468,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
 
               {/* WHOLE COMPANY tabs */}
               {isWholeCompany && subTab === "company" && canSeeCompanyDollars(userRole) && (
-                <CompanyTab co={co} mgmt={mgmt} overhead={overhead}
+                <CompanyTab co={co} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                   onMgmt={(id, v) => setMgmt(p => p.map(m => m.id === id ? { ...m, salary: v } : m))}
                   onOvhd={(id, v) => setOverhead(p => p.map(o => o.id === id ? { ...o, amount: v } : o))}
                   entityType={entityType} ownerRate={ownerRate}
@@ -3515,7 +3516,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                 const slCo = calcSLCo({ annualRevGrossRaw:rawRev, annualLaborRaw:rawLabor,
                   totalHomes:slHomes, totalClients:slClients, occupancy, mgmtFeePct, billingFeePct,
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
-                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                   onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                   onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                   entityType={entityType} ownerRate={ownerRate}
@@ -3535,7 +3536,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   annualLaborRaw:hourlyTotals.annualLabor, totalHomes:0,
                   totalClients:hourlyPx.length, occupancy, mgmtFeePct, billingFeePct,
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
-                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                return <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                   onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                   onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                   entityType={entityType} ownerRate={ownerRate}
@@ -3602,7 +3603,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
                 return (
                   <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                       onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                       onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                       entityType={entityType} ownerRate={ownerRate}
@@ -3632,7 +3633,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
                   entityType, ownerRate, revShare, fullMgmtTotal:co.mgmtTotal, fullOverheadTotal:co.overheadTotal });
                 return (
                   <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead}
+                    <CompanyPL co={slCo} mgmt={mgmt} overhead={overhead} overheadMode={overheadMode} overheadPct={overheadPct} onOverheadMode={setOverheadMode} onOverheadPct={setOverheadPct}
                       onMgmt={(id,v)=>setMgmt(p=>p.map(m=>m.id===id?{...m,salary:v}:m))}
                       onOvhd={(id,v)=>setOverhead(p=>p.map(o=>o.id===id?{...o,amount:v}:o))}
                       entityType={entityType} ownerRate={ownerRate}
