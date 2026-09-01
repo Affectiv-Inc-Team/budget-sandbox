@@ -484,9 +484,8 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, overheadMode = 'percent
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr" }}>
           {[
             { title:"Management Team", items:mgmt, labelKey:"role", valKey:"salary", step:5000, onEdit:onMgmt, total:mgmtTotal, totalLabel:"Total w/ 22% burden" },
-            { title:"Operating Overhead", items:overhead, labelKey:"item",  valKey:"amount", step:1000, onEdit:onOvhd, total:overheadTotal, totalLabel:"Total Overhead" },
           ].map((sec,si)=>(
-            <div key={si} style={{ padding:"14px 18px", borderRight:si===0?"1px solid #e8edf3":"none" }}>
+            <div key={si} style={{ padding:"14px 18px", borderRight:"1px solid #e8edf3" }}>
               <SL>{sec.title}</SL>
               {sec.items.map(r=>(
                 <div key={r.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
@@ -505,8 +504,72 @@ function CompanyPL({ co, mgmt, overhead, onMgmt, onOvhd, overheadMode = 'percent
               </div>
             </div>
           ))}
+
+          {/* Operating Overhead — percentage standard by default, itemized override */}
+          <div style={{ padding:"14px 18px" }}>
+            <SL>Operating Overhead (G&amp;A)</SL>
+            <div style={{ display:"flex", gap:6, margin:"8px 0 10px" }}>
+              {[
+                { k:'percent',  l:'Standard %' },
+                { k:'itemized', l:'Itemized' },
+              ].map(opt=>(
+                <button key={opt.k} onClick={()=>onOverheadMode?.(opt.k)}
+                  style={{ flex:1, fontSize:10, padding:"4px 8px", borderRadius:5, cursor:"pointer", ...M,
+                    border:`1px solid ${overheadMode===opt.k ? "#0E6B78" : "#d0dae8"}`,
+                    background: overheadMode===opt.k ? "#0E6B78" : "transparent",
+                    color: overheadMode===opt.k ? "#FAF4E8" : "#5a4020" }}>
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+
+            {overheadMode === 'percent' ? (
+              <>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
+                  <span style={{ fontSize:10, color:"#5a4020", flex:1 }}>% of net revenue</span>
+                  <div style={{ display:"flex", alignItems:"center", gap:3, background:"#ebebeb", borderRadius:5, padding:"2px 7px", border:"1px solid #d0dae8" }}>
+                    <input type="number" value={overheadPct} min={0} max={40} step={0.5}
+                      onChange={e=>onOverheadPct?.(Number(e.target.value))}
+                      style={{ width:54, background:"none", border:"none", color:"#0A3D47", ...M, fontSize:11, fontWeight:700, outline:"none", textAlign:"right" }}/>
+                    <span style={{ fontSize:9, color:"#9a8050" }}>%</span>
+                  </div>
+                </div>
+                <div style={{ fontSize:9.5, color:"#8a7a5a", lineHeight:1.5, marginBottom:8 }}>
+                  Default {DEFAULT_OVERHEAD_PCT}% covers rent &amp; occupancy, insurance, admin software
+                  &amp; billing systems, vehicles/travel, training &amp; compliance, professional fees,
+                  office supplies, recruiting and technology — on top of the management and billing fees.
+                </div>
+              </>
+            ) : (
+              <>
+                {overhead.map(r=>(
+                  <div key={r.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
+                    <span style={{ fontSize:10, color:"#5a4020", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.item}</span>
+                    <div style={{ display:"flex", alignItems:"center", gap:3, background:"#ebebeb", borderRadius:5, padding:"2px 7px", border:"1px solid #d0dae8" }}>
+                      <span style={{ fontSize:9, color:"#9a8050" }}>$</span>
+                      <input type="number" value={r.amount} min={0} step={1000}
+                        onChange={e=>onOvhd(r.id, Number(e.target.value))}
+                        style={{ width:68, background:"none", border:"none", color:"#0A3D47", ...M, fontSize:11, fontWeight:700, outline:"none", textAlign:"right" }}/>
+                    </div>
+                  </div>
+                ))}
+                {overhead.length === 0 && (
+                  <div style={{ fontSize:9.5, color:"#8a7a5a", lineHeight:1.5, marginBottom:8 }}>
+                    No overhead line items yet — this company is modeling $0 of G&amp;A.
+                    Switch back to Standard % to apply the {DEFAULT_OVERHEAD_PCT}% benchmark.
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{ paddingTop:7, borderTop:"1px solid #d0dae8", display:"flex", justifyContent:"space-between", fontSize:11 }}>
+              <span style={{ color:"#5a4020" }}>Total Overhead</span>
+              <span style={{ fontWeight:800, color:"#D4A520", ...M }}>{$k(overheadTotal)}</span>
+            </div>
+          </div>
         </div>
       )}
+
     </div>
   );
 }
