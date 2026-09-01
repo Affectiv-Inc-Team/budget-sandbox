@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -784,15 +784,6 @@ export type Database = {
         }
         Returns: string
       }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
-      email_queue_dispatch: { Args: never; Returns: undefined }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
-      }
       get_company_member_org_roles: {
         Args: { p_company_id: string }
         Returns: {
@@ -822,15 +813,6 @@ export type Database = {
       has_company_access: { Args: { p_company_id: string }; Returns: boolean }
       is_company_admin: { Args: { p_company_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
-      }
       postgres_fdw_disconnect: { Args: { "": string }; Returns: boolean }
       postgres_fdw_disconnect_all: { Args: never; Returns: boolean }
       postgres_fdw_get_connections: {
@@ -839,14 +821,6 @@ export type Database = {
       }
       postgres_fdw_handler: { Args: never; Returns: unknown }
       profile_role_tier: { Args: never; Returns: number }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
-        }[]
-      }
       referral_reveal_ssn: { Args: { p_referral_id: string }; Returns: string }
       referral_set_ssn: {
         Args: { p_referral_id: string; p_ssn: string }
