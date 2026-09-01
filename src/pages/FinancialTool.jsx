@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 
 // ── New architecture imports ──
-import { migrateConfig, getSelectedCompany, createServiceLine, createSharedConfig } from "../lib/companyShape.js";
+import { migrateConfig, getSelectedCompany, createServiceLine, createSharedConfig, overheadTotalFor, DEFAULT_OVERHEAD_PCT } from "../lib/companyShape.js";
 import { SERVICE_LINE_TYPES, SERVICE_LINE_DEFS, getShortLabel, getGroupedPickerOptions } from "../serviceLines/types.js";
 import { ratesForLine } from "../data/idahoRates.js";
 import { TSCCurrentServicesTab, TSCSandboxTab, TSCPLTab, TSCRateScheduleTab, calcTSCService } from "../serviceLines/tsc.jsx";
@@ -2232,6 +2232,8 @@ function summarizeCompany(co) {
   const rates         = shared.rates         ?? RATES_DEF;
   const mgmt          = shared.mgmt          ?? [];
   const overhead      = shared.overhead      ?? [];
+  const overheadMode  = shared.overheadMode  ?? 'percent';
+  const overheadPct   = shared.overheadPct   ?? DEFAULT_OVERHEAD_PCT;
   const mgmtFeePct    = shared.mgmtFeePct    ?? 5;
   const billingFeePct = shared.billingFeePct ?? 1;
 
@@ -2258,7 +2260,7 @@ function summarizeCompany(co) {
   const directLabor    = (dailyLabor * 365 + hourlyLabor + tsc.totalAnnualLabor + cdda.totalAnnualLabor + cse.totalAnnualLabor + (school.totalAnnualLaborRaw ?? 0)) * (occupancy / 100);
   const totalLabor     = directLabor * 1.22;
   const mgmtTotal      = mgmt.reduce((a,m) => a + (m.salary || 0), 0) * 1.22;
-  const overheadTotal  = overhead.reduce((a,o) => a + (o.amount || 0), 0);
+  const overheadTotal  = overheadTotalFor(shared, revNet);
   const totalCosts     = totalLabor + mgmtTotal + overheadTotal + revNet * (mgmtFeePct / 100) + revNet * (billingFeePct / 100);
   const ebitda         = revNet - totalCosts;
   const ebitdaMgn      = revNet > 0 ? ebitda / revNet : 0;
@@ -3025,6 +3027,8 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
   const rates         = shared.rates         ?? RATES_DEF;
   const mgmt          = shared.mgmt          ?? [];
   const overhead      = shared.overhead      ?? [];
+  const overheadMode  = shared.overheadMode  ?? 'percent';
+  const overheadPct   = shared.overheadPct   ?? DEFAULT_OVERHEAD_PCT;
   const mgmtFeePct    = shared.mgmtFeePct    ?? 5;
   const billingFeePct = shared.billingFeePct ?? 1;
 
@@ -3042,6 +3046,8 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
     typeof updater === 'function' ? updater(mgmt) : updater);
   const setOverhead = (updater) => updateShared("overhead",
     typeof updater === 'function' ? updater(overhead) : updater);
+  const setOverheadMode = v => updateShared("overheadMode", v);
+  const setOverheadPct  = v => updateShared("overheadPct", v);
 
   const upsertVolumeEntry = (entry) => {
     const current = company?.shared?.volumeLog ?? [];
@@ -3145,7 +3151,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
     const payrollBurden     = annualDirectLabor * 0.22;
     const totalLabor        = annualDirectLabor + payrollBurden;
     const mgmtTotal         = mgmt.reduce((a, m) => a + (m.salary || 0), 0) * 1.22;
-    const overheadTotal     = overhead.reduce((a, o) => a + (o.amount || 0), 0);
+    const overheadTotal     = overheadTotalFor(shared, annualRevNet);
     const mgmtFee           = annualRevNet * (mgmtFeePct / 100);
     const billingFee        = annualRevNet * (billingFeePct / 100);
     const totalCosts        = totalLabor + mgmtTotal + overheadTotal + mgmtFee + billingFee;
@@ -3187,7 +3193,7 @@ export default function App({ initialConfig, onSave, userRole, userEmail, onSign
       ebitda, ebitdaMargin, stateTax, federalTax, totalTax, netIncome, netMargin,
       slBreakdown,
     };
-  }, [indHomeMetrics, indHomes, occupancy, mgmt, overhead, entityType, ownerRate, rates, mgmtFeePct, billingFeePct, hourlyTotals, tscSummary, childrensddaSummary, cseSummary, schoolSummary]);
+  }, [indHomeMetrics, indHomes, occupancy, mgmt, overhead, overheadMode, overheadPct, entityType, ownerRate, rates, mgmtFeePct, billingFeePct, hourlyTotals, tscSummary, childrensddaSummary, cseSummary, schoolSummary]);
 
   // Hourly handlers
   const updateHourly = (id, f, v) => setHourlyPx(p => p.map(h => h.id === id ? { ...h, [f]: v } : h));
