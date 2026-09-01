@@ -341,6 +341,7 @@ function migrateFlatV1(flat) {
     rates:         flat.rates          ?? { ...DEFAULT_RES_HAB_RATES },
     mgmt:          flat.mgmt           ?? [],
     overhead:      flat.overhead       ?? [],
+    overheadMode:  (flat.overhead ?? []).length > 0 ? 'itemized' : 'percent',
   });
 
   const serviceLines = [];
