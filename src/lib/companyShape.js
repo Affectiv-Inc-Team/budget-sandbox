@@ -65,6 +65,24 @@ import { SERVICE_LINE_TYPES, getDefaultConfig } from '../serviceLines/types.js';
 // Default Res Hab rates (mirror of legacy RATES_DEF in FinancialTool.jsx)
 const DEFAULT_RES_HAB_RATES = { intenseDaily: 678.77, highDaily: 368.67, iuUnit: 7.07, igUnit: 3.61 };
 
+// Default operating overhead (G&A) as a % of net revenue, applied on top of the
+// management fee and billing fee. Covers rent/occupancy, insurance, admin
+// software & billing systems, vehicles/travel, training & compliance,
+// professional fees, office/supplies, recruiting, and technology.
+export const DEFAULT_OVERHEAD_PCT = 12;
+
+/**
+ * Effective annual operating overhead for a company.
+ * percent mode → % of net revenue; itemized mode → sum of line items.
+ */
+export function overheadTotalFor(shared = {}, netRevenue = 0) {
+  const mode = shared.overheadMode ?? 'percent';
+  if (mode === 'itemized') {
+    return (shared.overhead ?? []).reduce((a, o) => a + (o.amount || 0), 0);
+  }
+  return Math.max(0, netRevenue) * ((shared.overheadPct ?? DEFAULT_OVERHEAD_PCT) / 100);
+}
+
 // ──────────────────────────────────────────────────────────────────────
 // ID generation
 // ──────────────────────────────────────────────────────────────────────
